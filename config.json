@@ -1,0 +1,48 @@
+{
+	"VoiceServer":
+	{
+		"Host": "10.0.0.101",
+		"Port": 27020,
+		"SampleRate": 48000
+	},
+	"SMAPIServer":
+	{
+		"Host": "10.0.0.101",
+		"Port": 27021
+	},
+
+	"AudioLimits":
+	{
+		"0":
+		{
+			"Uses": -1,
+			"TotalTime": 12.5,
+			"MaxLength": 5.0,
+			"DelayFactor": 10.0
+		},
+		"1":
+		{
+			"Uses": -1,
+			"TotalTime": 17.5,
+			"MaxLength": 5.0,
+			"DelayFactor": 5.0
+		}
+	},
+	"AntiSpam":
+	{
+		"MaxUsageSpan": 60,
+		"MaxUsageTime": 10,
+		"PunishDelay": 60,
+		"ImmunityLevel": 4
+	},
+
+	"TorchRCON":
+	{
+		"Host": "0.0.0.0",
+		"Port": 27015,
+		"Password": "***"
+	},
+
+	"WolframAPIKey": "***",
+	"WundergroundAPIKey": "***"
+}
