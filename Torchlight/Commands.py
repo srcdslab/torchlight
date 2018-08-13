@@ -115,7 +115,7 @@ class URLFilter(BaseCommand):
 class Access(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
-		self.Triggers = ["!access", "!who", "!whois"]
+		self.Triggers = ["!access"] #, "!who", "!whois"]
 		self.Level = 0
 
 	def FormatAccess(self, player):
@@ -263,6 +263,16 @@ class WolframAlpha(BaseCommand):
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+
+		Level = 0
+		if player.Access:
+			Level = player.Access["level"]
+
+		Disabled = self.Torchlight().Disabled
+		if Disabled and (Disabled > Level or Disabled == Level and Level < self.Torchlight().Config["AntiSpam"]["ImmunityLevel"]):
+			self.Torchlight().SayPrivate(player, "Torchlight is currently disabled!")
+			return 1
+
 		Params = dict({"input": message[1], "appid": self.Torchlight().Config["WolframAPIKey"]})
 		Ret = await self.Calculate(Params)
 		return Ret
@@ -332,6 +342,28 @@ class WUnderground(BaseCommand):
 			Observation["relative_humidity"]))
 
 		return 0
+
+class VoteDisable(BaseCommand):
+	def __init__(self, torchlight):
+		super().__init__(torchlight)
+		self.Triggers = ["!votedisable", "!disablevote"]
+		self.Level = 0
+
+	async def _func(self, message, player):
+		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+		if self.Torchlight().Disabled:
+			self.Torchlight().SayPrivate(player, "Torchlight is already disabled for the duration of this map.")
+			return
+
+		self.Torchlight().DisableVotes.add(player.UniqueID)
+
+		have = len(self.Torchlight().DisableVotes)
+		needed = len(self.Torchlight().Players) // 5
+		if have >= needed:
+			self.Torchlight().SayChat("Torchlight has been disabled for the duration of this map.")
+			self.Torchlight().Disabled = 6
+		else:
+			self.Torchlight().SayPrivate(player, "Torchlight needs {0} more disable votes to be disabled.".format(needed - have))
 
 ### LEVEL 0 COMMANDS ###
 
@@ -409,7 +441,7 @@ class YouTube(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!yt"]
-		self.Level = 0
+		self.Level = 2
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -446,7 +478,7 @@ class YouTubeSearch(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!yts"]
-		self.Level = 0
+		self.Level = 2
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -492,14 +524,14 @@ class YouTubeSearch(BaseCommand):
 class Say(BaseCommand):
 	import gtts
 	import tempfile
-	VALID_LANGUAGES = [lang for lang in gtts.gTTS.LANGUAGES.keys()]
+	VALID_LANGUAGES = [lang for lang in gtts.lang.tts_langs().keys()]
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = [("!say", 4)]
 		self.Level = 0
 
 	async def Say(self, player, language, message):
-		GTTS = self.gtts.gTTS(text = message, lang = language, debug = False)
+		GTTS = self.gtts.gTTS(text = message, lang = language)
 
 		TempFile = self.tempfile.NamedTemporaryFile(delete = False)
 		GTTS.write_to_fp(TempFile)

@@ -51,7 +51,7 @@ class AsyncClient():
 
 	async def Connect(self):
 		while True:
-			self.Logger.warn("Connecting...")
+			self.Logger.warn("Reconnecting...")
 			try:
 				_, self.Protocol = await self.Loop.create_connection(
 					lambda: ClientProtocol(self.Loop, self), host = self.Host, port = self.Port)

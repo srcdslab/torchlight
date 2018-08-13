@@ -31,6 +31,7 @@ class Torchlight():
 		self.API = SourceModAPI(self.WeakSelf)
 		self.GameEvents = GameEvents(self.WeakSelf)
 
+		self.DisableVotes = set()
 		self.Disabled = 0
 		self.LastUrl = None
 
@@ -71,6 +72,7 @@ class Torchlight():
 			self.GameEvents.OnPublish(obj)
 
 	def Event_ServerSpawn(self, hostname, address, ip, port, game, mapname, maxplayers, os, dedicated, password):
+		self.DisableVotes = set()
 		self.Disabled = 0
 
 	def Event_PlayerSay(self, userid, text):

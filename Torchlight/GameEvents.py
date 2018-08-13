@@ -137,6 +137,10 @@ class GameEvents():
 		Callbacks = self.Callbacks[Event["name"]]
 
 		for Callback in Callbacks:
-			Callback(**Event["data"])
+			try:
+				Callback(**Event["data"])
+			except Exception as e:
+				self.Logger.error(traceback.format_exc())
+				self.Logger.error(Event)
 
 		return True
