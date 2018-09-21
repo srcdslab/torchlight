@@ -57,12 +57,14 @@ class FFmpegAudioPlayer():
 		self.Master.Logger.debug("~FFmpegAudioPlayer()")
 		self.Stop()
 
-	def PlayURI(self, uri, position = None):
+	def PlayURI(self, uri, position, *args):
 		if position:
 			PosStr = str(datetime.timedelta(seconds = position))
-			Command = ["/usr/bin/ffmpeg", "-ss", PosStr, "-i", uri, "-acodec", "pcm_s16le", "-ac", "1", "-ar", str(int(self.SampleRate)), "-f", "s16le", "-"]
+			Command = ["/usr/bin/ffmpeg", "-ss", PosStr, "-i", uri, "-acodec", "pcm_s16le", "-ac", "1", "-ar", str(int(self.SampleRate)), "-f", "s16le", *args, "-"]
 		else:
-			Command = ["/usr/bin/ffmpeg", "-i", uri, "-acodec", "pcm_s16le", "-ac", "1", "-ar", str(int(self.SampleRate)), "-f", "s16le", "-"]
+			Command = ["/usr/bin/ffmpeg", "-i", uri, "-acodec", "pcm_s16le", "-ac", "1", "-ar", str(int(self.SampleRate)), "-f", "s16le", *args, "-"]
+
+		print(Command)
 
 		self.Playing = True
 		asyncio.ensure_future(self._stream_subprocess(Command))

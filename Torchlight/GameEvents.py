@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 import asyncio
+import logging
 
 class GameEvents():
 	def __init__(self, master):
+		self.Logger = logging.getLogger(__class__.__name__)
 		self.Torchlight = master
 
 		self.Callbacks = {}

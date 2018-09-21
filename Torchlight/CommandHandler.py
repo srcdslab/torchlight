@@ -50,6 +50,10 @@ class CommandHandler():
 			Message.append("")
 		Message[1] = Message[1].strip()
 
+		if Message[1] and self.Torchlight().LastUrl:
+			Message[1] = Message[1].replace("!last", self.Torchlight().LastUrl)
+			line = Message[0] + ' ' + Message[1]
+
 		Level = 0
 		if player.Access:
 			Level = player.Access["level"]

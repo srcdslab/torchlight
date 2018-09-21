@@ -37,6 +37,7 @@ class URLFilter(BaseCommand):
 		self.re_youtube = self.re.compile(r'.*?(?:youtube\.com\/\S*(?:(?:\/e(?:mbed))?\/|watch\?(?:\S*?&?v\=))|youtu\.be\/)([a-zA-Z0-9_-]{6,11}).*?')
 
 	async def URLInfo(self, url, yt = False):
+		Text = None
 		Info = None
 		match = self.re_youtube.search(url)
 		if match or yt:
@@ -62,7 +63,8 @@ class URLFilter(BaseCommand):
 			else:
 				match = None
 
-			url += "#t={0}".format(Time)
+			if Time:
+				url += "#t={0}".format(Time)
 
 		else:
 			try:
@@ -76,10 +78,13 @@ class URLFilter(BaseCommand):
 						if not ContentLength:
 							ContentLength = -1
 
-						if ContentType.startswith("text") and not ContentType.startswith("text/plain"):
-							Soup = self.BeautifulSoup(Content.decode("utf-8", errors = "ignore"), "lxml")
-							if Soup.title:
-								self.Torchlight().SayChat("[URL] {0}".format(Soup.title.string))
+						if ContentType.startswith("text"):
+							if ContentType.startswith("text/plain"):
+								Text = Content.decode("utf-8", errors = "ignore")
+							else:
+								Soup = self.BeautifulSoup(Content.decode("utf-8", errors = "ignore"), "lxml")
+								if Soup.title:
+									self.Torchlight().SayChat("[URL] {0}".format(Soup.title.string))
 						elif ContentType.startswith("image"):
 							fp = self.io.BytesIO(Content)
 							im = self.Image.open(fp)
@@ -95,7 +100,7 @@ class URLFilter(BaseCommand):
 				self.Logger.error(traceback.format_exc())
 
 		self.Torchlight().LastUrl = url
-		return url
+		return url, Text
 
 	async def _rfunc(self, line, match, player):
 		Url = match.groups()[0]
@@ -103,8 +108,13 @@ class URLFilter(BaseCommand):
 			Url = "http://" + Url
 
 		if line.startswith("!yt "):
-			URL = await self.URLInfo(Url, True)
+			URL, _ = await self.URLInfo(Url, True)
 			return "!yt " + URL
+
+		if line.startswith("!dec "):
+			_, text = await self.URLInfo(Url, False)
+			if text:
+				return "!dec " + text
 
 		asyncio.ensure_future(self.URLInfo(Url))
 		return -1
@@ -455,9 +465,6 @@ class YouTube(BaseCommand):
 			self.Torchlight().SayPrivate(player, "Torchlight is currently disabled!")
 			return 1
 
-		if self.Torchlight().LastUrl:
-			message[1] = message[1].replace("!last", self.Torchlight().LastUrl)
-
 		Temp = DataHolder()
 		Time = None
 
@@ -572,6 +579,52 @@ class Say(BaseCommand):
 			return 1
 
 		asyncio.ensure_future(self.Say(player, Language, message[1]))
+		return 0
+
+class DECTalk(BaseCommand):
+	import tempfile
+	def __init__(self, torchlight):
+		super().__init__(torchlight)
+		self.Triggers = ["!dec"]
+		self.Level = 0
+
+	async def Say(self, player, message):
+		message = "[:phoneme on]" + message
+		TempFile = self.tempfile.NamedTemporaryFile(delete = False)
+		TempFile.close()
+
+		Proc = await asyncio.create_subprocess_exec("wine", "say.exe", "-w", TempFile.name,
+			cwd = "dectalk", stdin = asyncio.subprocess.PIPE)
+		await Proc.communicate(message.encode('utf-8', errors='ignore'))
+
+		AudioClip = self.Torchlight().AudioManager.AudioClip(player, "file://" + TempFile.name)
+		if not AudioClip:
+			os.unlink(TempFile.name)
+			return 1
+
+		if AudioClip.Play(None, "-af", "volume=10dB"):
+			AudioClip.AudioPlayer.AddCallback("Stop", lambda: os.unlink(TempFile.name))
+			return 0
+		else:
+			os.unlink(TempFile.name)
+			return 1
+
+	async def _func(self, message, player):
+		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+
+		Level = 0
+		if player.Access:
+			Level = player.Access["level"]
+
+		Disabled = self.Torchlight().Disabled
+		if Disabled and (Disabled > Level or Disabled == Level and Level < self.Torchlight().Config["AntiSpam"]["ImmunityLevel"]):
+			self.Torchlight().SayPrivate(player, "Torchlight is currently disabled!")
+			return 1
+
+		if not message[1]:
+			return 1
+
+		asyncio.ensure_future(self.Say(player, message[1]))
 		return 0
 
 class Stop(BaseCommand):

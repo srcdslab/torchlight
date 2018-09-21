@@ -61,6 +61,7 @@ class AsyncClient():
 
 	def OnReceive(self, data):
 		Obj = json.loads(data)
+		print(Obj)
 
 		if "method" in Obj and Obj["method"] == "publish":
 			self.Master.OnPublish(Obj)
@@ -79,6 +80,7 @@ class AsyncClient():
 			return None
 
 		Data = json.dumps(obj, ensure_ascii = False, separators = (',', ':')).encode("UTF-8")
+		print(obj)
 
 		with (await self.SendLock):
 			if not self.Protocol:

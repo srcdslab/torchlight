@@ -224,8 +224,8 @@ class AudioClip():
 	def __del__(self):
 		self.Logger.info("~AudioClip()")
 
-	def Play(self, seconds = None):
-		return self.AudioPlayer.PlayURI(self.URI, seconds)
+	def Play(self, seconds = None, *args):
+		return self.AudioPlayer.PlayURI(self.URI, seconds, *args)
 
 	def Stop(self):
 		return self.AudioPlayer.Stop()
@@ -247,7 +247,7 @@ class AudioClip():
 			self.Player.Storage["Audio"]["LastUseLength"] += Delta
 
 		if str(self.Level) in self.Torchlight().Config["AudioLimits"]:
-			if self.Player:
+			if self.Player.Storage:
 				if self.Player.Storage["Audio"]["TimeUsed"] >= self.Torchlight().Config["AudioLimits"][str(self.Level)]["TotalTime"]:
 					self.Torchlight().SayPrivate(self.Player, "You have used up all of your free time! ({0} seconds)".format(
 						self.Torchlight().Config["AudioLimits"][str(self.Level)]["TotalTime"]))
