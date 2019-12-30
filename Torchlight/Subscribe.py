@@ -4,10 +4,11 @@ import asyncio
 import logging
 import traceback
 
-class GameEvents():
-	def __init__(self, master):
+class SubscribeBase():
+	def __init__(self, master, module):
 		self.Logger = logging.getLogger(__class__.__name__)
 		self.Torchlight = master
+		self.Module = module
 
 		self.Callbacks = {}
 
@@ -17,7 +18,7 @@ class GameEvents():
 
 		Obj = {
 			"method": "unsubscribe",
-			"module": "gameevents",
+			"module": self.Module,
 			"events": self.Callbacks.keys()
 		}
 
@@ -29,7 +30,7 @@ class GameEvents():
 
 		Obj = {
 			"method": "subscribe",
-			"module": "gameevents",
+			"module": self.Module,
 			"events": events
 		}
 
@@ -54,7 +55,7 @@ class GameEvents():
 
 		Obj = {
 			"method": "unsubscribe",
-			"module": "gameevents",
+			"module": self.Module,
 			"events": events
 		}
 
@@ -114,7 +115,7 @@ class GameEvents():
 
 		Obj = {
 			"method": "replay",
-			"module": "gameevents",
+			"module": self.Module,
 			"events": events
 		}
 
@@ -147,3 +148,12 @@ class GameEvents():
 				self.Logger.error(Event)
 
 		return True
+
+
+class GameEvents(SubscribeBase):
+	def __init__(self, master):
+		super().__init__(master, "gameevents")
+
+class Forwards(SubscribeBase):
+	def __init__(self, master):
+		super().__init__(master, "forwards")

@@ -16,10 +16,26 @@ class BaseCommand():
 		self.Triggers = []
 		self.Level = 0
 
+	def check_chat_cooldown(self, player):
+		if player.ChatCooldown > self.Torchlight().Master.Loop.time():
+			cooldown = player.ChatCooldown - self.Torchlight().Master.Loop.time()
+			self.Torchlight().SayPrivate(player, "You're on cooldown for the next {0:.1f} seconds.".format(cooldown))
+			return True
+
+	def check_disabled(self, player):
+		Level = 0
+		if player.Access:
+			Level = player.Access["level"]
+
+		Disabled = self.Torchlight().Disabled
+		if Disabled and (Disabled > Level or Disabled == Level and Level < self.Torchlight().Config["AntiSpam"]["ImmunityLevel"]):
+			self.Torchlight().SayPrivate(player, "Torchlight is currently disabled!")
+			return True
+
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name)
 
-### FILTER COMMANDS ###
+
 class URLFilter(BaseCommand):
 	Order = 1
 	import re
@@ -49,11 +65,16 @@ class URLFilter(BaseCommand):
 				if TimeStr:
 					Time = Utils.ParseTime(TimeStr)
 
-			Proc = await asyncio.create_subprocess_exec("youtube-dl", "--dump-json", "-xg", url,
+			Proc = await asyncio.create_subprocess_exec("youtube-dl", "--dump-json", "-g", url,
 				stdout = asyncio.subprocess.PIPE)
 			Out, _ = await Proc.communicate()
 
-			url, Info = Out.split(b'\n', maxsplit = 1)
+			parts = Out.split(b'\n')
+			parts.pop() # trailing new line
+
+			Info = parts.pop()
+			url = parts.pop()
+
 			url = url.strip().decode("ascii")
 			Info = self.json.loads(Info)
 
@@ -119,49 +140,62 @@ class URLFilter(BaseCommand):
 		asyncio.ensure_future(self.URLInfo(Url))
 		return -1
 
-### FILTER COMMANDS ###
 
-### LEVEL 0 COMMANDS ###
+def FormatAccess(Torchlight, player):
+	Answer = "#{0} \"{1}\"({2}) is ".format(player.UserID, player.Name, player.UniqueID)
+	Level = str(0)
+	if player.Access:
+		Level = str(player.Access["level"])
+		Answer += "level {0!s} as {1}.".format(Level, player.Access["name"])
+	else:
+		Answer += "not authenticated."
+
+	if Level in Torchlight().Config["AudioLimits"]:
+		Uses = Torchlight().Config["AudioLimits"][Level]["Uses"]
+		TotalTime = Torchlight().Config["AudioLimits"][Level]["TotalTime"]
+
+		if Uses >= 0:
+			Answer += " Uses: {0}/{1}".format(player.Storage["Audio"]["Uses"], Uses)
+		if TotalTime >= 0:
+			Answer += " Time: {0}/{1}".format(round(player.Storage["Audio"]["TimeUsed"], 2), round(TotalTime, 2))
+
+	return Answer
+
 class Access(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
-		self.Triggers = ["!access"] #, "!who", "!whois"]
+		self.Triggers = ["!access"]
 		self.Level = 0
-
-	def FormatAccess(self, player):
-		Answer = "#{0} \"{1}\"({2}) is ".format(player.UserID, player.Name, player.UniqueID)
-		Level = str(0)
-		if player.Access:
-			Level = str(player.Access["level"])
-			Answer += "level {0!s} as {1}.".format(Level, player.Access["name"])
-		else:
-			Answer += "not authenticated."
-
-		if Level in self.Torchlight().Config["AudioLimits"]:
-			Uses = self.Torchlight().Config["AudioLimits"][Level]["Uses"]
-			TotalTime = self.Torchlight().Config["AudioLimits"][Level]["TotalTime"]
-
-			if Uses >= 0:
-				Answer += " Uses: {0}/{1}".format(player.Storage["Audio"]["Uses"], Uses)
-			if TotalTime >= 0:
-				Answer += " Time: {0}/{1}".format(round(player.Storage["Audio"]["TimeUsed"], 2), round(TotalTime, 2))
-
-		return Answer
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+
+		if self.check_chat_cooldown(player):
+			return -1
 
 		Count = 0
 		if message[0] == "!access":
 			if message[1]:
 				return -1
 
-			self.Torchlight().SayChat(self.FormatAccess(player))
+			self.Torchlight().SayChat(FormatAccess(self.Torchlight, player), player)
 
-		elif message[0] == "!who":
+		return 0
+
+class Who(BaseCommand):
+	def __init__(self, torchlight):
+		super().__init__(torchlight)
+		self.Triggers = ["!who", "!whois"]
+		self.Level = 1
+
+	async def _func(self, message, player):
+		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+
+		Count = 0
+		if message[0] == "!who":
 			for Player in self.Torchlight().Players:
 				if Player.Name.lower().find(message[1].lower()) != -1:
-					self.Torchlight().SayChat(self.FormatAccess(Player))
+					self.Torchlight().SayChat(FormatAccess(self.Torchlight, Player))
 
 					Count += 1
 					if Count >= 3:
@@ -172,7 +206,7 @@ class Access(BaseCommand):
 				if Access["name"].lower().find(message[1].lower()) != -1:
 					Player = self.Torchlight().Players.FindUniqueID(UniqueID)
 					if Player:
-						self.Torchlight().SayChat(self.FormatAccess(Player))
+						self.Torchlight().SayChat(FormatAccess(self.Torchlight, Player))
 					else:
 						self.Torchlight().SayChat("#? \"{0}\"({1}) is level {2!s} is currently offline.".format(Access["name"], UniqueID, Access["level"]))
 
@@ -181,34 +215,6 @@ class Access(BaseCommand):
 						break
 		return 0
 
-class Calculate(BaseCommand):
-	import urllib.parse
-	import aiohttp
-	import json
-	def __init__(self, torchlight):
-		super().__init__(torchlight)
-		self.Triggers = ["!c"]
-		self.Level = 0
-
-	async def Calculate(self, Params):
-		async with self.aiohttp.ClientSession() as session:
-			Response = await asyncio.wait_for(session.get("http://math.leftforliving.com/query", params=Params), 5)
-			if not Response:
-				return 1
-
-			Data = await asyncio.wait_for(Response.json(content_type = "text/json"), 5)
-			if not Data:
-				return 2
-
-		if not Data["error"]:
-			self.Torchlight().SayChat(Data["answer"])
-			return 0
-
-	async def _func(self, message, player):
-		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
-		Params = dict({"question": message[1]})
-		Ret = await self.Calculate(Params)
-		return Ret
 
 class WolframAlpha(BaseCommand):
 	import urllib.parse
@@ -218,12 +224,12 @@ class WolframAlpha(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!cc"]
-		self.Level = 0
+		self.Level = 3
 
 	def Clean(self, Text):
 		return self.re.sub("[ ]{2,}", " ", Text.replace(' | ', ': ').replace('\n', ' | ').replace('~~', ' ≈ ')).strip()
 
-	async def Calculate(self, Params):
+	async def Calculate(self, Params, player):
 		async with self.aiohttp.ClientSession() as session:
 			Response = await asyncio.wait_for(session.get("http://api.wolframalpha.com/v2/query", params=Params), 10)
 			if not Response:
@@ -246,7 +252,7 @@ class WolframAlpha(BaseCommand):
 			# no support for future stuff yet, TODO?
 			if not Didyoumeans:
 				# If there's no pods, the question clearly wasn't understood
-				self.Torchlight().SayChat("Sorry, couldn't understand the question.")
+				self.Torchlight().SayChat("Sorry, couldn't understand the question.", player)
 				return 3
 
 			Options = []
@@ -254,39 +260,128 @@ class WolframAlpha(BaseCommand):
 				Options.append("\"{0}\"".format(Didyoumean.text))
 			Line = " or ".join(Options)
 			Line = "Did you mean {0}?".format(Line)
-			self.Torchlight().SayChat(Line)
+			self.Torchlight().SayChat(Line, player)
 			return 0
 
 		# If there's only one pod with text, it's probably the answer
 		# example: "integral x²"
 		if len(Pods) == 1:
 			Answer = self.Clean(Pods[0])
-			self.Torchlight().SayChat(Answer)
+			self.Torchlight().SayChat(Answer, player)
 			return 0
 
 		# If there's multiple pods, first is the question interpretation
 		Question = self.Clean(Pods[0].replace(' | ', ' ').replace('\n', ' '))
 		# and second is the best answer
 		Answer = self.Clean(Pods[1])
-		self.Torchlight().SayChat("{0} = {1}".format(Question, Answer))
+		self.Torchlight().SayChat("{0} = {1}".format(Question, Answer), player)
 		return 0
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
 
-		Level = 0
-		if player.Access:
-			Level = player.Access["level"]
+		if self.check_chat_cooldown(player):
+			return -1
 
-		Disabled = self.Torchlight().Disabled
-		if Disabled and (Disabled > Level or Disabled == Level and Level < self.Torchlight().Config["AntiSpam"]["ImmunityLevel"]):
-			self.Torchlight().SayPrivate(player, "Torchlight is currently disabled!")
-			return 1
+		if self.check_disabled(player):
+			return -1
 
 		Params = dict({"input": message[1], "appid": self.Torchlight().Config["WolframAPIKey"]})
-		Ret = await self.Calculate(Params)
+		Ret = await self.Calculate(Params, player)
 		return Ret
 
+
+class UrbanDictionary(BaseCommand):
+	import aiohttp
+	def __init__(self, torchlight):
+		super().__init__(torchlight)
+		self.Triggers = ["!define", "!ud"]
+		self.Level = 0
+
+	async def _func(self, message, player):
+		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+
+		if self.check_chat_cooldown(player):
+			return -1
+
+		if self.check_disabled(player):
+			return -1
+
+		async with self.aiohttp.ClientSession() as session:
+			Response = await asyncio.wait_for(session.get("https://api.urbandictionary.com/v0/define?term={0}".format(message[1])), 5)
+			if not Response:
+				return 1
+
+			Data = await asyncio.wait_for(Response.json(), 5)
+			if not Data:
+				return 3
+
+			if not 'list' in Data or not Data["list"]:
+				self.Torchlight().SayChat("[UB] No definition found for: {}".format(message[1]), player)
+				return 4
+
+			def print_item(item):
+				self.Torchlight().SayChat("[UD] {word} ({thumbs_up}/{thumbs_down}): {definition}\n{example}".format(**item), player)
+
+			print_item(Data["list"][0])
+
+
+class OpenWeather(BaseCommand):
+	import aiohttp
+	import geoip2.database
+	def __init__(self, torchlight):
+		super().__init__(torchlight)
+		self.GeoIP = self.geoip2.database.Reader("/usr/share/GeoIP/GeoLite2-City.mmdb")
+		self.Triggers = ["!w", "!vv"]
+		self.Level = 0
+
+	async def _func(self, message, player):
+		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+
+		if self.check_chat_cooldown(player):
+			return -1
+
+		if self.check_disabled(player):
+			return -1
+
+		if not message[1]:
+			# Use GeoIP location
+			info = self.GeoIP.city(player.Address.split(":")[0])
+			Search = "lat={}&lon={}".format(info.location.latitude, info.location.longitude)
+		else:
+			Search = "q={}".format(message[1])
+
+		async with self.aiohttp.ClientSession() as session:
+			Response = await asyncio.wait_for(session.get("https://api.openweathermap.org/data/2.5/weather?APPID={0}&units=metric&{1}".format(
+				self.Torchlight().Config["OpenWeatherAPIKey"], Search)), 5)
+			if not Response:
+				return 2
+
+			Data = await asyncio.wait_for(Response.json(), 5)
+			if not Data:
+				return 3
+
+		if Data["cod"] != 200:
+			self.Torchlight().SayPrivate(player, "[OW] {0}".format(Data["message"]))
+			return 5
+
+		degToCardinal = lambda d: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][int(((d + 22.5)/45.0) % 8)]
+		if "deg" in Data["wind"]:
+			windDir = degToCardinal(Data["wind"]["deg"])
+		else:
+			windDir = "?"
+
+		timezone = "{}{}".format('+' if Data["timezone"] > 0 else '', int(Data["timezone"] / 3600))
+		if Data["timezone"] % 3600 != 0:
+			timezone += ":{}".format((Data["timezone"] % 3600) / 60)
+
+		self.Torchlight().SayChat("[{}, {}](UTC{}) {}°C ({}/{}) {}: {} | Wind {} {}kph | Clouds: {}%% | Humidity: {}%%".format(Data["name"], Data["sys"]["country"], timezone,
+			Data["main"]["temp"], Data["main"]["temp_min"], Data["main"]["temp_max"], Data["weather"][0]["main"], Data["weather"][0]["description"],
+			windDir, Data["wind"]["speed"], Data["clouds"]["all"], Data["main"]["humidity"]), player)
+
+		return 0
+
+'''
 class WUnderground(BaseCommand):
 	import aiohttp
 	def __init__(self, torchlight):
@@ -352,6 +447,7 @@ class WUnderground(BaseCommand):
 			Observation["relative_humidity"]))
 
 		return 0
+'''
 
 class VoteDisable(BaseCommand):
 	def __init__(self, torchlight):
@@ -361,6 +457,7 @@ class VoteDisable(BaseCommand):
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+
 		if self.Torchlight().Disabled:
 			self.Torchlight().SayPrivate(player, "Torchlight is already disabled for the duration of this map.")
 			return
@@ -375,70 +472,118 @@ class VoteDisable(BaseCommand):
 		else:
 			self.Torchlight().SayPrivate(player, "Torchlight needs {0} more disable votes to be disabled.".format(needed - have))
 
-### LEVEL 0 COMMANDS ###
 
-### LIMITED LEVEL 0 COMMANDS ###
 class VoiceCommands(BaseCommand):
 	import json
 	import random
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
-		self.Triggers = ["!random"]
+		self.Triggers = ["!random", "!search"]
 		self.Level = 0
 
 	def LoadTriggers(self):
 		try:
 			with open("triggers.json", "r") as fp:
-				self.VoiceTriggers = self.json.load(fp)
+				Triggers = self.json.load(fp)
 		except ValueError as e:
 			self.Logger.error(sys._getframe().f_code.co_name + ' ' + str(e))
 			self.Torchlight().SayChat(str(e))
 
+		self.VoiceTriggers = dict()
+		for Line in Triggers:
+			for Trigger in Line["names"]:
+				self.VoiceTriggers[Trigger] = Line["sound"]
+
 	def _setup(self):
 		self.Logger.debug(sys._getframe().f_code.co_name)
 		self.LoadTriggers()
-		for Triggers in self.VoiceTriggers:
-			for Trigger in Triggers["names"]:
-				self.Triggers.append(Trigger)
+		for Trigger in self.VoiceTriggers.keys():
+			self.Triggers.append(Trigger)
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+
+		if self.check_disabled(player):
+			return -1
 
 		Level = 0
 		if player.Access:
 			Level = player.Access["level"]
 
-		Disabled = self.Torchlight().Disabled
-		if Disabled and (Disabled > Level or Disabled == Level and Level < self.Torchlight().Config["AntiSpam"]["ImmunityLevel"]):
-			self.Torchlight().SayPrivate(player, "Torchlight is currently disabled!")
+		message[0] = message[0].lower()
+		message[1] = message[1].lower()
+		if message[0][0] != '!' and Level < 2:
 			return 1
 
-		if message[0][0] == '_' and Level < 2:
-			return 1
+		if message[0] == "!search":
+			res = []
+			for key in self.VoiceTriggers.keys():
+				if message[1] in key.lower():
+					res.append(key)
+			self.Torchlight().SayPrivate(player, "{} results: {}".format(len(res), ", ".join(res)))
+			return 0
+		elif Level < 2:
+			return 0
 
-		if message[0].lower() == "!random":
-			Trigger = self.random.choice(self.VoiceTriggers)
-			if isinstance(Trigger["sound"], list):
-				Sound = self.random.choice(Trigger["sound"])
+		if message[0] == "!random":
+			Trigger = self.random.choice(list(self.VoiceTriggers.values()))
+			if isinstance(Trigger, list):
+				Sound = self.random.choice(Trigger)
 			else:
-				Sound = Trigger["sound"]
+				Sound = Trigger
 		else:
-			for Trigger in self.VoiceTriggers:
-				for Name in Trigger["names"]:
-					if message[0].lower() == Name:
-						Num = Utils.GetNum(message[1])
-						if Num:
-							Num = int(Num)
+			Sounds = self.VoiceTriggers[message[0]]
 
-						if isinstance(Trigger["sound"], list):
-							if Num and Num > 0 and Num <= len(Trigger["sound"]):
-								Sound = Trigger["sound"][Num - 1]
-							else:
-								Sound = self.random.choice(Trigger["sound"])
-						else:
-							Sound = Trigger["sound"]
+			try:
+				Num = int(message[1])
+			except ValueError:
+				Num = None
 
-						break
+			if isinstance(Sounds, list):
+				if Num and Num > 0 and Num <= len(Sounds):
+					Sound = Sounds[Num - 1]
+
+				elif message[1]:
+					searching = message[1].startswith('?')
+					search = message[1][1:] if searching else message[1]
+					Sound = None
+					names = []
+					matches = []
+					for sound in Sounds:
+						name = os.path.splitext(os.path.basename(sound))[0]
+						names.append(name)
+
+						if search and search in name.lower():
+							matches.append((name, sound))
+
+					if matches:
+						matches.sort(key=lambda t: len(t[0]))
+						mlist = [t[0] for t in matches]
+						if searching:
+							self.Torchlight().SayPrivate(player, "{} results: {}".format(len(mlist), ", ".join(mlist)))
+							return 0
+
+						Sound = matches[0][1]
+						if len(matches) > 1:
+							self.Torchlight().SayPrivate(player, "Multiple matches: {}".format(", ".join(mlist)))
+
+					if not Sound and not Num:
+						if not searching:
+							self.Torchlight().SayPrivate(player, "Couldn't find {} in list of sounds.".format(message[1]))
+						self.Torchlight().SayPrivate(player, ", ".join(names))
+						return 1
+
+				elif Num:
+					self.Torchlight().SayPrivate(player, "Number {} is out of bounds, max {}.".format(Num, len(Sounds)))
+					return 1
+
+				else:
+					Sound = self.random.choice(Sounds)
+			else:
+				Sound = Sounds
+
+		if not Sound:
+			return 1
 
 		Path = os.path.abspath(os.path.join("sounds", Sound))
 		AudioClip = self.Torchlight().AudioManager.AudioClip(player, "file://" + Path)
@@ -447,23 +592,21 @@ class VoiceCommands(BaseCommand):
 
 		return AudioClip.Play()
 
+
 class YouTube(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!yt"]
-		self.Level = 2
+		self.Level = 3
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
 
-		Level = 0
-		if player.Access:
-			Level = player.Access["level"]
+		if self.check_disabled(player):
+			return -1
 
-		Disabled = self.Torchlight().Disabled
-		if Disabled and (Disabled > Level or Disabled == Level and Level < self.Torchlight().Config["AntiSpam"]["ImmunityLevel"]):
-			self.Torchlight().SayPrivate(player, "Torchlight is currently disabled!")
-			return 1
+		if self.Torchlight().LastUrl:
+			message[1] = message[1].replace("!last", self.Torchlight().LastUrl)
 
 		Temp = DataHolder()
 		Time = None
@@ -485,19 +628,13 @@ class YouTubeSearch(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!yts"]
-		self.Level = 2
+		self.Level = 3
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
 
-		Level = 0
-		if player.Access:
-			Level = player.Access["level"]
-
-		Disabled = self.Torchlight().Disabled
-		if Disabled and (Disabled > Level or Disabled == Level and Level < self.Torchlight().Config["AntiSpam"]["ImmunityLevel"]):
-			self.Torchlight().SayPrivate(player, "Torchlight is currently disabled!")
-			return 1
+		if self.check_disabled(player):
+			return -1
 
 		Temp = DataHolder()
 		Time = None
@@ -518,7 +655,7 @@ class YouTubeSearch(BaseCommand):
 
 		if Info["extractor_key"] == "Youtube":
 			self.Torchlight().SayChat("\x07E52D27[YouTube]\x01 {0} | {1} | {2}/5.00 | {3:,}".format(
-				Info["title"], str(self.datetime.timedelta(seconds = Info["duration"])), round(Info["average_rating"], 2), int(Info["view_count"])))
+				Info["title"], str(self.datetime.timedelta(seconds = Info["duration"])), round(Info["average_rating"] or 0, 2), int(Info["view_count"])))
 
 		AudioClip = self.Torchlight().AudioManager.AudioClip(player, url)
 		if not AudioClip:
@@ -528,6 +665,7 @@ class YouTubeSearch(BaseCommand):
 
 		return AudioClip.Play(Time)
 
+
 class Say(BaseCommand):
 	import gtts
 	import tempfile
@@ -535,7 +673,7 @@ class Say(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = [("!say", 4)]
-		self.Level = 0
+		self.Level = 2
 
 	async def Say(self, player, language, message):
 		GTTS = self.gtts.gTTS(text = message, lang = language)
@@ -559,14 +697,8 @@ class Say(BaseCommand):
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
 
-		Level = 0
-		if player.Access:
-			Level = player.Access["level"]
-
-		Disabled = self.Torchlight().Disabled
-		if Disabled and (Disabled > Level or Disabled == Level and Level < self.Torchlight().Config["AntiSpam"]["ImmunityLevel"]):
-			self.Torchlight().SayPrivate(player, "Torchlight is currently disabled!")
-			return 1
+		if self.check_disabled(player):
+			return -1
 
 		if not message[1]:
 			return 1
@@ -581,6 +713,7 @@ class Say(BaseCommand):
 		asyncio.ensure_future(self.Say(player, Language, message[1]))
 		return 0
 
+'''
 class DECTalk(BaseCommand):
 	import tempfile
 	def __init__(self, torchlight):
@@ -612,20 +745,15 @@ class DECTalk(BaseCommand):
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
 
-		Level = 0
-		if player.Access:
-			Level = player.Access["level"]
-
-		Disabled = self.Torchlight().Disabled
-		if Disabled and (Disabled > Level or Disabled == Level and Level < self.Torchlight().Config["AntiSpam"]["ImmunityLevel"]):
-			self.Torchlight().SayPrivate(player, "Torchlight is currently disabled!")
-			return 1
+		if self.check_disabled(player):
+			return -1
 
 		if not message[1]:
 			return 1
 
 		asyncio.ensure_future(self.Say(player, message[1]))
 		return 0
+'''
 
 class Stop(BaseCommand):
 	def __init__(self, torchlight):
@@ -639,18 +767,7 @@ class Stop(BaseCommand):
 		self.Torchlight().AudioManager.Stop(player, message[1])
 		return True
 
-### LIMITED LEVEL 0 COMMANDS ###
 
-
-### LEVEL 1 COMMANDS ###
-### LEVEL 1 COMMANDS ###
-
-
-### LEVEL 2 COMMANDS ###
-### LEVEL 2 COMMANDS ###
-
-
-### LEVEL 3 COMMANDS ###
 class EnableDisable(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
@@ -659,24 +776,24 @@ class EnableDisable(BaseCommand):
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+
 		if message[0] == "!enable":
 			if self.Torchlight().Disabled:
 				if self.Torchlight().Disabled > player.Access["level"]:
-					self.Torchlight().SayPrivate(player, "You don't have access to enable torchlight since it was disabled by a higher level user.")
+					self.Torchlight().SayPrivate(player, "You don't have access to enable torchlight, since it was disabled by a higher level user.")
 					return 1
 				self.Torchlight().SayChat("Torchlight has been enabled for the duration of this map - Type !disable to disable it again.")
 
 			self.Torchlight().Disabled = False
 
 		elif message[0] == "!disable":
-			if not self.Torchlight().Disabled:
-				self.Torchlight().SayChat("Torchlight has been disabled for the duration of this map - Type !enable to enable it again.")
-
+			if self.Torchlight().Disabled > player.Access["level"]:
+				self.Torchlight().SayPrivate(player, "You don't have access to disable torchlight, since it was already disabled by a higher level user.")
+				return 1
+			self.Torchlight().SayChat("Torchlight has been disabled for the duration of this map - Type !enable to enable it again.")
 			self.Torchlight().Disabled = player.Access["level"]
-### LEVEL 3 COMMANDS ###
 
 
-### LEVEL 4 COMMANDS ###
 class AdminAccess(BaseCommand):
 	from collections import OrderedDict
 	def __init__(self, torchlight):
@@ -782,15 +899,24 @@ class AdminAccess(BaseCommand):
 					del self.Torchlight().Access[Player.UniqueID]
 					Player.Access = None
 		return 0
-### LEVEL 4 COMMANDS ###
+
+class Reload(BaseCommand):
+	def __init__(self, torchlight):
+		super().__init__(torchlight)
+		self.Triggers = ["!reload"]
+		self.Level = 4
+
+	async def _func(self, message, player):
+		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+		self.Torchlight().Reload()
+		return 0
 
 
-### LEVEL X COMMANDS ###
 class Exec(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!exec"]
-		self.Level = 9
+		self.Level = 100
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -801,15 +927,3 @@ class Exec(BaseCommand):
 			return 1
 		self.Torchlight().SayChat(str(Response))
 		return 0
-
-class Reload(BaseCommand):
-	def __init__(self, torchlight):
-		super().__init__(torchlight)
-		self.Triggers = ["!reload"]
-		self.Level = 6
-
-	async def _func(self, message, player):
-		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
-		self.Torchlight().Reload()
-		return 0
-### LEVEL X COMMANDS ###

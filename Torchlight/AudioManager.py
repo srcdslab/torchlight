@@ -23,6 +23,7 @@ class AudioPlayerFactory():
 		if _type == self.AUDIOPLAYER_FFMPEG:
 			return self.FFmpegAudioPlayerFactory.NewPlayer()
 
+
 class AntiSpam():
 	def __init__(self, master):
 		self.Logger = logging.getLogger(__class__.__name__)
@@ -31,6 +32,7 @@ class AntiSpam():
 
 		self.LastClips = dict()
 		self.DisabledTime = None
+		self.SaidHint = False
 
 	def CheckAntiSpam(self, player):
 		if self.DisabledTime and self.DisabledTime > self.Torchlight().Master.Loop.time() and \
@@ -42,10 +44,7 @@ class AntiSpam():
 
 		return True
 
-	def RegisterClip(self, clip):
-		self.LastClips[hash(clip)] = dict({"timestamp": None, "duration": 0.0, "dominant": False, "active": True})
-
-	def SpamCheck(self):
+	def SpamCheck(self, Delta):
 		Now = self.Torchlight().Master.Loop.time()
 		Duration = 0.0
 
@@ -53,7 +52,7 @@ class AntiSpam():
 			if not Clip["timestamp"]:
 				continue
 
-			if Clip["timestamp"] + self.Torchlight().Config["AntiSpam"]["MaxUsageSpan"] < Now:
+			if Clip["timestamp"] + Clip["duration"] + self.Torchlight().Config["AntiSpam"]["MaxUsageSpan"] < Now:
 				if not Clip["active"]:
 					del self.LastClips[Key]
 				continue
@@ -73,7 +72,8 @@ class AntiSpam():
 			self.LastClips.clear()
 
 	def OnPlay(self, clip):
-		self.LastClips[hash(clip)]["timestamp"] = self.Torchlight().Master.Loop.time()
+		Now = self.Torchlight().Master.Loop.time()
+		self.LastClips[hash(clip)] = dict({"timestamp": Now, "duration": 0.0, "dominant": False, "active": True})
 
 		HasDominant = False
 		for Key, Clip in self.LastClips.items():
@@ -84,6 +84,9 @@ class AntiSpam():
 		self.LastClips[hash(clip)]["dominant"] = not HasDominant
 
 	def OnStop(self, clip):
+		if hash(clip) not in self.LastClips:
+			return
+
 		self.LastClips[hash(clip)]["active"] = False
 
 		if self.LastClips[hash(clip)]["dominant"]:
@@ -102,7 +105,79 @@ class AntiSpam():
 			return
 
 		Clip["duration"] += Delta
-		self.SpamCheck()
+		self.SpamCheck(Delta)
+
+
+class Advertiser():
+	def __init__(self, master):
+		self.Logger = logging.getLogger(__class__.__name__)
+		self.Master = master
+		self.Torchlight = self.Master.Torchlight
+
+		self.LastClips = dict()
+		self.AdStop = 0
+		self.NextAdStop = 0
+
+	def Think(self, Delta):
+		Now = self.Torchlight().Master.Loop.time()
+		Duration = 0.0
+
+		for Key, Clip in list(self.LastClips.items()):
+			if not Clip["timestamp"]:
+				continue
+
+			if Clip["timestamp"] + Clip["duration"] + self.Torchlight().Config["Advertiser"]["MaxSpan"] < Now:
+				if not Clip["active"]:
+					del self.LastClips[Key]
+				continue
+
+			Duration += Clip["duration"]
+
+		self.NextAdStop -= Delta
+		CeilDur = math.ceil(Duration)
+		if CeilDur > self.AdStop and self.NextAdStop <= 0 and CeilDur % self.Torchlight().Config["Advertiser"]["AdStop"] == 0:
+			self.Torchlight().SayChat("Hint: Type \x07FF0000!stop\x01 to stop all currently playing sounds.")
+			self.AdStop = CeilDur
+			self.NextAdStop = 0
+		elif CeilDur < self.AdStop:
+			self.AdStop = 0
+			self.NextAdStop = self.Torchlight().Config["Advertiser"]["AdStop"] / 2
+
+	def OnPlay(self, clip):
+		Now = self.Torchlight().Master.Loop.time()
+		self.LastClips[hash(clip)] = dict({"timestamp": Now, "duration": 0.0, "dominant": False, "active": True})
+
+		HasDominant = False
+		for Key, Clip in self.LastClips.items():
+			if Clip["dominant"]:
+				HasDominant = True
+				break
+
+		self.LastClips[hash(clip)]["dominant"] = not HasDominant
+
+	def OnStop(self, clip):
+		if hash(clip) not in self.LastClips:
+			return
+
+		self.LastClips[hash(clip)]["active"] = False
+
+		if self.LastClips[hash(clip)]["dominant"]:
+			for Key, Clip in self.LastClips.items():
+				if Clip["active"]:
+					Clip["dominant"] = True
+					break
+
+		self.LastClips[hash(clip)]["dominant"] = False
+
+	def OnUpdate(self, clip, old_position, new_position):
+		Delta = new_position - old_position
+		Clip = self.LastClips[hash(clip)]
+
+		if not Clip["dominant"]:
+			return
+
+		Clip["duration"] += Delta
+		self.Think(Delta)
 
 
 class AudioManager():
@@ -110,6 +185,7 @@ class AudioManager():
 		self.Logger = logging.getLogger(__class__.__name__)
 		self.Torchlight = torchlight
 		self.AntiSpam = AntiSpam(self)
+		self.Advertiser = Advertiser(self)
 		self.AudioPlayerFactory = AudioPlayerFactory(self)
 		self.AudioClips = []
 
@@ -153,7 +229,7 @@ class AudioManager():
 			if extra and not extra.lower() in AudioClip.Player.Name.lower():
 					continue
 
-			if not Level or Level < AudioClip.Level:
+			if not Level or (Level < AudioClip.Level and Level < self.Torchlight().Config["AntiSpam"]["StopLevel"]):
 				AudioClip.Stops.add(player.UserID)
 
 				if len(AudioClip.Stops) >= 3:
@@ -188,10 +264,13 @@ class AudioManager():
 		self.AudioClips.append(Clip)
 
 		if not player.Access or player.Access["level"] < self.Torchlight().Config["AntiSpam"]["ImmunityLevel"]:
-			self.AntiSpam.RegisterClip(Clip)
 			Clip.AudioPlayer.AddCallback("Play", lambda *args: self.AntiSpam.OnPlay(Clip, *args))
 			Clip.AudioPlayer.AddCallback("Stop", lambda *args: self.AntiSpam.OnStop(Clip, *args))
 			Clip.AudioPlayer.AddCallback("Update", lambda *args: self.AntiSpam.OnUpdate(Clip, *args))
+
+		Clip.AudioPlayer.AddCallback("Play", lambda *args: self.Advertiser.OnPlay(Clip, *args))
+		Clip.AudioPlayer.AddCallback("Stop", lambda *args: self.Advertiser.OnStop(Clip, *args))
+		Clip.AudioPlayer.AddCallback("Update", lambda *args: self.Advertiser.OnUpdate(Clip, *args))
 
 		return Clip
 

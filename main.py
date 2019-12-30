@@ -15,7 +15,11 @@ import Torchlight.Torchlight
 from Torchlight.SourceRCONServer import SourceRCONServer
 
 if __name__ == '__main__':
-	logging.basicConfig(level = logging.DEBUG)
+	logging.basicConfig(
+		level = logging.DEBUG,
+		format = "[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s",
+		datefmt = "%H:%M:%S"
+	)
 
 	Loop = asyncio.get_event_loop()
 

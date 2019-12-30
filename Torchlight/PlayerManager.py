@@ -15,6 +15,7 @@ class PlayerManager():
 
 		self.Torchlight().GameEvents.HookEx("player_connect", self.Event_PlayerConnect)
 		self.Torchlight().GameEvents.HookEx("player_activate", self.Event_PlayerActivate)
+		self.Torchlight().Forwards.HookEx("OnClientPostAdminCheck", self.OnClientPostAdminCheck)
 		self.Torchlight().GameEvents.HookEx("player_info", self.Event_PlayerInfo)
 		self.Torchlight().GameEvents.HookEx("player_disconnect", self.Event_PlayerDisconnect)
 		self.Torchlight().GameEvents.HookEx("server_spawn", self.Event_ServerSpawn)
@@ -23,7 +24,8 @@ class PlayerManager():
 		index += 1
 		self.Logger.info("OnConnect(name={0}, index={1}, userid={2}, networkid={3}, address={4}, bot={5})"
 			.format(name, index, userid, networkid, address, bot))
-		assert self.Players[index] == None
+		if self.Players[index] != None:
+			self.Logger.error("!!! Player already exists, overwriting !!!")
 
 		self.Players[index] = self.Player(self, index, userid, networkid, address, name)
 		self.Players[index].OnConnect()
@@ -34,6 +36,11 @@ class PlayerManager():
 		self.Logger.info("OnActivate(index={0}, userid={1})".format(index, userid))
 
 		self.Players[index].OnActivate()
+
+	def OnClientPostAdminCheck(self, client):
+		self.Logger.info("OnClientPostAdminCheck(client={0})".format(client))
+
+		asyncio.ensure_future(self.Players[client].OnClientPostAdminCheck())
 
 	def Event_PlayerInfo(self, name, index, userid, networkid, bot):
 		index += 1
@@ -157,6 +164,7 @@ class PlayerManager():
 			self.Admin = self.PlayerManager.Admin()
 			self.Storage = None
 			self.Active = False
+			self.ChatCooldown = 0
 
 		def OnConnect(self):
 			self.Storage = self.PlayerManager.Storage[self.UniqueID]
@@ -168,16 +176,21 @@ class PlayerManager():
 
 		def OnActivate(self):
 			self.Active = True
-			asyncio.ensure_future(self.OnPostActivate())
 
-		async def OnPostActivate(self):
+		async def OnClientPostAdminCheck(self):
 			self.Admin._FlagBits = (await self.Torchlight().API.GetUserFlagBits(self.Index))["result"]
 			self.PlayerManager.Logger.info("#{0} \"{1}\"({2}) FlagBits: {3}".format(self.UserID, self.Name, self.UniqueID, self.Admin._FlagBits))
 			if not self.Access:
-				if self.Admin.Generic():
+				if self.Admin.RCON():
+					self.Access = dict({"level": 6, "name": "SAdmin"})
+				elif self.Admin.Generic():
 					self.Access = dict({"level": 3, "name": "Admin"})
 				elif self.Admin.Custom1():
 					self.Access = dict({"level": 1, "name": "VIP"})
+
+			if self.PlayerManager.Torchlight().Config["DefaultLevel"]:
+				if self.Access and self.Access["level"] < self.PlayerManager.Torchlight().Config["DefaultLevel"]:
+					self.Access = dict({"level": self.PlayerManager.Torchlight().Config["DefaultLevel"], "name": "Default"})
 
 		def OnInfo(self, name):
 			self.Name = name

@@ -3,7 +3,7 @@
 	{
 		"Host": "10.0.0.101",
 		"Port": 27020,
-		"SampleRate": 48000
+		"SampleRate": 22050
 	},
 	"SMAPIServer":
 	{
@@ -30,10 +30,12 @@
 	},
 	"AntiSpam":
 	{
+		"ImmunityLevel": 5,
 		"MaxUsageSpan": 60,
 		"MaxUsageTime": 10,
 		"PunishDelay": 60,
-		"ImmunityLevel": 4
+		"StopLevel": 3,
+		"ChatCooldown": 15
 	},
 
 	"TorchRCON":
@@ -44,5 +46,6 @@
 	},
 
 	"WolframAPIKey": "***",
-	"WundergroundAPIKey": "***"
+	"WundergroundAPIKey": "***",
+	"OpenWeatherAPIKey": "***"
 }

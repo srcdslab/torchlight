@@ -12,7 +12,7 @@ import textwrap
 from .AsyncClient import AsyncClient
 
 from .SourceModAPI import SourceModAPI
-from .GameEvents import GameEvents
+from .Subscribe import GameEvents, Forwards
 
 from .Utils import Utils
 from .Config import Config
@@ -30,6 +30,7 @@ class Torchlight():
 
 		self.API = SourceModAPI(self.WeakSelf)
 		self.GameEvents = GameEvents(self.WeakSelf)
+		self.Forwards = Forwards(self.WeakSelf)
 
 		self.DisableVotes = set()
 		self.Disabled = 0
@@ -49,7 +50,7 @@ class Torchlight():
 		self.GameEvents.HookEx("server_spawn", self.Event_ServerSpawn)
 		self.GameEvents.HookEx("player_say", self.Event_PlayerSay)
 
-	def SayChat(self, message):
+	def SayChat(self, message, player=None):
 		message = "\x0700FFFA[Torchlight]: \x01{0}".format(message)
 		if len(message) > 976:
 			message = message[:973] + "..."
@@ -57,8 +58,25 @@ class Torchlight():
 		for line in lines:
 			asyncio.ensure_future(self.API.PrintToChatAll(line))
 
+		if player:
+			Level = 0
+			if player.Access:
+				Level = player.Access["level"]
+
+			if Level < self.Config["AntiSpam"]["ImmunityLevel"]:
+				cooldown = len(lines) * self.Config["AntiSpam"]["ChatCooldown"]
+				if player.ChatCooldown > self.Master.Loop.time():
+					player.ChatCooldown += cooldown
+				else:
+					player.ChatCooldown = self.Master.Loop.time() + cooldown
+
 	def SayPrivate(self, player, message):
-		asyncio.ensure_future(self.API.PrintToChat(player.Index, "\x0700FFFA[Torchlight]: \x01{0}".format(message)))
+		message = "\x0700FFFA[Torchlight]: \x01{0}".format(message)
+		if len(message) > 976:
+			message = message[:973] + "..."
+		lines = textwrap.wrap(message, 244, break_long_words = True)
+		for line in lines:
+			asyncio.ensure_future(self.API.PrintToChat(player.Index, line))
 
 	def Reload(self):
 		self.Config.Load()
@@ -70,6 +88,8 @@ class Torchlight():
 	def OnPublish(self, obj):
 		if obj["module"] == "gameevents":
 			self.GameEvents.OnPublish(obj)
+		elif obj["module"] == "forwards":
+			self.Forwards.OnPublish(obj)
 
 	def Event_ServerSpawn(self, hostname, address, ip, port, game, mapname, maxplayers, os, dedicated, password):
 		self.DisableVotes = set()
@@ -105,11 +125,13 @@ class TorchlightHandler():
 
 		# Pre Hook for late load
 		await self.Torchlight.GameEvents._Register(["player_connect", "player_activate"])
+		await self.Torchlight.Forwards._Register(["OnClientPostAdminCheck"])
 
 		self.Torchlight.InitModules()
 
 		# Late load
 		await self.Torchlight.GameEvents.Replay(["player_connect", "player_activate"])
+		await self.Torchlight.Forwards.Replay(["OnClientPostAdminCheck"])
 
 	async def Send(self, data):
 		return await self._Client.Send(data)
