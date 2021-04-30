@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import logging
-import numpy
 from .Constants import *
 
 class PlayerManager():
@@ -10,7 +9,7 @@ class PlayerManager():
 		self.Logger = logging.getLogger(__class__.__name__)
 		self.Torchlight = master
 
-		self.Players = numpy.empty(MAXPLAYERS + 1, dtype = object)
+		self.Players = [None] * (MAXPLAYERS + 1)
 		self.Storage = self.StorageManager(self)
 
 		self.Torchlight().GameEvents.HookEx("player_connect", self.Event_PlayerConnect)
@@ -68,7 +67,7 @@ class PlayerManager():
 
 		self.Storage.Reset()
 
-		for i in range(1, self.Players.size):
+		for i in range(1, len(self.Players)):
 			if self.Players[i]:
 				self.Players[i].OnDisconnect("mapchange")
 				self.Players[i].OnConnect()
@@ -90,7 +89,7 @@ class PlayerManager():
 
 	def __len__(self):
 		Count = 0
-		for i in range(1, self.Players.size):
+		for i in range(1, len(self.Players)):
 			if self.Players[i]:
 				Count += 1
 		return Count
@@ -104,7 +103,7 @@ class PlayerManager():
 			return self.Players[key]
 
 	def __iter__(self):
-		for i in range(1, self.Players.size):
+		for i in range(1, len(self.Players)):
 			if self.Players[i]:
 				yield self.Players[i]
 

@@ -331,7 +331,7 @@ class OpenWeather(BaseCommand):
 	import geoip2.database
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
-		self.GeoIP = self.geoip2.database.Reader("/usr/share/GeoIP/GeoLite2-City.mmdb")
+		self.GeoIP = self.geoip2.database.Reader("/var/lib/GeoIP/GeoLite2-City.mmdb")
 		self.Triggers = ["!w", "!vv"]
 		self.Level = 0
 
@@ -713,7 +713,7 @@ class Say(BaseCommand):
 		asyncio.ensure_future(self.Say(player, Language, message[1]))
 		return 0
 
-'''
+
 class DECTalk(BaseCommand):
 	import tempfile
 	def __init__(self, torchlight):
@@ -753,7 +753,7 @@ class DECTalk(BaseCommand):
 
 		asyncio.ensure_future(self.Say(player, message[1]))
 		return 0
-'''
+
 
 class Stop(BaseCommand):
 	def __init__(self, torchlight):

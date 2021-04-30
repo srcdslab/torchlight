@@ -80,7 +80,7 @@ class AsyncClient():
 
 		Data = json.dumps(obj, ensure_ascii = False, separators = (',', ':')).encode("UTF-8")
 
-		with (await self.SendLock):
+		async with self.SendLock:
 			if not self.Protocol:
 				return None
 

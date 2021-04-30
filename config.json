@@ -1,13 +1,13 @@
 {
 	"VoiceServer":
 	{
-		"Host": "10.0.0.101",
+		"Host": "127.0.0.1",
 		"Port": 27020,
 		"SampleRate": 22050
 	},
 	"SMAPIServer":
 	{
-		"Host": "10.0.0.101",
+		"Host": "127.0.0.1",
 		"Port": 27021
 	},
 
@@ -38,10 +38,16 @@
 		"ChatCooldown": 15
 	},
 
+	"Advertiser":
+	{
+		"MaxSpan": 30,
+		"AdStop": 10
+	},
+
 	"TorchRCON":
 	{
 		"Host": "0.0.0.0",
-		"Port": 27015,
+		"Port": 27115,
 		"Password": "***"
 	},
 
