@@ -483,7 +483,7 @@ class VoiceCommands(BaseCommand):
 
 	def LoadTriggers(self):
 		try:
-			with open("triggers.json", "r") as fp:
+			with open("triggers.json", mode="r", encoding='utf-8') as fp:
 				Triggers = self.json.load(fp)
 		except ValueError as e:
 			self.Logger.error(sys._getframe().f_code.co_name + ' ' + str(e))
