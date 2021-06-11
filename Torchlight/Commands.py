@@ -669,14 +669,25 @@ class YouTubeSearch(BaseCommand):
 class Say(BaseCommand):
 	import gtts
 	import tempfile
-	VALID_LANGUAGES = [lang for lang in gtts.lang.tts_langs().keys()]
+
+	try:
+		VALID_LANGUAGES = [lang for lang in gtts.lang.tts_langs().keys()]
+	except Exception as err:
+		VALID_LANGUAGES = ['af', 'ar', 'bn', 'bs', 'ca', 'cs', 'cy', 'da',
+			'de', 'el', 'en', 'eo', 'es', 'et', 'fi', 'fr', 'gu', 'hi',
+			'hr', 'hu', 'hy', 'id', 'is', 'it', 'ja', 'jw', 'km', 'kn',
+			'ko', 'la', 'lv', 'mk', 'ml', 'mr', 'my', 'ne', 'nl', 'no',
+			'pl', 'pt', 'ro', 'ru', 'si', 'sk', 'sq', 'sr', 'su', 'sv',
+			'sw', 'ta', 'te', 'th', 'tl', 'tr', 'uk', 'ur', 'vi', 'zh-CN',
+			'zh-TW', 'zh']
+
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = [("!say", 4)]
 		self.Level = self.Torchlight().Config["CommandLevel"]["Say"]
 
 	async def Say(self, player, language, message):
-		GTTS = self.gtts.gTTS(text = message, lang = language)
+		GTTS = self.gtts.gTTS(text = message, lang = language, lang_check = False)
 
 		TempFile = self.tempfile.NamedTemporaryFile(delete = False)
 		GTTS.write_to_fp(TempFile)
