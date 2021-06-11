@@ -54,6 +54,30 @@
 		"VIP": 2
 	},
 
+	"CommandLevel":
+	{
+		"Exec": 100,
+		"Dec": 100,
+		"AccessAdmin": 6,
+		"Enable": 3,
+		"Disable": 3,
+		"Reload": 3,
+		"Stop": 3,
+		"Say": 2,
+		"Youtube": 2,
+		"YoutubeSearch": 2,
+		"Random": 2,
+		"Trigger": 2,
+		"TriggerReserved": 2,
+		"Who": 2,
+		"Calculate": 2,
+		"Access": 0,
+		"Search": 0,
+		"Define": 0,
+		"Weather": 0,
+		"VoteDisable": 0
+	},
+
 	"TorchRCON":
 	{
 		"Host": "0.0.0.0",

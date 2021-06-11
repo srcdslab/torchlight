@@ -165,7 +165,7 @@ class Access(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!access"]
-		self.Level = 0
+		self.Level = self.Torchlight().Config["CommandLevel"]["Access"]
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -186,7 +186,7 @@ class Who(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!who", "!whois"]
-		self.Level = 1
+		self.Level = self.Torchlight().Config["CommandLevel"]["Who"]
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -224,7 +224,7 @@ class WolframAlpha(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!cc"]
-		self.Level = 3
+		self.Level = self.Torchlight().Config["CommandLevel"]["Calculate"]
 
 	def Clean(self, Text):
 		return self.re.sub("[ ]{2,}", " ", Text.replace(' | ', ': ').replace('\n', ' | ').replace('~~', ' ≈ ')).strip()
@@ -296,7 +296,7 @@ class UrbanDictionary(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!define", "!ud"]
-		self.Level = 0
+		self.Level = self.Torchlight().Config["CommandLevel"]["Define"]
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -333,7 +333,7 @@ class OpenWeather(BaseCommand):
 		super().__init__(torchlight)
 		self.GeoIP = self.geoip2.database.Reader("/var/lib/GeoIP/GeoLite2-City.mmdb")
 		self.Triggers = ["!w", "!vv"]
-		self.Level = 0
+		self.Level = self.Torchlight().Config["CommandLevel"]["Weather"]
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -453,7 +453,7 @@ class VoteDisable(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!votedisable", "!disablevote"]
-		self.Level = 0
+		self.Level = self.Torchlight().Config["CommandLevel"]["VoteDisable"]
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -479,7 +479,7 @@ class VoiceCommands(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!random", "!search"]
-		self.Level = 0
+		self.Level = self.Torchlight().Config["CommandLevel"]["Search"]
 
 	def LoadTriggers(self):
 		try:
@@ -512,26 +512,26 @@ class VoiceCommands(BaseCommand):
 
 		message[0] = message[0].lower()
 		message[1] = message[1].lower()
-		if message[0][0] != '!' and Level < 2:
-			return 1
 
-		if message[0] == "!search":
+		if message[0] == "!search" and Level >= self.Torchlight().Config["CommandLevel"]["Search"]:
 			res = []
 			for key in self.VoiceTriggers.keys():
 				if message[1] in key.lower():
 					res.append(key)
 			self.Torchlight().SayPrivate(player, "{} results: {}".format(len(res), ", ".join(res)))
 			return 0
-		elif Level < 2:
-			return 0
 
-		if message[0] == "!random":
+		Sound = None
+		if message[0] == "!random" and Level >= self.Torchlight().Config["CommandLevel"]["Random"]:
 			Trigger = self.random.choice(list(self.VoiceTriggers.values()))
 			if isinstance(Trigger, list):
 				Sound = self.random.choice(Trigger)
 			else:
 				Sound = Trigger
-		else:
+		elif Level >= self.Torchlight().Config["CommandLevel"]["Trigger"]:
+			if message[0][0] != '!' and Level < self.Torchlight().Config["CommandLevel"]["TriggerReserved"]:
+				return 1
+
 			Sounds = self.VoiceTriggers[message[0]]
 
 			try:
@@ -597,7 +597,7 @@ class YouTube(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!yt"]
-		self.Level = 3
+		self.Level = self.Torchlight().Config["CommandLevel"]["Youtube"]
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -628,7 +628,7 @@ class YouTubeSearch(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!yts"]
-		self.Level = 3
+		self.Level = self.Torchlight().Config["CommandLevel"]["YoutubeSearch"]
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -673,7 +673,7 @@ class Say(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = [("!say", 4)]
-		self.Level = 2
+		self.Level = self.Torchlight().Config["CommandLevel"]["Say"]
 
 	async def Say(self, player, language, message):
 		GTTS = self.gtts.gTTS(text = message, lang = language)
@@ -713,13 +713,12 @@ class Say(BaseCommand):
 		asyncio.ensure_future(self.Say(player, Language, message[1]))
 		return 0
 
-
 class DECTalk(BaseCommand):
 	import tempfile
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!dec"]
-		self.Level = 0
+		self.Level = self.Torchlight().Config["CommandLevel"]["Dec"]
 
 	async def Say(self, player, message):
 		message = "[:phoneme on]" + message
@@ -754,12 +753,11 @@ class DECTalk(BaseCommand):
 		asyncio.ensure_future(self.Say(player, message[1]))
 		return 0
 
-
 class Stop(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!stop"]
-		self.Level = 0
+		self.Level = self.Torchlight().Config["CommandLevel"]["Stop"]
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -772,7 +770,7 @@ class EnableDisable(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!enable", "!disable"]
-		self.Level = 3
+		self.Level = self.Torchlight().Config["CommandLevel"]["Enable"]
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -799,7 +797,7 @@ class AdminAccess(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!access"]
-		self.Level = 4
+		self.Level = self.Torchlight().Config["CommandLevel"]["AccessAdmin"]
 
 	def ReloadValidUsers(self):
 		self.Torchlight().Access.Load()
@@ -904,7 +902,7 @@ class Reload(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!reload"]
-		self.Level = 4
+		self.Level = self.Torchlight().Config["CommandLevel"]["Reload"]
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
@@ -916,7 +914,7 @@ class Exec(BaseCommand):
 	def __init__(self, torchlight):
 		super().__init__(torchlight)
 		self.Triggers = ["!exec"]
-		self.Level = 100
+		self.Level = self.Torchlight().Config["CommandLevel"]["Exec"]
 
 	async def _func(self, message, player):
 		self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
