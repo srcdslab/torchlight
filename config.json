@@ -5,6 +5,7 @@
 		"Port": 27020,
 		"SampleRate": 22050
 	},
+
 	"SMAPIServer":
 	{
 		"Host": "127.0.0.1",
@@ -28,6 +29,7 @@
 			"DelayFactor": 5.0
 		}
 	},
+
 	"AntiSpam":
 	{
 		"ImmunityLevel": 5,
@@ -42,6 +44,14 @@
 	{
 		"MaxSpan": 30,
 		"AdStop": 10
+	},
+
+	"AccessLevel":
+	{
+		"Root": 6,
+		"Admin": 3,
+		"DonatedAdmin": 2,
+		"VIP": 2
 	},
 
 	"TorchRCON":

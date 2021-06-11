@@ -181,11 +181,13 @@ class PlayerManager():
 			self.PlayerManager.Logger.info("#{0} \"{1}\"({2}) FlagBits: {3}".format(self.UserID, self.Name, self.UniqueID, self.Admin._FlagBits))
 			if not self.Access:
 				if self.Admin.RCON():
-					self.Access = dict({"level": 6, "name": "SAdmin"})
+					self.Access = dict({"level": self.Torchlight().Config["AccessLevel"]["Root"], "name": "SAdmin"})
+				elif self.Admin.Ban():
+					self.Access = dict({"level": self.Torchlight().Config["AccessLevel"]["Admin"], "name": "Admin"})
 				elif self.Admin.Generic():
-					self.Access = dict({"level": 3, "name": "Admin"})
+					self.Access = dict({"level": self.Torchlight().Config["AccessLevel"]["DonatedAdmin"], "name": "DAdmin"})
 				elif self.Admin.Custom1():
-					self.Access = dict({"level": 1, "name": "VIP"})
+					self.Access = dict({"level": self.Torchlight().Config["AccessLevel"]["VIP"], "name": "VIP"})
 
 			if self.PlayerManager.Torchlight().Config["DefaultLevel"]:
 				if self.Access and self.Access["level"] < self.PlayerManager.Torchlight().Config["DefaultLevel"]:
