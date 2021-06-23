@@ -55,3 +55,21 @@ Run: `python main.py`
   * Install wine
   * Run as normal user (not root)
   * Run torchlight with: `xvfb-run -a python main.py`
+
+## Docker
+```
+version: '3.7'
+
+services:
+  torchlight:
+    image: registry.gitlab.com/counterstrikesource/torchlight:latest
+    container_name: torchlight
+    ports:
+      - 27203:27203
+    network_mode: host
+    volumes:
+      - /home/torchlight/sounds:/home/torchlight/sounds
+      - /home/torchlight/triggers.json:/home/torchlight/triggers.json
+      - /home/torchlight/access.json:/home/torchlight/access.json
+      - /home/torchlight/config.json:/home/torchlight/config.json
+```
