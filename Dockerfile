@@ -21,16 +21,20 @@ RUN \
     wine32 \
     nano \
     wget \
-    curl \
-    youtube-dl
+    curl
 
 # Copy base project
 RUN mkdir -p /home/torchlight/
 COPY . /home/torchlight/
+
+# Move the entrypoint to a generic path
 RUN mv /home/torchlight/entrypoint.sh /entrypoint.sh
+
+# Install GeoIP
 RUN mkdir -p /var/lib/
 RUN mv /home/torchlight/GeoIP/ /var/lib/
 
+# Set directory permissions
 RUN chown -R abc:abc /home/torchlight/
 RUN chmod 755 /home/torchlight
 
