@@ -28,6 +28,8 @@ RUN \
 RUN mkdir -p /home/torchlight/
 COPY . /home/torchlight/
 RUN mv /home/torchlight/entrypoint.sh /entrypoint.sh
+RUN mkdir -p /var/lib/
+RUN mv /home/torchlight/GeoIP/ /var/lib/
 
 RUN chown -R abc:abc /home/torchlight/
 RUN chmod 755 /home/torchlight
