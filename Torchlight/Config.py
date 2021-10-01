@@ -11,7 +11,7 @@ class Config():
 		if len(sys.argv) >= 2:
 			self.ConfigPath = sys.argv[1]
 		else:
-			self.ConfigPath = "config.json"
+			self.ConfigPath = "config/config.json"
 		self.Load()
 
 	def Load(self):

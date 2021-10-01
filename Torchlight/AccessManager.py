@@ -5,7 +5,7 @@ import json
 from collections import OrderedDict
 
 class AccessManager():
-	ACCESS_FILE = "access.json"
+	ACCESS_FILE = "config/access.json"
 	def __init__(self):
 		self.Logger = logging.getLogger(__class__.__name__)
 		self.AccessDict = OrderedDict()

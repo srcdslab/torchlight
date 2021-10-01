@@ -69,7 +69,5 @@ services:
     network_mode: host
     volumes:
       - /home/torchlight/sounds:/home/torchlight/sounds
-      - /home/torchlight/triggers.json:/home/torchlight/triggers.json
-      - /home/torchlight/access.json:/home/torchlight/access.json
-      - /home/torchlight/config.json:/home/torchlight/config.json
+      - /home/torchlight/config:/home/torchlight/config
 ```
