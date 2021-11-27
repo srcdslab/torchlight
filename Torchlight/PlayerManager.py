@@ -180,7 +180,7 @@ class PlayerManager():
 			self.Admin._FlagBits = (await self.Torchlight().API.GetUserFlagBits(self.Index))["result"]
 			self.PlayerManager.Logger.info("#{0} \"{1}\"({2}) FlagBits: {3}".format(self.UserID, self.Name, self.UniqueID, self.Admin._FlagBits))
 			if not self.Access:
-				if self.Admin.RCON():
+				if self.Admin.RCON() or self.Admin.Root():
 					self.Access = dict({"level": self.Torchlight().Config["AccessLevel"]["Root"], "name": "SAdmin"})
 				elif self.Admin.Ban():
 					self.Access = dict({"level": self.Torchlight().Config["AccessLevel"]["Admin"], "name": "Admin"})
