@@ -19,7 +19,8 @@ RUN apt update && apt install gpg software-properties-common -y \
 RUN wget -nv -O /usr/bin/winetricks https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks \
     && chmod +x /usr/bin/winetricks
 
-RUN useradd -m -d /home/torchlight torchlight
+RUN groupadd -g 999 -o torchlight
+RUN useradd -m -u 999 -g 999 -d /home/torchlight torchlight
 
 # Copy base project
 COPY . /home/torchlight/
