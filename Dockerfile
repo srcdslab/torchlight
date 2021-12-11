@@ -7,7 +7,7 @@ ARG BUILD_DATE
 LABEL build_version="maxime1907 version:- ${VERSION} Build-date:- ${BUILD_DATE}"
 LABEL maintainer="maxime1907 <maxime1907.dev@gmail.com>"
 
-WORKDIR /home/torchlight
+WORKDIR /home/container
 
 # Install dependencies for Torchlight
 RUN apt update && apt install gpg software-properties-common -y \
@@ -19,11 +19,10 @@ RUN apt update && apt install gpg software-properties-common -y \
 RUN wget -nv -O /usr/bin/winetricks https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks \
     && chmod +x /usr/bin/winetricks
 
-RUN groupadd -g 999 -o torchlight
-RUN useradd -m -u 999 -g 999 -d /home/torchlight torchlight
+RUN useradd -d /home/container -m container
 
 # Copy base project
-COPY . /home/torchlight/
+COPY . /home/container/
 
 # Install GeoIP
 COPY ./GeoIP/GeoLite2-City.mmdb /usr/share/GeoIP/
@@ -31,6 +30,6 @@ COPY ./GeoIP/GeoLite2-City.mmdb /usr/share/GeoIP/
 # install python dependency
 RUN pip3 install -r requirements.txt
 
-RUN chown torchlight:torchlight -R /home/torchlight/
-USER torchlight
-ENTRYPOINT ["bash", "/home/torchlight/entrypoint.sh"]
+RUN chown container:container -R /home/container/
+USER container
+ENTRYPOINT ["bash", "/home/container/entrypoint.sh"]
