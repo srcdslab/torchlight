@@ -79,8 +79,8 @@ class URLFilter(BaseCommand):
 			Info = self.json.loads(Info)
 
 			if Info["extractor_key"] == "Youtube":
-				self.Torchlight().SayChat("\x07E52D27[YouTube]\x01 {0} | {1} | {2}/5.00 | {3:,}".format(
-					Info["title"], str(self.datetime.timedelta(seconds = Info["duration"])), round(Info["average_rating"], 2), int(Info["view_count"])))
+				self.Torchlight().SayChat("\x07E52D27[YouTube]\x01 {0} | {1} | {2:,}".format(
+					Info["title"], str(self.datetime.timedelta(seconds = Info["duration"])), int(Info["view_count"])))
 			else:
 				match = None
 
@@ -654,8 +654,8 @@ class YouTubeSearch(BaseCommand):
 		Info = self.json.loads(Info)
 
 		if Info["extractor_key"] == "Youtube":
-			self.Torchlight().SayChat("\x07E52D27[YouTube]\x01 {0} | {1} | {2}/5.00 | {3:,}".format(
-				Info["title"], str(self.datetime.timedelta(seconds = Info["duration"])), round(Info["average_rating"] or 0, 2), int(Info["view_count"])))
+			self.Torchlight().SayChat("\x07E52D27[YouTube]\x01 {0} | {1} | {2:,}".format(
+				Info["title"], str(self.datetime.timedelta(seconds = Info["duration"])), int(Info["view_count"])))
 
 		AudioClip = self.Torchlight().AudioManager.AudioClip(player, url)
 		if not AudioClip:
