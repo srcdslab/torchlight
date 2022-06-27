@@ -15,6 +15,10 @@ RUN apt update && apt install gpg software-properties-common -y \
     && apt-add-repository "deb https://dl.winehq.org/wine-builds/debian/ $(grep VERSION_CODENAME= /etc/os-release | cut -d= -f2) main" \
     && dpkg --add-architecture i386 && apt update && apt install -y youtube-dl ffmpeg xvfb wine-stable wine32
 
+## !yt FIX (Cmer)
+RUN wget https://yt-dl.org/downloads/latest/youtube-dl -O /usr/local/bin/youtube-dl \
+    && chmod a+rx /usr/local/bin/youtube-dl
+
 # Install winetricks
 RUN wget -nv -O /usr/bin/winetricks https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks \
     && chmod +x /usr/bin/winetricks
