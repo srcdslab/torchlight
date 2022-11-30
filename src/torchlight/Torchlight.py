@@ -15,7 +15,7 @@ from PlayerManager import Player, PlayerManager
 from SourceModAPI import SourceModAPI
 from Subscribe import Forwards, GameEvents
 from Utils import Utils
-
+from Colors import color
 
 class Torchlight:
     def __init__(self, master: TorchlightHandler):
@@ -47,7 +47,7 @@ class Torchlight:
         self.GameEvents.HookEx("player_say", self.Event_PlayerSay)
 
     def SayChat(self, message: str, player: Optional[Player] = None) -> None:
-        message = "\x0700FFFA[Torchlight]: \x01{0}".format(message)
+        message = "{0}[Torchlight]: {1}{2}".format(color.aqua , color.default, message)
         if len(message) > 976:
             message = message[:973] + "..."
         lines = textwrap.wrap(message, 244, break_long_words=True)
@@ -67,7 +67,7 @@ class Torchlight:
                     player.ChatCooldown = self.Master.Loop.time() + cooldown
 
     def SayPrivate(self, player: Player, message: str) -> None:
-        message = "\x0700FFFA[Torchlight]: \x01{0}".format(message)
+        message = "{0}[Torchlight]: {1}{2}".format(color.aqua , color.default, message)
         if len(message) > 976:
             message = message[:973] + "..."
         lines = textwrap.wrap(message, 244, break_long_words=True)
