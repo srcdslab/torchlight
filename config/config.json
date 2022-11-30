@@ -21,7 +21,7 @@
 			"MaxLength": 5.0,
 			"DelayFactor": 10.0
 		},
-		"1":
+		"2":
 		{
 			"Uses": -1,
 			"TotalTime": 17.5,
@@ -82,10 +82,16 @@
 	{
 		"Host": "0.0.0.0",
 		"Port": 27115,
-		"Password": "***"
+		"Password": "supersecretpassword"
 	},
 
-	"WolframAPIKey": "***",
-	"WundergroundAPIKey": "***",
-	"OpenWeatherAPIKey": "***"
+	"GeoIP":
+	{
+		"Path": "/usr/share/GeoIP",
+		"CityFilename": "GeoLite2-City.mmdb"
+	},
+
+	"WolframAPIKey": "",
+	"WundergroundAPIKey": "",
+	"OpenWeatherAPIKey": ""
 }

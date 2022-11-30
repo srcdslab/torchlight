@@ -1,41 +1,24 @@
-FROM python:3.6
+FROM ubuntu:20.04
 
-ARG VERSION
-ARG BUILD_DATE
+RUN DEBIAN_FRONTEND=noninteractive apt update -y && apt install -y libmagic-dev ffmpeg python3 python3-pip curl --no-install-recommends
 
-# Author
-LABEL build_version="maxime1907 version:- ${VERSION} Build-date:- ${BUILD_DATE}"
-LABEL maintainer="maxime1907 <maxime1907.dev@gmail.com>"
+WORKDIR /app
 
-WORKDIR /home/torchlight
+# youtube-dl
+RUN curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl \
+    && chmod a+rx /usr/local/bin/youtube-dl \
+    && ln -s /usr/bin/python3 /usr/bin/python
 
-# Install dependencies for Torchlight
-RUN apt update && apt install gpg software-properties-common -y \
-    && wget -nv -O- https://dl.winehq.org/wine-builds/winehq.key | APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=1 apt-key add - \
-    && apt-add-repository "deb https://dl.winehq.org/wine-builds/debian/ $(grep VERSION_CODENAME= /etc/os-release | cut -d= -f2) main" \
-    && dpkg --add-architecture i386 && apt update && apt install -y youtube-dl ffmpeg xvfb wine-stable wine32
+# DecTalk
+RUN curl -L https://github.com/dectalk/dectalk/releases/download/2022-09-15/linux-amd64.tar.gz -o /tmp/dectalk.tar.gz \
+    && mkdir -p /app/dectalk \
+    && tar -xvf /tmp/dectalk.tar.gz -C /app/dectalk --strip-components=1 \
+    && rm -rf /tmp/dectalk.tar.gz
 
-## !yt FIX (Cmer)
-RUN wget https://yt-dl.org/downloads/latest/youtube-dl -O /usr/local/bin/youtube-dl \
-    && chmod a+rx /usr/local/bin/youtube-dl
+COPY . /app
 
-# Install winetricks
-RUN wget -nv -O /usr/bin/winetricks https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks \
-    && chmod +x /usr/bin/winetricks
+RUN pip install --no-cache-dir --prefer-binary .
 
-# set UUID and GUID for Pterodactyl 
-RUN groupadd -g 998 -o torchlight
-RUN useradd -m -u 999 -g 998 -d /home/torchlight torchlight
+COPY GeoIP/GeoLite2-City.mmdb /usr/share/GeoIP/
 
-# Copy base project
-COPY . /home/torchlight/
-
-# Install GeoIP
-COPY ./GeoIP/GeoLite2-City.mmdb /usr/share/GeoIP/
-
-# install python dependency
-RUN pip3 install -r requirements.txt
-
-RUN chown torchlight:torchlight -R /home/torchlight/ -R
-USER torchlight
-ENTRYPOINT ["bash", "/home/torchlight/entrypoint.sh"]
+ENTRYPOINT ["torchlight"]

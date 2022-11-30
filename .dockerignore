@@ -1,0 +1,11 @@
+bin
+documentation
+include
+kubernetes
+lib
+other
+venv
+.*
+Dockerfile
+build
+.gitignore
