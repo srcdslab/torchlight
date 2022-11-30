@@ -1,11 +1,4 @@
-FROM python:3.6
-
-ARG VERSION
-ARG BUILD_DATE
-
-# Author
-LABEL build_version="maxime1907 version:- ${VERSION} Build-date:- ${BUILD_DATE}"
-LABEL maintainer="maxime1907 <maxime1907.dev@gmail.com>"
+FROM python:3.8
 
 WORKDIR /home/torchlight
 
