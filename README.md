@@ -1,15 +1,24 @@
-# Torchlight3
+# Torchlight
+
+Bot for source engine games with a lot of commands:
+  * Play music from youtube, mp3, wav.
+  * Get the weather in real time.
+  * Play tts messages
+  * And much more!
+
 
 ## Requirements
- * [Python3.8+](https://github.com/python/cpython)
- * [FFMPEG](https://github.com/FFmpeg/FFmpeg)
- * [youtube-dl](https://github.com/ytdl-org/youtube-dl)
- * [dectalk](https://github.com/dectalk/dectalk)
- * On game server:
-   * [sm-ext-AsyncSocket extension](https://github.com/srcdslab/sm-ext-asyncsocket)
-   * [smjansson extension](https://github.com/srcdslab/sm-ext-SMJansson)
-   * [SMJSONAPI plugin](https://github.com/srcdslab/sm-plugin-SMJSONAPI)
-   * [sm-ext-Voice extension](https://github.com/srcdslab/sm-ext-Voice)
+### Linux
+  * [Python3.8+](https://github.com/python/cpython)
+  * [FFMPEG](https://github.com/FFmpeg/FFmpeg)
+  * [youtube-dl](https://github.com/ytdl-org/youtube-dl)
+  * [dectalk](https://github.com/dectalk/dectalk)
+
+### Game server
+  * [sm-ext-AsyncSocket extension](https://github.com/srcdslab/sm-ext-asyncsocket)
+  * [smjansson extension](https://github.com/srcdslab/sm-ext-SMJansson)
+  * [SMJSONAPI plugin](https://github.com/srcdslab/sm-plugin-SMJSONAPI)
+  * [sm-ext-Voice extension](https://github.com/srcdslab/sm-ext-Voice)
 
 ## Installation
 ### Torchlight
