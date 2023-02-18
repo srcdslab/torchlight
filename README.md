@@ -1,25 +1,27 @@
 # Torchlight3
 
-## 0. Requirements
- * Python3.6
- * FFMPEG
- * youtube-dl
+## Requirements
+ * [Python3.8+](https://github.com/python/cpython)
+ * [FFMPEG](https://github.com/FFmpeg/FFmpeg)
+ * [youtube-dl](https://github.com/ytdl-org/youtube-dl)
+ * [dectalk](https://github.com/dectalk/dectalk)
  * On game server:
-   * [custom sourcemod](https://github.com/BotoX/sourcemod)
-   * [sm-ext-AsyncSocket extension](https://git.botox.bz/CSSZombieEscape/sm-ext-AsyncSocket)
-   * [smjansson extension](https://forums.alliedmods.net/showthread.php?t=184604)
-   * [SMJSONAPI plugin](https://git.botox.bz/CSSZombieEscape/sm-plugins/src/branch/master/SMJSONAPI) or [here](https://cloud.botox.bz/s/TDRq7XwMFmW8NeQ)
-   * [sm-ext-Voice extension](https://git.botox.bz/CSSZombieEscape/sm-ext-Voice)
+   * [sm-ext-AsyncSocket extension](https://github.com/srcdslab/sm-ext-asyncsocket)
+   * [smjansson extension](https://github.com/srcdslab/sm-ext-SMJansson)
+   * [SMJSONAPI plugin](https://github.com/srcdslab/sm-plugin-SMJSONAPI)
+   * [sm-ext-Voice extension](https://github.com/srcdslab/sm-ext-Voice)
 
-## 1. Install
+## Installation
+### Torchlight
   * Install python3 and python-virtualenv
   * Create a virtualenv: `python3 -m venv venv`
   * Activate the virtualenv: `. venv/bin/activate`
   * Install all dependencies: `pip install -r requirements.txt`
+  * Install torchlight: `pip install -e .`
 
-## 2. Usage
-Set up game server stuff.
+Adapt the files in the config folder.
 
+### Game server
 You need to have SourceTV enabled and use the vaudio_celt voice codec:  
 `cstrike/cfg/autoexec.cfg `
 ```
@@ -45,29 +47,18 @@ map de_dust2
 
 Don't put `+map` into your startup cmdline.
 
-Adapt config.json.
-
-##### Make sure you are in the virtualenv! (`. venv/bin/activate`)
-Run: `python main.py`
-
-
-### Dectalk
-  * Install wine
-  * Run as normal user (not root)
-  * Run torchlight with: `xvfb-run -a python main.py`
-
 ## Docker
 ```
 version: '3.7'
 
 services:
   torchlight:
-    image: registry.gitlab.com/counterstrikesource/torchlight:latest
+    image: ghcr.io/srcdslab/torchlight:master
     container_name: torchlight
     ports:
-      - 27203:27203
+      - 27115:27115
     network_mode: host
     volumes:
-      - /home/torchlight/sounds:/home/torchlight/sounds
-      - /home/torchlight/config:/home/torchlight/config
+      - /my/path/to/sounds:/app/sounds
+      - /my/path/to/config:/app/config
 ```
