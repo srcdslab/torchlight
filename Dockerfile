@@ -5,7 +5,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt update -y && apt install -y libmagic-dev 
 WORKDIR /app
 
 # youtube-dl
-RUN curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl \
+RUN curl -L https://github.com/ytdl-patched/youtube-dl/releases/latest/download/youtube-dl -o /usr/local/bin/youtube-dl \
     && chmod a+rx /usr/local/bin/youtube-dl \
     && ln -s /usr/bin/python3 /usr/bin/python
 

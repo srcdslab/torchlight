@@ -909,8 +909,18 @@ class YouTubeSearch(BaseCommand):
         )
         Out, _ = await Proc.communicate()
 
-        urlraw, Info = Out.split(b'\n', maxsplit=1)
-        url = urlraw.strip().decode("ascii")
+        try:
+            urlraw, Info = Out.split(b'\n', maxsplit=1)
+            url = urlraw.strip().decode("ascii")
+        except Exception as e:
+            self.Logger.error(f"Failed to extract url from output: {Out}")
+            self.Logger.error(e)
+            self.torchlight.SayPrivate(
+                player,
+                "An error as occured while trying to retrieve the youtube result.",
+            )
+            return 1
+
         InfoJSON: Dict[str, Any] = json.loads(Info)
 
         if InfoJSON["extractor_key"] == "Youtube":
