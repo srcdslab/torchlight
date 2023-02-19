@@ -20,36 +20,36 @@ class FFmpegAudioPlayer:
     VALID_CALLBACKS = ["Play", "Stop", "Update"]
 
     def __init__(self, torchlight: Torchlight) -> None:
-        self.Logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.torchlight = torchlight
         self.config = self.torchlight.config["VoiceServer"]
-        self.Playing = False
-        self.Position: int = 0
+        self.playing = False
+        self.position: int = 0
 
         self.host = self.config["Host"]
         self.port = self.config["Port"]
         self.sample_rate = float(self.config["SampleRate"])
 
-        self.StartedPlaying: Optional[float] = None
-        self.StoppedPlaying: Optional[float] = None
-        self.Seconds = 0.0
+        self.started_playing: Optional[float] = None
+        self.stopped_playing: Optional[float] = None
+        self.seconds = 0.0
 
-        self.Writer: Optional[StreamWriter] = None
+        self.writer: Optional[StreamWriter] = None
         self.sub_process: Optional[Process] = None
 
-        self.Callbacks: List[Tuple[str, Callable]] = []
+        self.callbacks: List[Tuple[str, Callable]] = []
 
     def __del__(self) -> None:
-        self.Logger.debug("~FFmpegAudioPlayer()")
+        self.logger.debug("~FFmpegAudioPlayer()")
         self.Stop()
 
     def PlayURI(self, uri: str, position: Optional[int], *args: Any) -> bool:
         if position is not None:
-            PosStr = str(datetime.timedelta(seconds=position))
-            Command = [
+            pos_str = str(datetime.timedelta(seconds=position))
+            command = [
                 "/usr/bin/ffmpeg",
                 "-ss",
-                PosStr,
+                pos_str,
                 "-i",
                 uri,
                 "-acodec",
@@ -64,9 +64,9 @@ class FFmpegAudioPlayer:
                 *args,
                 "-",
             ]
-            self.Position = position
+            self.position = position
         else:
-            Command = [
+            command = [
                 "/usr/bin/ffmpeg",
                 "-i",
                 uri,
@@ -83,14 +83,14 @@ class FFmpegAudioPlayer:
                 "-",
             ]
 
-        print(Command)
+        print(command)
 
-        self.Playing = True
-        asyncio.ensure_future(self._stream_subprocess(Command))
+        self.playing = True
+        asyncio.ensure_future(self._stream_subprocess(command))
         return True
 
     def Stop(self, force: bool = True) -> bool:
-        if not self.Playing:
+        if not self.playing:
             return False
 
         if self.sub_process:
@@ -101,22 +101,22 @@ class FFmpegAudioPlayer:
             except ProcessLookupError:
                 pass
 
-        if self.Writer:
+        if self.writer:
             if force:
-                Socket = self.Writer.transport.get_extra_info("socket")
-                if Socket:
-                    Socket.setsockopt(
+                writer_socket = self.writer.transport.get_extra_info("socket")
+                if writer_socket:
+                    writer_socket.setsockopt(
                         socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0)
                     )
 
-                self.Writer.transport.abort()
+                self.writer.transport.abort()
 
-            self.Writer.close()
+            self.writer.close()
 
-        self.Playing = False
+        self.playing = False
 
         self.Callback("Stop")
-        del self.Callbacks
+        del self.callbacks
 
         return True
 
@@ -124,83 +124,83 @@ class FFmpegAudioPlayer:
         if cbtype not in self.VALID_CALLBACKS:
             return False
 
-        self.Callbacks.append((cbtype, cbfunc))
+        self.callbacks.append((cbtype, cbfunc))
         return True
 
     def Callback(self, cbtype: str, *args: Any, **kwargs: Any) -> None:
-        for callback in self.Callbacks:
+        for callback in self.callbacks:
             if callback[0] == cbtype:
                 try:
                     callback[1](*args, **kwargs)
                 except Exception:
-                    self.Logger.error(traceback.format_exc())
+                    self.logger.error(traceback.format_exc())
 
     async def _updater(self) -> None:
-        LastSecondsElapsed = 0.0
+        last_seconds_elapsed = 0.0
 
-        while self.Playing:
-            SecondsElapsed = 0.0
+        while self.playing:
+            seconds_elapsed = 0.0
 
-            if self.StartedPlaying:
-                SecondsElapsed = time.time() - self.StartedPlaying
+            if self.started_playing:
+                seconds_elapsed = time.time() - self.started_playing
 
-            if SecondsElapsed > self.Seconds:
-                SecondsElapsed = self.Seconds
+            if seconds_elapsed > self.seconds:
+                seconds_elapsed = self.seconds
 
-            self.Callback("Update", LastSecondsElapsed, SecondsElapsed)
+            self.Callback("Update", last_seconds_elapsed, seconds_elapsed)
 
-            if SecondsElapsed >= self.Seconds:
-                if not self.StoppedPlaying:
+            if seconds_elapsed >= self.seconds:
+                if not self.stopped_playing:
                     print("BUFFER UNDERRUN!")
                 self.Stop(False)
                 return
 
-            LastSecondsElapsed = SecondsElapsed
+            last_seconds_elapsed = seconds_elapsed
 
             await asyncio.sleep(0.1)
 
     async def _read_stream(
         self, stream: Optional[StreamReader], writer: StreamWriter
     ) -> None:
-        Started = False
+        started = False
 
-        while stream and self.Playing:
-            Data = await stream.read(65536)
+        while stream and self.playing:
+            data = await stream.read(65536)
 
-            if Data:
-                writer.write(Data)
+            if data:
+                writer.write(data)
                 await writer.drain()
 
-                Bytes = len(Data)
-                Samples = Bytes / SAMPLEBYTES
-                Seconds = Samples / self.sample_rate
+                bytes_len = len(data)
+                samples = bytes_len / SAMPLEBYTES
+                seconds = samples / self.sample_rate
 
-                self.Seconds += Seconds
+                self.seconds += seconds
 
-                if not Started:
-                    Started = True
+                if not started:
+                    started = True
                     self.Callback("Play")
-                    self.StartedPlaying = time.time()
+                    self.started_playing = time.time()
                     asyncio.ensure_future(self._updater())
             else:
                 self.sub_process = None
                 break
 
-        self.StoppedPlaying = time.time()
+        self.stopped_playing = time.time()
 
     async def _stream_subprocess(self, cmd: List[str]) -> None:
-        if not self.Playing:
+        if not self.playing:
             return
 
-        _, self.Writer = await asyncio.open_connection(self.host, self.port)
+        _, self.writer = await asyncio.open_connection(self.host, self.port)
 
         self.sub_process = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL
         )
 
-        await self._read_stream(self.sub_process.stdout, self.Writer)
+        await self._read_stream(self.sub_process.stdout, self.writer)
         if self.sub_process is not None:
             await self.sub_process.wait()
 
-        if self.Seconds == 0.0:
+        if self.seconds == 0.0:
             self.Stop()

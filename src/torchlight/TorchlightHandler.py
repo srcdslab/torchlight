@@ -15,7 +15,7 @@ from torchlight.Torchlight import Torchlight
 
 class TorchlightHandler:
     def __init__(self, loop: Optional[asyncio.AbstractEventLoop], config: Config):
-        self.Logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
         self.loop: asyncio.AbstractEventLoop = (
             loop if loop else asyncio.get_event_loop()
@@ -107,9 +107,9 @@ class TorchlightHandler:
         self.torchlight.OnPublish(obj)
 
     def OnDisconnect(self, exc: Optional[Exception]) -> None:
-        self.Logger.info("OnDisconnect({0})".format(exc))
+        self.logger.info("OnDisconnect({0})".format(exc))
 
         asyncio.ensure_future(self._Connect(), loop=self.loop)
 
     def __del__(self) -> None:
-        self.Logger.debug("~TorchlightHandler()")
+        self.logger.debug("~TorchlightHandler()")

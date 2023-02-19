@@ -3,70 +3,70 @@ from torchlight.Constants import AdminFlagBits
 
 class Admin:
     def __init__(self) -> None:
-        self._FlagBits = 0
+        self._flag_bits = 0
 
     def FlagBits(self) -> int:
-        return self._FlagBits
+        return self._flag_bits
 
     def Reservation(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_RESERVATION
+        return self._flag_bits & AdminFlagBits.ADMFLAG_RESERVATION
 
     def Generic(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_GENERIC
+        return self._flag_bits & AdminFlagBits.ADMFLAG_GENERIC
 
     def Kick(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_KICK
+        return self._flag_bits & AdminFlagBits.ADMFLAG_KICK
 
     def Ban(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_BAN
+        return self._flag_bits & AdminFlagBits.ADMFLAG_BAN
 
     def Unban(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_UNBAN
+        return self._flag_bits & AdminFlagBits.ADMFLAG_UNBAN
 
     def Slay(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_SLAY
+        return self._flag_bits & AdminFlagBits.ADMFLAG_SLAY
 
     def Changemap(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_CHANGEMAP
+        return self._flag_bits & AdminFlagBits.ADMFLAG_CHANGEMAP
 
     def Convars(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_CONVARS
+        return self._flag_bits & AdminFlagBits.ADMFLAG_CONVARS
 
     def Config(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_CONFIG
+        return self._flag_bits & AdminFlagBits.ADMFLAG_CONFIG
 
     def Chat(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_CHAT
+        return self._flag_bits & AdminFlagBits.ADMFLAG_CHAT
 
     def Vote(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_VOTE
+        return self._flag_bits & AdminFlagBits.ADMFLAG_VOTE
 
     def Password(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_PASSWORD
+        return self._flag_bits & AdminFlagBits.ADMFLAG_PASSWORD
 
     def RCON(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_RCON
+        return self._flag_bits & AdminFlagBits.ADMFLAG_RCON
 
     def Cheats(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_CHEATS
+        return self._flag_bits & AdminFlagBits.ADMFLAG_CHEATS
 
     def Root(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_ROOT
+        return self._flag_bits & AdminFlagBits.ADMFLAG_ROOT
 
     def Custom1(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_CUSTOM1
+        return self._flag_bits & AdminFlagBits.ADMFLAG_CUSTOM1
 
     def Custom2(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_CUSTOM2
+        return self._flag_bits & AdminFlagBits.ADMFLAG_CUSTOM2
 
     def Custom3(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_CUSTOM3
+        return self._flag_bits & AdminFlagBits.ADMFLAG_CUSTOM3
 
     def Custom4(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_CUSTOM4
+        return self._flag_bits & AdminFlagBits.ADMFLAG_CUSTOM4
 
     def Custom5(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_CUSTOM5
+        return self._flag_bits & AdminFlagBits.ADMFLAG_CUSTOM5
 
     def Custom6(self) -> int:
-        return self._FlagBits & AdminFlagBits.ADMFLAG_CUSTOM6
+        return self._flag_bits & AdminFlagBits.ADMFLAG_CUSTOM6

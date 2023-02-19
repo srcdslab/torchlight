@@ -12,12 +12,12 @@ class AudioPlayerType(Enum):
 
 class AudioPlayerFactory:
     def __init__(self) -> None:
-        self.Logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
         self.ffmpeg_audio_player_factory = FFmpegAudioPlayerFactory()
 
     def __del__(self) -> None:
-        self.Logger.info("~AudioPlayerFactory()")
+        self.logger.info("~AudioPlayerFactory()")
 
     def NewPlayer(
         self, _type: AudioPlayerType, torchlight: Torchlight

@@ -12,45 +12,45 @@ from torchlight.TorchlightHandler import TorchlightHandler
 
 class SourceRCONServer:
     def __init__(
-        self, RCONConfig: Dict[str, Any], torchlight_handler: TorchlightHandler
+        self, rcon_config: Dict[str, Any], torchlight_handler: TorchlightHandler
     ):
-        self.Logger = logging.getLogger(self.__class__.__name__)
-        self.RCONConfig = RCONConfig
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.rcon_config = rcon_config
         self.torchlight_handler = torchlight_handler
         self.loop: asyncio.AbstractEventLoop = self.torchlight_handler.loop
         self._serv_sock = socket.socket()
         self._serv_sock.setblocking(False)
         self._serv_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._serv_sock.bind((self.RCONConfig["Host"], self.RCONConfig["Port"]))
+        self._serv_sock.bind((self.rcon_config["Host"], self.rcon_config["Port"]))
         self._serv_sock.listen(5)
-        self.Peers: List[SourceRCONClient] = []
-        self.Password = self.RCONConfig["Password"]
+        self.peers: List[SourceRCONClient] = []
+        self.password = self.rcon_config["Password"]
 
-    def Remove(self, Peer: SourceRCONClient) -> None:
-        self.Logger.info(
-            sys._getframe().f_code.co_name + " Peer {0} disconnected!".format(Peer.Name)
+    def Remove(self, peer: SourceRCONClient) -> None:
+        self.logger.info(
+            sys._getframe().f_code.co_name + " Peer {0} disconnected!".format(peer.Name)
         )
-        self.Peers.remove(Peer)
+        self.peers.remove(peer)
 
     @asyncio.coroutine
     def _server(self) -> Generator:
         while True:
-            PeerSocket: socket.socket
-            PeerName: Any
-            PeerSocket, PeerName = yield from self.loop.sock_accept(self._serv_sock)
-            PeerSocket.setblocking(False)
-            Peer = SourceRCONClient(
+            peer_socket: socket.socket
+            peer_name: Any
+            peer_socket, peer_name = yield from self.loop.sock_accept(self._serv_sock)
+            peer_socket.setblocking(False)
+            peer = SourceRCONClient(
                 self.loop,
-                PeerSocket,
-                PeerName,
-                self.Password,
+                peer_socket,
+                peer_name,
+                self.password,
                 self.torchlight_handler.command_handler,
             )
-            asyncio.Task(self._peer_handler(Peer))
-            self.Peers.append(Peer)
-            self.Logger.info(
+            asyncio.Task(self._peer_handler(peer))
+            self.peers.append(peer)
+            self.logger.info(
                 sys._getframe().f_code.co_name
-                + " Peer {0} connected!".format(Peer.Name)
+                + " Peer {0} connected!".format(peer.Name)
             )
 
     @asyncio.coroutine

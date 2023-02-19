@@ -24,16 +24,16 @@ def cli(config_folder: str) -> None:
         datefmt=config["Logging"]["datefmt"],
     )
 
-    Loop = asyncio.get_event_loop()
+    event_loop = asyncio.get_event_loop()
 
-    TorchHandler = TorchlightHandler(Loop, config)
+    torchlight_handler = TorchlightHandler(event_loop, config)
 
     # Handles new connections on 0.0.0.0:27015
-    RCONServer = SourceRCONServer(
+    rcon_server = SourceRCONServer(
         config["TorchRCON"],
-        TorchHandler,
+        torchlight_handler,
     )
-    asyncio.Task(RCONServer._server())
+    asyncio.Task(rcon_server._server())
 
     # Run!
-    Loop.run_forever()
+    event_loop.run_forever()

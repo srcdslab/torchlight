@@ -10,64 +10,64 @@ from torchlight.AsyncClient import AsyncClient
 
 class SubscribeBase:
     def __init__(self, async_client: AsyncClient):
-        self.Logger = logging.getLogger(self.__class__.__name__)
-        self.Module = self.__class__.__name__.lower()
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.module = self.__class__.__name__.lower()
         self.async_client = async_client
 
-        self.Callbacks: Dict[str, Set[Callable]] = dict()
+        self.callbacks: Dict[str, Set[Callable]] = dict()
 
     def __del__(self) -> None:
-        if not len(self.Callbacks) or not self.async_client:
+        if not len(self.callbacks) or not self.async_client:
             return
 
-        Obj = {
+        json_obj = {
             "method": "unsubscribe",
-            "module": self.Module,
-            "events": self.Callbacks.keys(),
+            "module": self.module,
+            "events": self.callbacks.keys(),
         }
 
-        asyncio.ensure_future(self.async_client.Send(Obj))
+        asyncio.ensure_future(self.async_client.Send(json_obj))
 
     async def _Register(self, events: List[str]) -> List[bool]:
-        Obj = {"method": "subscribe", "module": self.Module, "events": events}
+        json_obj = {"method": "subscribe", "module": self.module, "events": events}
 
-        ResRaw = await self.async_client.Send(Obj)
+        res_raw = await self.async_client.Send(json_obj)
 
-        Res: Dict[str, Any] = dict()
-        if isinstance(ResRaw, Dict):
-            Res = ResRaw
+        res: Dict[str, Any] = dict()
+        if isinstance(res_raw, Dict):
+            res = res_raw
 
-        Ret: List[bool] = []
-        for i, ret in enumerate(Res.get("events", [])):
+        ret_list: List[bool] = []
+        for i, ret in enumerate(res.get("events", [])):
             if ret >= 0:
-                Ret.append(True)
-                if not events[i] in self.Callbacks:
-                    self.Callbacks[events[i]] = set()
+                ret_list.append(True)
+                if not events[i] in self.callbacks:
+                    self.callbacks[events[i]] = set()
             else:
-                Ret.append(False)
+                ret_list.append(False)
 
-        return Ret
+        return ret_list
 
     async def _Unregister(self, events: List[str]) -> List[bool]:
 
-        Obj = {"method": "unsubscribe", "module": self.Module, "events": events}
+        json_obj = {"method": "unsubscribe", "module": self.module, "events": events}
 
-        ResRaw = await self.async_client.Send(Obj)
+        res_raw = await self.async_client.Send(json_obj)
 
-        Res: Dict[str, Any] = dict()
-        if isinstance(ResRaw, Dict):
-            Res = ResRaw
+        res: Dict[str, Any] = dict()
+        if isinstance(res_raw, Dict):
+            res = res_raw
 
-        Ret: List[bool] = []
-        for i, ret in enumerate(Res["events"]):
+        ret_list: List[bool] = []
+        for i, ret in enumerate(res["events"]):
             if ret >= 0:
-                Ret.append(True)
-                if events[i] in self.Callbacks:
-                    del self.Callbacks[events[i]]
+                ret_list.append(True)
+                if events[i] in self.callbacks:
+                    del self.callbacks[events[i]]
             else:
-                Ret.append(False)
+                ret_list.append(False)
 
-        return Ret
+        return ret_list
 
     def HookEx(self, event: str, callback: Callable) -> None:
         asyncio.ensure_future(self.Hook(event, callback))
@@ -79,61 +79,61 @@ class SubscribeBase:
         asyncio.ensure_future(self.Replay(events))
 
     async def Hook(self, event: str, callback: Callable) -> bool:
-        if event not in self.Callbacks:
+        if event not in self.callbacks:
             ret = await self._Register([event])
             if not ret or not ret[0]:
                 return False
 
-        self.Callbacks[event].add(callback)
+        self.callbacks[event].add(callback)
         return True
 
     async def Unhook(self, event: str, callback: Callable) -> bool:
-        if event not in self.Callbacks:
+        if event not in self.callbacks:
             return True
 
-        if callback not in self.Callbacks[event]:
+        if callback not in self.callbacks[event]:
             return True
 
-        self.Callbacks[event].discard(callback)
+        self.callbacks[event].discard(callback)
 
         return (await self._Unregister([event]))[0]
 
     async def Replay(self, events: List[str]) -> List[bool]:
         for event in events[:]:
-            if event not in self.Callbacks:
+            if event not in self.callbacks:
                 events.remove(event)
 
-        Obj = {"method": "replay", "module": self.Module, "events": events}
+        json_obj = {"method": "replay", "module": self.module, "events": events}
 
-        ResRaw = await self.async_client.Send(Obj)
+        res_raw = await self.async_client.Send(json_obj)
 
-        Res: Dict[str, Any] = dict()
-        if isinstance(ResRaw, Dict):
-            Res = ResRaw
+        res: Dict[str, Any] = dict()
+        if isinstance(res_raw, Dict):
+            res = res_raw
 
-        Ret: List[bool] = []
-        for _, ret in enumerate(Res["events"]):
+        ret_list: List[bool] = []
+        for _, ret in enumerate(res["events"]):
             if ret >= 0:
-                Ret.append(True)
+                ret_list.append(True)
             else:
-                Ret.append(False)
+                ret_list.append(False)
 
-        return Ret
+        return ret_list
 
-    def OnPublish(self, obj: Dict[str, Any]) -> bool:
-        Event = obj["event"]
+    def OnPublish(self, json_obj: Dict[str, Any]) -> bool:
+        event = json_obj["event"]
 
-        if not Event["name"] in self.Callbacks:
+        if not event["name"] in self.callbacks:
             return False
 
-        Callbacks = self.Callbacks[Event["name"]]
+        callbacks = self.callbacks[event["name"]]
 
-        for Callback in Callbacks:
+        for callback in callbacks:
             try:
-                Callback(**Event["data"])
+                callback(**event["data"])
             except Exception:
-                self.Logger.error(traceback.format_exc())
-                self.Logger.error(Event)
+                self.logger.error(traceback.format_exc())
+                self.logger.error(event)
 
         return True
 

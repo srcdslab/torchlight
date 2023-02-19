@@ -6,55 +6,55 @@ from typing import Optional
 
 class Utils:
     @staticmethod
-    def GetNum(Text: str) -> str:
-        Ret = ""
-        for c in Text:
+    def GetNum(text_num: str) -> str:
+        ret = ""
+        for c in text_num:
             if c.isdigit():
-                Ret += c
-            elif Ret:
+                ret += c
+            elif ret:
                 break
             elif c == "-":
-                Ret += c
+                ret += c
 
-        return Ret
+        return ret
 
     @staticmethod
-    def ParseTime(TimeStr: Optional[str]) -> int:
-        Negative = False
-        Time = 0
+    def ParseTime(time_str: Optional[str]) -> int:
+        negative = False
+        real_time = 0
 
-        while TimeStr:
-            Valraw = Utils.GetNum(TimeStr)
-            if not Valraw:
+        while time_str:
+            val_raw = Utils.GetNum(time_str)
+            if not val_raw:
                 break
 
-            Val = int(Valraw)
-            if not Val:
+            val = int(val_raw)
+            if not val:
                 break
 
-            if Val < 0:
-                TimeStr = TimeStr[1:]
-                if Time == 0:
-                    Negative = True
-            Val = abs(Val)
+            if val < 0:
+                time_str = time_str[1:]
+                if real_time == 0:
+                    negative = True
+            val = abs(val)
 
-            ValLen = int(math.log10(Val)) + 1
-            if len(TimeStr) > ValLen:
-                Mult = TimeStr[ValLen].lower()
-                TimeStr = TimeStr[ValLen + 1 :]
+            val_len = int(math.log10(val)) + 1
+            if len(time_str) > val_len:
+                Mult = time_str[val_len].lower()
+                time_str = time_str[val_len + 1 :]
                 if Mult == "h":
-                    Val *= 3600
+                    val *= 3600
                 elif Mult == "m":
-                    Val *= 60
+                    val *= 60
             else:
-                TimeStr = None
+                time_str = None
 
-            Time += Val
+            real_time += val
 
-        if Negative:
-            return -Time
+        if negative:
+            return -real_time
         else:
-            return Time
+            return real_time
 
     @staticmethod
     def HumanSize(size_bytes: int) -> str:

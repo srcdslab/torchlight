@@ -18,7 +18,7 @@ class Config:
     def __init__(
         self, config_folder: str, config_filename: str = "config.json"
     ) -> None:
-        self.Logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.config_folder = config_folder
         self.config_filename = config_filename
         self.config_filepath = f"{config_folder}/{config_filename}"
@@ -30,7 +30,7 @@ class Config:
             with open(self.config_filepath, "r") as fp:
                 self.config = json.load(fp)
         except ValueError as e:
-            self.Logger.error(sys._getframe().f_code.co_name + " " + str(e))
+            self.logger.error(sys._getframe().f_code.co_name + " " + str(e))
             return 1
         return 0
 

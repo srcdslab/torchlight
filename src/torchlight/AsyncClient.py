@@ -16,31 +16,31 @@ class AsyncClient:
     def __init__(
         self,
         loop: asyncio.AbstractEventLoop,
-        SMAPIServerConfig: Dict[str, Any],
+        smapi_server_config: Dict[str, Any],
     ):
-        self.Logger = logging.getLogger(self.__class__.__name__)
-        self.Loop: asyncio.AbstractEventLoop = loop
-        self.SMAPIServerConfig: Dict[str, Any] = SMAPIServerConfig
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.loop: asyncio.AbstractEventLoop = loop
+        self.smapi_server_config: Dict[str, Any] = smapi_server_config
 
-        self.Host = self.SMAPIServerConfig["Host"]
-        self.Port = self.SMAPIServerConfig["Port"]
+        self.host = self.smapi_server_config["Host"]
+        self.port = self.smapi_server_config["Port"]
 
-        self.Protocol: Optional[ClientProtocol] = None
-        self.SendLock = asyncio.Lock()
-        self.RecvFuture: Optional[Future] = None
-        self.Callbacks: List[Tuple[str, Callable]] = []
+        self.protocol: Optional[ClientProtocol] = None
+        self.send_lock = asyncio.Lock()
+        self.recv_future: Optional[Future] = None
+        self.callbacks: List[Tuple[str, Callable]] = []
 
     async def Connect(self) -> None:
         while True:
-            self.Logger.warn("Reconnecting...")
+            self.logger.warn("Reconnecting...")
             try:
-                _, self.Protocol = await self.Loop.create_connection(
-                    lambda: ClientProtocol(self.Loop),
-                    host=self.Host,
-                    port=self.Port,
+                _, self.protocol = await self.loop.create_connection(
+                    lambda: ClientProtocol(self.loop),
+                    host=self.host,
+                    port=self.port,
                 )
-                self.Protocol.AddCallback("OnReceive", self.OnReceive)
-                self.Protocol.AddCallback("OnDisconnect", self.OnDisconnect)
+                self.protocol.AddCallback("OnReceive", self.OnReceive)
+                self.protocol.AddCallback("OnDisconnect", self.OnDisconnect)
                 break
             except Exception:
                 await asyncio.sleep(1.0)
@@ -49,56 +49,56 @@ class AsyncClient:
         if cbtype not in self.VALID_CALLBACKS:
             return False
 
-        self.Callbacks.append((cbtype, cbfunc))
+        self.callbacks.append((cbtype, cbfunc))
         return True
 
     def Callback(self, cbtype: str, *args: Any, **kwargs: Any) -> None:
-        for callback in self.Callbacks:
+        for callback in self.callbacks:
             if callback[0] == cbtype:
                 try:
                     callback[1](*args, **kwargs)
                 except Exception:
-                    self.Logger.error(traceback.format_exc())
+                    self.logger.error(traceback.format_exc())
 
     def OnReceive(self, data: Union[str, bytes]) -> None:
         try:
-            Obj = json.loads(data)
+            json_obj = json.loads(data)
         except Exception:
-            self.Logger.warn("OnReceive: Unable to decode data as json, skipping")
+            self.logger.warn("OnReceive: Unable to decode data as json, skipping")
             return
 
-        if "method" in Obj and Obj["method"] == "publish":
-            self.Callback("OnPublish", Obj)
+        if "method" in json_obj and json_obj["method"] == "publish":
+            self.Callback("OnPublish", json_obj)
         else:
-            if self.RecvFuture:
-                self.RecvFuture.set_result(Obj)
+            if self.recv_future:
+                self.recv_future.set_result(json_obj)
 
     def OnDisconnect(self, exc: Optional[Exception]) -> None:
-        self.Protocol = None
-        if self.RecvFuture:
-            self.RecvFuture.cancel()
+        self.protocol = None
+        if self.recv_future:
+            self.recv_future.cancel()
         self.Callback("OnDisconnect", exc)
 
-    async def Send(self, obj: Any) -> Optional[Any]:
-        if not self.Protocol:
+    async def Send(self, json_obj: Any) -> Optional[Any]:
+        if not self.protocol:
             return None
 
-        Data = json.dumps(obj, ensure_ascii=False, separators=(",", ":")).encode(
+        data = json.dumps(json_obj, ensure_ascii=False, separators=(",", ":")).encode(
             "UTF-8"
         )
 
-        async with self.SendLock:
-            if not self.Protocol:
+        async with self.send_lock:
+            if not self.protocol:
                 return None
 
-            self.RecvFuture = Future()
-            self.Protocol.Send(Data)
-            await self.RecvFuture
+            self.recv_future = Future()
+            self.protocol.Send(data)
+            await self.recv_future
 
-            if self.RecvFuture.done():
-                Obj = self.RecvFuture.result()
+            if self.recv_future.done():
+                json_obj = self.recv_future.result()
             else:
-                Obj = None
+                json_obj = None
 
-            self.RecvFuture = None
-            return Obj
+            self.recv_future = None
+            return json_obj

@@ -22,44 +22,44 @@ class CommandHandler:
         player_manager: PlayerManager,
         audio_manager: AudioManager,
     ) -> None:
-        self.Logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.torchlight = torchlight
         self.access_manager = access_manager
         self.player_manager = player_manager
         self.audio_manager = audio_manager
-        self.Commands: List[BaseCommand] = []
-        self.NeedsReload = False
+        self.commands: List[BaseCommand] = []
+        self.needs_reload = False
 
     def Setup(self) -> None:
-        Counter = len(self.Commands)
-        self.Commands.clear()
-        if Counter:
-            self.Logger.info(
+        counter = len(self.commands)
+        self.commands.clear()
+        if counter:
+            self.logger.info(
                 sys._getframe().f_code.co_name
-                + " Unloaded {0} commands!".format(Counter)
+                + " Unloaded {0} commands!".format(counter)
             )
 
-        Counter = 0
+        counter = 0
         for subklass in sorted(
-            BaseCommand.__subclasses__(), key=lambda x: x.Order, reverse=True
+            BaseCommand.__subclasses__(), key=lambda x: x.order, reverse=True
         ):
             try:
-                Command = subklass(
+                command = subklass(
                     self.torchlight,
                     self.access_manager,
                     self.player_manager,
                     self.audio_manager,
                 )
-                if hasattr(Command, "_setup"):
-                    Command._setup()
+                if hasattr(command, "_setup"):
+                    command._setup()
             except Exception:
-                self.Logger.error(traceback.format_exc())
+                self.logger.error(traceback.format_exc())
             else:
-                self.Commands.append(Command)
-                Counter += 1
+                self.commands.append(command)
+                counter += 1
 
-        self.Logger.info(
-            sys._getframe().f_code.co_name + " Loaded {0} commands!".format(Counter)
+        self.logger.info(
+            sys._getframe().f_code.co_name + " Loaded {0} commands!".format(counter)
         )
 
     def Reload(self) -> None:
@@ -68,85 +68,88 @@ class CommandHandler:
         try:
             reload(Commands)
         except Exception:
-            self.Logger.error(traceback.format_exc())
+            self.logger.error(traceback.format_exc())
         else:
             self.Setup()
 
     async def HandleCommand(self, line: str, player: Player) -> Optional[int]:
-        Message = line.split(sep=" ", maxsplit=1)
-        if len(Message) < 2:
-            Message.append("")
-        Message[1] = Message[1].strip()
+        message = line.split(sep=" ", maxsplit=1)
+        if len(message) < 2:
+            message.append("")
+        message[1] = message[1].strip()
 
-        if Message[1] and self.torchlight.last_url:
-            Message[1] = Message[1].replace("!last", self.torchlight.last_url)
-            line = Message[0] + " " + Message[1]
+        if message[1] and self.torchlight.last_url:
+            message[1] = message[1].replace("!last", self.torchlight.last_url)
+            line = message[0] + " " + message[1]
 
-        Level = 0
+        level = 0
         if player.access:
-            Level = player.access.level
+            level = player.access.level
 
-        RetMessage: Optional[str] = None
-        Ret: Optional[int] = None
-        for command in self.Commands:
-            for Trigger in command.Triggers:
-                IsMatch = False
-                RMatch: Optional[Match] = None
-                if isinstance(Trigger, tuple):
-                    if Message[0].lower().startswith(Trigger[0], 0, Trigger[1]):
-                        IsMatch = True
-                elif isinstance(Trigger, str):
-                    if Message[0].lower() == Trigger.lower():
-                        IsMatch = True
+        self.logger.debug(f"Command: {message}")
+        ret_message: Optional[str] = None
+        ret: Optional[int] = None
+        for command in self.commands:
+            for trigger in command.triggers:
+                is_match = False
+                r_match: Optional[Match] = None
+                self.logger.debug(type(trigger))
+                self.logger.debug(f"Trigger: {trigger}")
+                if isinstance(trigger, tuple):
+                    if message[0].lower().startswith(trigger[0], 0, trigger[1]):
+                        is_match = True
+                elif isinstance(trigger, str):
+                    if message[0].lower() == trigger.lower():
+                        is_match = True
                 else:  # compiled regex
-                    RMatch = Trigger.search(line)
-                    if RMatch:
-                        IsMatch = True
+                    r_match = trigger.search(line)
+                    if r_match:
+                        is_match = True
 
-                if not IsMatch:
+                if not is_match:
                     continue
 
-                self.Logger.debug(
+                self.logger.debug(
                     sys._getframe().f_code.co_name
                     + ' "{0}" Match -> {1} | {2}'.format(
-                        player.Name, command.__class__.__name__, Trigger
+                        player.name, command.__class__.__name__, trigger
                     )
                 )
 
-                if Level < command.Level:
-                    RetMessage = "You do not have access to this command! (You: {0} | Required: {1})".format(
-                        Level, command.Level
+                if level < command.level:
+                    ret_message = "You do not have access to this command! (You: {0} | Required: {1})".format(
+                        level, command.level
                     )
                     continue
 
                 try:
-                    if RMatch is not None:
-                        RetTemp = await command._rfunc(line, RMatch, player)
+                    if r_match is not None:
+                        ret_temp = await command._rfunc(line, r_match, player)
 
-                        if isinstance(RetTemp, str):
-                            Message = RetTemp.split(sep=" ", maxsplit=1)
-                            Ret = None
+                        if isinstance(ret_temp, str):
+                            message = ret_temp.split(sep=" ", maxsplit=1)
+                            ret = None
                         else:
-                            Ret = RetTemp
+                            ret = ret_temp
                     else:
-                        Ret = await command._func(Message, player)
+                        ret = await command._func(message, player)
                 except Exception as e:
-                    self.Logger.error(traceback.format_exc())
+                    self.logger.error(traceback.format_exc())
                     self.torchlight.SayChat("Error: {0}".format(str(e)))
 
-                RetMessage = None
+                ret_message = None
 
-                if Ret is not None and Ret > 0:
+                if ret is not None and ret > 0:
                     break
 
-            if Ret is not None and Ret >= 0:
+            if ret is not None and ret >= 0:
                 break
 
-        if RetMessage:
-            self.torchlight.SayPrivate(player, RetMessage)
+        if ret_message:
+            self.torchlight.SayPrivate(player, ret_message)
 
-        if self.NeedsReload:
-            self.NeedsReload = False
+        if self.needs_reload:
+            self.needs_reload = False
             self.Reload()
 
-        return Ret
+        return ret
