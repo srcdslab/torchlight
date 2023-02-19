@@ -10,24 +10,24 @@ class ClientProtocol(Protocol):
     VALID_CALLBACKS = ["OnReceive", "OnDisconnect"]
 
     def __init__(self, loop: AbstractEventLoop):
-        self.Logger = logging.getLogger(self.__class__.__name__)
-        self.Loop = loop
-        self.Transport: Optional[transports.WriteTransport] = None
-        self.Buffer = bytearray()
-        self.Callbacks: List[Tuple[str, Callable]] = []
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.loop = loop
+        self.transport: Optional[transports.WriteTransport] = None
+        self.buffer = bytearray()
+        self.callbacks: List[Tuple[str, Callable]] = []
 
     def connection_made(self, transport: transports.WriteTransport) -> None:  # type: ignore[override]
-        self.Transport = transport
+        self.transport = transport
 
     def data_received(self, data: bytes) -> None:
-        self.Buffer += data
+        self.buffer += data
 
-        chunks = self.Buffer.split(b"\0")
+        chunks = self.buffer.split(b"\0")
         if data[-1] == b"\0":
             chunks = chunks[:-1]
-            self.Buffer = bytearray()
+            self.buffer = bytearray()
         else:
-            self.Buffer = bytearray(chunks[-1])
+            self.buffer = bytearray(chunks[-1])
             chunks = chunks[:-1]
 
         for chunk in chunks:
@@ -37,23 +37,23 @@ class ClientProtocol(Protocol):
         if cbtype not in self.VALID_CALLBACKS:
             return False
 
-        self.Callbacks.append((cbtype, cbfunc))
+        self.callbacks.append((cbtype, cbfunc))
         return True
 
     def Callback(self, cbtype: str, *args: Any, **kwargs: Any) -> None:
-        for callback in self.Callbacks:
+        for callback in self.callbacks:
             if callback[0] == cbtype:
                 try:
                     callback[1](*args, **kwargs)
                 except Exception:
-                    self.Logger.error(traceback.format_exc())
+                    self.logger.error(traceback.format_exc())
 
     def connection_lost(self, exc: Optional[Exception]) -> None:
-        if self.Transport:
-            self.Transport.close()
-        self.Transport = None
+        if self.transport:
+            self.transport.close()
+        self.transport = None
         self.Callback("OnDisconnect", exc)
 
     def Send(self, data: bytes) -> None:
-        if self.Transport:
-            self.Transport.write(data)
+        if self.transport:
+            self.transport.write(data)

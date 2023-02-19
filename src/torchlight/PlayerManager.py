@@ -17,7 +17,7 @@ class PlayerManager:
         audio_manager: AudioManager,
         access_manager: AccessManager,
     ) -> None:
-        self.Logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.torchlight = torchlight
         self.audio_manager = audio_manager
         self.access_manager = access_manager
@@ -41,7 +41,7 @@ class PlayerManager:
         self, name: str, index: int, userid: int, networkid: str, address: str, bot: int
     ) -> None:
         index += 1
-        self.Logger.info(
+        self.logger.info(
             "OnConnect(name={0}, index={1}, userid={2}, networkid={3}, address={4}, bot={5})".format(
                 name, index, userid, networkid, address, bot
             )
@@ -50,29 +50,29 @@ class PlayerManager:
         player = self.players[index]
 
         if player is not None:
-            self.Logger.error("!!! Player already exists, overwriting !!!")
+            self.logger.error("!!! Player already exists, overwriting !!!")
 
         player = Player(index, userid, networkid, address, name)
 
         self.players[index] = player
         access = self.access_manager.get_access(player)
-        player.OnConnect(self.storage_manager[player.UniqueID], access)
+        player.OnConnect(self.storage_manager[player.unique_id], access)
 
     def Event_PlayerActivate(self, userid: int) -> None:
-        self.Logger.info("Pre_OnActivate(userid={0})".format(userid))
+        self.logger.info("Pre_OnActivate(userid={0})".format(userid))
 
         player = self.FindUserID(userid)
         if player is None:
             return
 
-        self.Logger.info(
-            "OnActivate(index={0}, userid={1})".format(player.Index, userid)
+        self.logger.info(
+            "OnActivate(index={0}, userid={1})".format(player.index, userid)
         )
 
         player.OnActivate()
 
     def OnClientPostAdminCheck(self, client: int) -> None:
-        self.Logger.info("OnClientPostAdminCheck(client={0})".format(client))
+        self.logger.info("OnClientPostAdminCheck(client={0})".format(client))
 
         player = self.players[client]
         if player is None:
@@ -81,16 +81,16 @@ class PlayerManager:
         asyncio.ensure_future(self.OnClientPostAdminCheckAsync(player))
 
     async def OnClientPostAdminCheckAsync(self, player: Player) -> None:
-        flag_bits: int = (await self.torchlight.API.GetUserFlagBits(player.Index))[
-            "result"
-        ]
+        flag_bits: int = (
+            await self.torchlight.sourcemod_api.GetUserFlagBits(player.index)
+        )["result"]
         player.OnClientPostAdminCheck(flag_bits, self.torchlight.config)
 
     def Event_PlayerInfo(
         self, name: str, index: int, userid: int, networkid: str, bot: int
     ) -> None:
         index += 1
-        self.Logger.info(
+        self.logger.info(
             "OnInfo(name={0}, index={1}, userid={2}, networkid={3}, bot={4})".format(
                 name, index, userid, networkid, bot
             )
@@ -111,15 +111,15 @@ class PlayerManager:
         if player is None:
             return
 
-        self.Logger.info(
+        self.logger.info(
             "OnDisconnect(index={0}, userid={1}, reason={2}, name={3}, networkid={4}, bot={5})".format(
-                player.Index, userid, reason, name, networkid, bot
+                player.index, userid, reason, name, networkid, bot
             )
         )
 
         player.OnDisconnect(reason)
         self.audio_manager.OnDisconnect(player)
-        self.players[player.Index] = None
+        self.players[player.index] = None
 
     def Event_ServerSpawn(
         self,
@@ -134,7 +134,7 @@ class PlayerManager:
         dedicated: str,
         password: str,
     ) -> None:
-        self.Logger.info("ServerSpawn(mapname={0})".format(mapname))
+        self.logger.info("ServerSpawn(mapname={0})".format(mapname))
 
         self.storage_manager.Reset()
 
@@ -144,34 +144,34 @@ class PlayerManager:
                 access = self.access_manager.get_access(player)
                 player.OnDisconnect("mapchange")
                 player.OnConnect(
-                    self.storage_manager[player.UniqueID],
+                    self.storage_manager[player.unique_id],
                     access,
                 )
 
     def FindUniqueID(self, uniqueid: int) -> Optional[Player]:
         for player in self.players:
-            if player and player.UniqueID == uniqueid:
+            if player and player.unique_id == uniqueid:
                 return player
         return None
 
     def FindUserID(self, userid: int) -> Optional[Player]:
         for player in self.players:
-            if player and player.UserID == userid:
+            if player and player.user_id == userid:
                 return player
         return None
 
     def FindName(self, name: str) -> Optional[Player]:
         for player in self.players:
-            if player and player.Name == name:
+            if player and player.name == name:
                 return player
         return None
 
     def __len__(self) -> int:
-        Count = 0
+        count = 0
         for i in range(1, len(self.players)):
             if self.players[i]:
-                Count += 1
-        return Count
+                count += 1
+        return count
 
     def __setitem__(self, key: int, value: Optional[Player]) -> None:
         if key > 0 and key <= Clients.MAXPLAYERS:

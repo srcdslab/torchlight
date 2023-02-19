@@ -16,77 +16,78 @@ class Player:
         address: str,
         name: str,
     ):
-        self.Logger = logging.getLogger(self.__class__.__name__)
-        self.Index = index
-        self.UserID = userid
-        self.UniqueID = uniqueid
-        self.Address = address
-        self.Name = name
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.index = index
+        self.user_id = userid
+        self.unique_id = uniqueid
+        self.address = address
+        self.name = name
         self.access: ConfigAccess = ConfigAccess(
-            name=self.Name, level=0, uniqueid=self.UniqueID
+            name=self.name, level=0, uniqueid=self.unique_id
         )
-        self.Admin = Admin()
-        self.Storage: Dict = dict()
-        self.Active = False
-        self.ChatCooldown = 0
+        self.admin = Admin()
+        self.storage: Dict = dict()
+        self.active = False
+        self.chat_cooldown = 0
 
     def OnConnect(self, storage: Dict, access: ConfigAccess) -> None:
-        self.Storage = storage
+        self.storage = storage
 
-        if "Audio" not in self.Storage:
-            self.Storage["Audio"] = dict(
+        if "Audio" not in self.storage:
+            self.storage["Audio"] = dict(
                 {"Uses": 0, "LastUse": 0.0, "LastUseLength": 0.0, "TimeUsed": 0.0}
             )
 
         self.access = access
 
     def OnActivate(self) -> None:
-        self.Active = True
+        self.active = True
 
     def OnClientPostAdminCheck(self, flag_bits: int, config: Config) -> None:
-        self.Admin._FlagBits = flag_bits
-        self.Logger.info(
+        self.admin._flag_bits = flag_bits
+        self.logger.info(
             '#{0} "{1}"({2}) FlagBits: {3}'.format(
-                self.UserID, self.Name, self.UniqueID, self.Admin._FlagBits
+                self.user_id, self.name, self.unique_id, self.admin._flag_bits
             )
         )
 
-        if self.Admin.RCON() or self.Admin.Root():
-            self.access = ConfigAccess(
+        player_access = ConfigAccess(
+            name="Player",
+            level=config["AccessLevel"]["Player"],
+            uniqueid=self.unique_id,
+        )
+
+        if self.admin.RCON() or self.admin.Root():
+            player_access = ConfigAccess(
                 level=config["AccessLevel"]["Root"],
                 name="SAdmin",
-                uniqueid=self.UniqueID,
+                uniqueid=self.unique_id,
             )
-        elif self.Admin.Ban():
-            self.access = ConfigAccess(
+        elif self.admin.Ban():
+            player_access = ConfigAccess(
                 level=config["AccessLevel"]["Admin"],
                 name="Admin",
-                uniqueid=self.UniqueID,
+                uniqueid=self.unique_id,
             )
-        elif self.Admin.Generic():
-            self.access = ConfigAccess(
+        elif self.admin.Generic():
+            player_access = ConfigAccess(
                 level=config["AccessLevel"]["DonatedAdmin"],
                 name="DAdmin",
-                uniqueid=self.UniqueID,
+                uniqueid=self.unique_id,
             )
-        elif self.Admin.Custom1():
-            self.access = ConfigAccess(
+        elif self.admin.Custom1():
+            player_access = ConfigAccess(
                 level=config["AccessLevel"]["VIP"],
                 name="VIP",
-                uniqueid=self.UniqueID,
+                uniqueid=self.unique_id,
             )
 
-        if "DefaultLevel" in config.config:
-            if self.access and self.access.level < config["DefaultLevel"]:
-                self.access = ConfigAccess(
-                    level=config["DefaultLevel"],
-                    name="Default",
-                    uniqueid=self.UniqueID,
-                )
+        if player_access is not None and self.access.level < player_access.level:
+            self.access = player_access
 
     def OnInfo(self, name: str) -> None:
-        self.Name = name
+        self.name = name
 
     def OnDisconnect(self, message: str) -> None:
-        self.Active = False
-        self.Storage = dict()
+        self.active = False
+        self.storage = dict()

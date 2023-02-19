@@ -19,15 +19,15 @@ class SourceModAPI:
     async def _MakeCall(
         self, function: str, *args: Any, **kwargs: Any
     ) -> Dict[str, Any]:
-        Obj = {"method": "function", "function": function, "args": args}
+        json_obj = {"method": "function", "function": function, "args": args}
 
-        ResRaw = await self.async_client.Send(Obj)
+        res_raw = await self.async_client.Send(json_obj)
 
-        Res: Dict[str, Any] = dict()
-        if isinstance(ResRaw, Dict):
-            Res = ResRaw
+        res: Dict[str, Any] = dict()
+        if isinstance(res_raw, Dict):
+            res = res_raw
 
-        if Res["error"]:
-            raise Exception("{0}({1})\n{2}".format(function, args, Res["error"]))
+        if res["error"]:
+            raise Exception("{0}({1})\n{2}".format(function, args, res["error"]))
 
-        return Res
+        return res

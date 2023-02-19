@@ -15,86 +15,86 @@ class AudioClip:
         audio_player: FFmpegAudioPlayer,
         torchlight: Torchlight,
     ):
-        self.Logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.torchlight: Torchlight = torchlight
         self.config = self.torchlight.config["AudioLimits"]
         self.player = player
         self.audio_player = audio_player
-        self.URI = uri
-        self.LastPosition: int = 0
-        self.Stops: Set[int] = set()
+        self.uri = uri
+        self.last_position: int = 0
+        self.stops: Set[int] = set()
 
-        self.Level = 0
+        self.level = 0
         if self.player.access:
-            self.Level = self.player.access.level
+            self.level = self.player.access.level
 
         self.audio_player.AddCallback("Play", self.OnPlay)
         self.audio_player.AddCallback("Stop", self.OnStop)
         self.audio_player.AddCallback("Update", self.OnUpdate)
 
     def __del__(self) -> None:
-        self.Logger.info("~AudioClip()")
+        self.logger.info("~AudioClip()")
 
     def Play(self, seconds: Optional[int] = None, *args: Any) -> bool:
-        return self.audio_player.PlayURI(self.URI, seconds, *args)
+        return self.audio_player.PlayURI(self.uri, seconds, *args)
 
     def Stop(self) -> bool:
         return self.audio_player.Stop()
 
     def OnPlay(self) -> None:
-        self.Logger.debug(sys._getframe().f_code.co_name + " " + self.URI)
+        self.logger.debug(sys._getframe().f_code.co_name + " " + self.uri)
 
-        self.player.Storage["Audio"]["Uses"] += 1
-        self.player.Storage["Audio"]["LastUse"] = self.torchlight.loop.time()
-        self.player.Storage["Audio"]["LastUseLength"] = 0.0
+        self.player.storage["Audio"]["Uses"] += 1
+        self.player.storage["Audio"]["LastUse"] = self.torchlight.loop.time()
+        self.player.storage["Audio"]["LastUseLength"] = 0.0
 
     def OnStop(self) -> None:
-        self.Logger.debug(sys._getframe().f_code.co_name + " " + self.URI)
+        self.logger.debug(sys._getframe().f_code.co_name + " " + self.uri)
 
-        if self.audio_player.Playing:
-            Delta = self.audio_player.Position - self.LastPosition
-            self.player.Storage["Audio"]["TimeUsed"] += Delta
-            self.player.Storage["Audio"]["LastUseLength"] += Delta
+        if self.audio_player.playing:
+            delta = self.audio_player.position - self.last_position
+            self.player.storage["Audio"]["TimeUsed"] += delta
+            self.player.storage["Audio"]["LastUseLength"] += delta
 
-        if str(self.Level) in self.config:
-            if self.player.Storage:
+        if str(self.level) in self.config:
+            if self.player.storage:
                 if (
-                    self.player.Storage["Audio"]["TimeUsed"]
-                    >= self.config[str(self.Level)]["TotalTime"]
+                    self.player.storage["Audio"]["TimeUsed"]
+                    >= self.config[str(self.level)]["TotalTime"]
                 ):
                     self.torchlight.SayPrivate(
                         self.player,
                         "You have used up all of your free time! ({0} seconds)".format(
-                            self.config[str(self.Level)]["TotalTime"]
+                            self.config[str(self.level)]["TotalTime"]
                         ),
                     )
                 elif (
-                    self.player.Storage["Audio"]["LastUseLength"]
-                    >= self.config[str(self.Level)]["MaxLength"]
+                    self.player.storage["Audio"]["LastUseLength"]
+                    >= self.config[str(self.level)]["MaxLength"]
                 ):
                     self.torchlight.SayPrivate(
                         self.player,
                         "Your audio clip exceeded the maximum length! ({0} seconds)".format(
-                            self.config[str(self.Level)]["MaxLength"]
+                            self.config[str(self.level)]["MaxLength"]
                         ),
                     )
 
         del self.audio_player
 
     def OnUpdate(self, old_position: int, new_position: int) -> None:
-        Delta = new_position - old_position
-        self.LastPosition = new_position
+        delta = new_position - old_position
+        self.last_position = new_position
 
-        self.player.Storage["Audio"]["TimeUsed"] += Delta
-        self.player.Storage["Audio"]["LastUseLength"] += Delta
+        self.player.storage["Audio"]["TimeUsed"] += delta
+        self.player.storage["Audio"]["LastUseLength"] += delta
 
-        if not str(self.Level) in self.config:
+        if not str(self.level) in self.config:
             return
 
         if (
-            self.player.Storage["Audio"]["TimeUsed"]
-            >= self.config[str(self.Level)]["TotalTime"]
-            or self.player.Storage["Audio"]["LastUseLength"]
-            >= self.config[str(self.Level)]["MaxLength"]
+            self.player.storage["Audio"]["TimeUsed"]
+            >= self.config[str(self.level)]["TotalTime"]
+            or self.player.storage["Audio"]["LastUseLength"]
+            >= self.config[str(self.level)]["MaxLength"]
         ):
             self.Stop()

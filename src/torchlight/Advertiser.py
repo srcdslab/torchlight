@@ -8,79 +8,79 @@ from torchlight.Torchlight import Torchlight
 
 class Advertiser:
     def __init__(self, torchlight: Torchlight) -> None:
-        self.Logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.torchlight = torchlight
         self.config = self.torchlight.config["Advertiser"]
 
-        self.LastClips: Dict[int, Any] = dict()
-        self.AdStop = 0
-        self.NextAdStop = 0
+        self.last_clips: Dict[int, Any] = dict()
+        self.ad_stop = 0
+        self.next_ad_stop = 0
 
-    def Think(self, Delta: int) -> None:
-        Now = self.torchlight.loop.time()
-        Duration = 0.0
+    def Think(self, delta: int) -> None:
+        now = self.torchlight.loop.time()
+        duration = 0.0
 
-        for Key, Clip in list(self.LastClips.items()):
-            if not Clip["timestamp"]:
+        for key, clip in list(self.last_clips.items()):
+            if not clip["timestamp"]:
                 continue
 
-            if Clip["timestamp"] + Clip["duration"] + self.config["MaxSpan"] < Now:
-                if not Clip["active"]:
-                    del self.LastClips[Key]
+            if clip["timestamp"] + clip["duration"] + self.config["MaxSpan"] < now:
+                if not clip["active"]:
+                    del self.last_clips[key]
                 continue
 
-            Duration += Clip["duration"]
+            duration += clip["duration"]
 
-        self.NextAdStop -= Delta
-        CeilDur = math.ceil(Duration)
+        self.next_ad_stop -= delta
+        ceil_duration = math.ceil(duration)
         if (
-            CeilDur > self.AdStop
-            and self.NextAdStop <= 0
-            and CeilDur % self.config["AdStop"] == 0
+            ceil_duration > self.ad_stop
+            and self.next_ad_stop <= 0
+            and ceil_duration % self.config["AdStop"] == 0
         ):
             self.torchlight.SayChat(
-                "Hint: Type {{darkred}}!stop{{default}} to stop all currently playing sounds."
+                "Hint: Type {darkred}!stop{default} to stop all currently playing sounds."
             )
-            self.AdStop = CeilDur
-            self.NextAdStop = 0
-        elif CeilDur < self.AdStop:
-            self.AdStop = 0
-            self.NextAdStop = self.config["AdStop"] / 2
+            self.ad_stop = ceil_duration
+            self.next_ad_stop = 0
+        elif ceil_duration < self.ad_stop:
+            self.ad_stop = 0
+            self.next_ad_stop = self.config["AdStop"] / 2
 
     def OnPlay(self, clip: AudioClip) -> None:
-        Now = self.torchlight.loop.time()
-        self.LastClips[hash(clip)] = dict(
-            {"timestamp": Now, "duration": 0.0, "dominant": False, "active": True}
+        now = self.torchlight.loop.time()
+        self.last_clips[hash(clip)] = dict(
+            {"timestamp": now, "duration": 0.0, "dominant": False, "active": True}
         )
 
-        HasDominant = False
-        for _, Clip in self.LastClips.items():
-            if Clip["dominant"]:
-                HasDominant = True
+        has_dominant = False
+        for _, last_clip in self.last_clips.items():
+            if last_clip["dominant"]:
+                has_dominant = True
                 break
 
-        self.LastClips[hash(clip)]["dominant"] = not HasDominant
+        self.last_clips[hash(clip)]["dominant"] = not has_dominant
 
     def OnStop(self, clip: AudioClip) -> None:
-        if hash(clip) not in self.LastClips:
+        if hash(clip) not in self.last_clips:
             return
 
-        self.LastClips[hash(clip)]["active"] = False
+        self.last_clips[hash(clip)]["active"] = False
 
-        if self.LastClips[hash(clip)]["dominant"]:
-            for _, Clip in self.LastClips.items():
-                if Clip["active"]:
-                    Clip["dominant"] = True
+        if self.last_clips[hash(clip)]["dominant"]:
+            for _, last_clip in self.last_clips.items():
+                if last_clip["active"]:
+                    last_clip["dominant"] = True
                     break
 
-        self.LastClips[hash(clip)]["dominant"] = False
+        self.last_clips[hash(clip)]["dominant"] = False
 
     def OnUpdate(self, clip: AudioClip, old_position: int, new_position: int) -> None:
-        Delta = new_position - old_position
-        Clip = self.LastClips[hash(clip)]
+        delta = new_position - old_position
+        last_clip = self.last_clips[hash(clip)]
 
-        if not Clip["dominant"]:
+        if not last_clip["dominant"]:
             return
 
-        Clip["duration"] += Delta
-        self.Think(Delta)
+        last_clip["duration"] += delta
+        self.Think(delta)

@@ -9,18 +9,18 @@ from torchlight.Torchlight import Torchlight
 
 class AntiSpam:
     def __init__(self, torchlight: Torchlight) -> None:
-        self.Logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.torchlight = torchlight
         self.config = self.torchlight.config["AntiSpam"]
 
-        self.LastClips: Dict[int, Any] = dict()
-        self.DisabledTime = None
-        self.SaidHint = False
+        self.last_clips: Dict[int, Any] = dict()
+        self.disabled_time = None
+        self.said_hint = False
 
     def CheckAntiSpam(self, player: Player) -> bool:
         if (
-            self.DisabledTime
-            and self.DisabledTime > self.torchlight.loop.time()
+            self.disabled_time
+            and self.disabled_time > self.torchlight.loop.time()
             and not (
                 player.access and player.access.level >= self.config["ImmunityLevel"]
             )
@@ -29,30 +29,32 @@ class AntiSpam:
             self.torchlight.SayPrivate(
                 player,
                 "Torchlight is currently on cooldown! ({0} seconds left)".format(
-                    math.ceil(self.DisabledTime - self.torchlight.loop.time())
+                    math.ceil(self.disabled_time - self.torchlight.loop.time())
                 ),
             )
             return False
 
         return True
 
-    def SpamCheck(self, audio_clips: List[AudioClip], Delta: int) -> None:
-        Now = self.torchlight.loop.time()
-        Duration = 0.0
+    def SpamCheck(self, audio_clips: List[AudioClip], delta: int) -> None:
+        now = self.torchlight.loop.time()
+        duration = 0.0
 
-        for Key, Clip in list(self.LastClips.items()):
-            if not Clip["timestamp"]:
+        for key, clip in list(self.last_clips.items()):
+            if not clip["timestamp"]:
                 continue
 
-            if Clip["timestamp"] + Clip["duration"] + self.config["MaxUsageSpan"] < Now:
-                if not Clip["active"]:
-                    del self.LastClips[Key]
+            if clip["timestamp"] + clip["duration"] + self.config["MaxUsageSpan"] < now:
+                if not clip["active"]:
+                    del self.last_clips[key]
                 continue
 
-            Duration += Clip["duration"]
+            duration += clip["duration"]
 
-        if Duration > self.config["MaxUsageTime"]:
-            self.DisabledTime = self.torchlight.loop.time() + self.config["PunishDelay"]
+        if duration > self.config["MaxUsageTime"]:
+            self.disabled_time = (
+                self.torchlight.loop.time() + self.config["PunishDelay"]
+            )
             self.torchlight.SayChat(
                 "Blocked voice commands for the next {0} seconds. Used {1} seconds within {2} seconds.".format(
                     self.config["PunishDelay"],
@@ -63,38 +65,38 @@ class AntiSpam:
 
             # Make a copy of the list since AudioClip.Stop() will change the list
             for audio_clip in audio_clips[:]:
-                if audio_clip.Level < self.config["ImmunityLevel"]:
+                if audio_clip.level < self.config["ImmunityLevel"]:
                     audio_clip.Stop()
 
-            self.LastClips.clear()
+            self.last_clips.clear()
 
     def OnPlay(self, clip: AudioClip) -> None:
-        Now = self.torchlight.loop.time()
-        self.LastClips[hash(clip)] = dict(
-            {"timestamp": Now, "duration": 0.0, "dominant": False, "active": True}
+        now = self.torchlight.loop.time()
+        self.last_clips[hash(clip)] = dict(
+            {"timestamp": now, "duration": 0.0, "dominant": False, "active": True}
         )
 
-        HasDominant = False
-        for _, Clip in self.LastClips.items():
-            if Clip["dominant"]:
-                HasDominant = True
+        has_dominant = False
+        for _, clip in self.last_clips.items():
+            if clip["dominant"]:
+                has_dominant = True
                 break
 
-        self.LastClips[hash(clip)]["dominant"] = not HasDominant
+        self.last_clips[hash(clip)]["dominant"] = not has_dominant
 
     def OnStop(self, clip: AudioClip) -> None:
-        if hash(clip) not in self.LastClips:
+        if hash(clip) not in self.last_clips:
             return
 
-        self.LastClips[hash(clip)]["active"] = False
+        self.last_clips[hash(clip)]["active"] = False
 
-        if self.LastClips[hash(clip)]["dominant"]:
-            for _, Clip in self.LastClips.items():
-                if Clip["active"]:
-                    Clip["dominant"] = True
+        if self.last_clips[hash(clip)]["dominant"]:
+            for _, clip in self.last_clips.items():
+                if clip["active"]:
+                    clip["dominant"] = True
                     break
 
-        self.LastClips[hash(clip)]["dominant"] = False
+        self.last_clips[hash(clip)]["dominant"] = False
 
     def OnUpdate(
         self,
@@ -103,11 +105,11 @@ class AntiSpam:
         old_position: int,
         new_position: int,
     ) -> None:
-        Delta = new_position - old_position
-        Clip = self.LastClips[hash(clip)]
+        delta = new_position - old_position
+        clip = self.last_clips[hash(clip)]
 
-        if not Clip["dominant"]:
+        if not clip["dominant"]:
             return
 
-        Clip["duration"] += Delta
-        self.SpamCheck(audio_clips, Delta)
+        clip["duration"] += delta
+        self.SpamCheck(audio_clips, delta)

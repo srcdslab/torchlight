@@ -15,10 +15,14 @@ RUN curl -L https://github.com/dectalk/dectalk/releases/download/2022-09-15/linu
     && tar -xvf /tmp/dectalk.tar.gz -C /app/dectalk --strip-components=1 \
     && rm -rf /tmp/dectalk.tar.gz
 
+COPY GeoIP/GeoLite2-City.mmdb /usr/share/GeoIP/
+
+COPY requirements.txt /app/requirements.txt
+
+RUN pip install -r requirements.txt
+
 COPY . /app
 
 RUN pip install --no-cache-dir --prefer-binary .
-
-COPY GeoIP/GeoLite2-City.mmdb /usr/share/GeoIP/
 
 ENTRYPOINT ["torchlight"]

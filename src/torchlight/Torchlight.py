@@ -17,20 +17,20 @@ class Torchlight:
     def __init__(
         self, config: Config, loop: asyncio.AbstractEventLoop, async_client: AsyncClient
     ):
-        self.Logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
         self.loop = loop
         self.async_client = async_client
         self.last_url = ""
 
-        self.API = SourceModAPI(self.async_client)
+        self.sourcemod_api = SourceModAPI(self.async_client)
         self.game_events = GameEvents(self.async_client)
         self.forwards = Forwards(self.async_client)
 
         self.disable_votes: Set = set()
         self.disabled = 0
 
-        self.Callbacks: List[Tuple[str, Callable]] = []
+        self.callbacks: List[Tuple[str, Callable]] = []
 
     def Reload(self) -> None:
         self.config.Load()
@@ -40,16 +40,16 @@ class Torchlight:
         if cbtype not in self.VALID_CALLBACKS:
             return False
 
-        self.Callbacks.append((cbtype, cbfunc))
+        self.callbacks.append((cbtype, cbfunc))
         return True
 
     def Callback(self, cbtype: str, *args: Any, **kwargs: Any) -> None:
-        for callback in self.Callbacks:
+        for callback in self.callbacks:
             if callback[0] == cbtype:
                 try:
                     callback[1](*args, **kwargs)
                 except Exception:
-                    self.Logger.error(traceback.format_exc())
+                    self.logger.error(traceback.format_exc())
 
     def OnPublish(self, obj: Dict[str, str]) -> None:
         if obj["module"] == "gameevents":
@@ -63,19 +63,19 @@ class Torchlight:
             message = message[:973] + "..."
         lines = textwrap.wrap(message, 244, break_long_words=True)
         for line in lines:
-            asyncio.ensure_future(self.API.CPrintToChatAll(line))
+            asyncio.ensure_future(self.sourcemod_api.CPrintToChatAll(line))
 
         if player:
-            Level = 0
+            level = 0
             if player.access:
-                Level = player.access.level
+                level = player.access.level
 
-            if Level < self.config["AntiSpam"]["ImmunityLevel"]:
+            if level < self.config["AntiSpam"]["ImmunityLevel"]:
                 cooldown = len(lines) * self.config["AntiSpam"]["ChatCooldown"]
-                if player.ChatCooldown > self.loop.time():
-                    player.ChatCooldown += cooldown
+                if player.chat_cooldown > self.loop.time():
+                    player.chat_cooldown += cooldown
                 else:
-                    player.ChatCooldown = self.loop.time() + cooldown
+                    player.chat_cooldown = self.loop.time() + cooldown
 
     def SayPrivate(self, player: Player, message: str) -> None:
         message = f"{{darkblue}}[Torchlight]: {{default}}{message}"
@@ -83,7 +83,7 @@ class Torchlight:
             message = message[:973] + "..."
         lines = textwrap.wrap(message, 244, break_long_words=True)
         for line in lines:
-            asyncio.ensure_future(self.API.CPrintToChat(player.Index, line))
+            asyncio.ensure_future(self.sourcemod_api.CPrintToChat(player.index, line))
 
     def __del__(self) -> None:
-        self.Logger.debug("~Torchlight()")
+        self.logger.debug("~Torchlight()")

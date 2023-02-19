@@ -51,7 +51,8 @@
 		"Root": 6,
 		"Admin": 3,
 		"DonatedAdmin": 2,
-		"VIP": 2
+		"VIP": 2,
+		"Player": 0
 	},
 
 	"CommandLevel":

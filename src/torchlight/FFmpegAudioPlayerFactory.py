@@ -7,16 +7,16 @@ from torchlight.Torchlight import Torchlight
 
 class FFmpegAudioPlayerFactory:
     def __init__(self) -> None:
-        self.Logger = logging.getLogger(self.__class__.__name__)
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     def __del__(self) -> None:
-        self.Logger.info("~FFmpegAudioPlayerFactory()")
+        self.logger.info("~FFmpegAudioPlayerFactory()")
         self.Quit()
 
     def NewPlayer(self, torchlight: Torchlight) -> FFmpegAudioPlayer:
-        self.Logger.debug(sys._getframe().f_code.co_name)
-        Player = FFmpegAudioPlayer(torchlight)
-        return Player
+        self.logger.debug(sys._getframe().f_code.co_name)
+        ffmpeg_audio_player = FFmpegAudioPlayer(torchlight)
+        return ffmpeg_audio_player
 
     def Quit(self) -> None:
-        self.Logger.info("FFmpegAudioPlayerFactory->Quit()")
+        self.logger.info("FFmpegAudioPlayerFactory->Quit()")
