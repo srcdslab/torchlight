@@ -91,6 +91,14 @@
 		"CityFilename": "GeoLite2-City.mmdb"
 	},
 
+	"Logging":
+	{
+		"level": "INFO",
+		"output": "default",
+		"format": "%(asctime)s | %(levelname)s | %(message)s",
+		"datefmt": "%Y-%m-%dT%H:%M:%S%z"
+	},
+
 	"WolframAPIKey": "",
 	"WundergroundAPIKey": "",
 	"OpenWeatherAPIKey": ""

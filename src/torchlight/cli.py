@@ -9,29 +9,21 @@ from torchlight.Config import Config
 from torchlight.SourceRCONServer import SourceRCONServer
 from torchlight.TorchlightHandler import TorchlightHandler
 
+logger = logging.getLogger(__name__)
 
 @click.command()
 @click.option('--config-folder', default="config", help='Configuration folder path.')
-@click.option('-v', '--verbose', count=True, help="Verbosity level")
-def cli(config_folder: str, verbose: int) -> None:
+def cli(config_folder: str) -> None:
 
-    log_level = logging.ERROR
-    if verbose > 2:
-        log_level = logging.DEBUG
-    elif verbose > 1:
-        log_level = logging.INFO
-    elif verbose > 0:
-        log_level = logging.WARNING
+    config = Config(config_folder)
 
     logging.basicConfig(
-        level=log_level,
-        format='%(asctime)s | %(levelname)s | %(message)s',
-        datefmt='%Y-%m-%dT%H:%M:%S%z',
+        level=logging.getLevelName(config["Logging"]["level"]),
+        format=config["Logging"]["format"],
+        datefmt=config["Logging"]["datefmt"],
     )
 
     Loop = asyncio.get_event_loop()
-
-    config = Config(config_folder)
 
     TorchHandler = TorchlightHandler(Loop, config)
 
