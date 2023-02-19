@@ -50,31 +50,31 @@ class Player:
                 self.UserID, self.Name, self.UniqueID, self.Admin._FlagBits
             )
         )
-        if not self.access:
-            if self.Admin.RCON() or self.Admin.Root():
-                self.access = ConfigAccess(
-                    level=config["AccessLevel"]["Root"],
-                    name="SAdmin",
-                    uniqueid=self.UniqueID,
-                )
-            elif self.Admin.Ban():
-                self.access = ConfigAccess(
-                    level=config["AccessLevel"]["Admin"],
-                    name="Admin",
-                    uniqueid=self.UniqueID,
-                )
-            elif self.Admin.Generic():
-                self.access = ConfigAccess(
-                    level=config["AccessLevel"]["DonatedAdmin"],
-                    name="DAdmin",
-                    uniqueid=self.UniqueID,
-                )
-            elif self.Admin.Custom1():
-                self.access = ConfigAccess(
-                    level=config["AccessLevel"]["VIP"],
-                    name="VIP",
-                    uniqueid=self.UniqueID,
-                )
+
+        if self.Admin.RCON() or self.Admin.Root():
+            self.access = ConfigAccess(
+                level=config["AccessLevel"]["Root"],
+                name="SAdmin",
+                uniqueid=self.UniqueID,
+            )
+        elif self.Admin.Ban():
+            self.access = ConfigAccess(
+                level=config["AccessLevel"]["Admin"],
+                name="Admin",
+                uniqueid=self.UniqueID,
+            )
+        elif self.Admin.Generic():
+            self.access = ConfigAccess(
+                level=config["AccessLevel"]["DonatedAdmin"],
+                name="DAdmin",
+                uniqueid=self.UniqueID,
+            )
+        elif self.Admin.Custom1():
+            self.access = ConfigAccess(
+                level=config["AccessLevel"]["VIP"],
+                name="VIP",
+                uniqueid=self.UniqueID,
+            )
 
         if "DefaultLevel" in config.config:
             if self.access and self.access.level < config["DefaultLevel"]:
