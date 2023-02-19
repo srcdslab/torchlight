@@ -22,7 +22,7 @@ class AntiSpam:
             self.DisabledTime
             and self.DisabledTime > self.torchlight.loop.time()
             and not (
-                player.Access and player.Access["level"] >= self.config["ImmunityLevel"]
+                player.access and player.access.level >= self.config["ImmunityLevel"]
             )
         ):
 
