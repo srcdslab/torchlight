@@ -30,7 +30,7 @@ class Config:
             with open(self.config_filepath, "r") as fp:
                 self.config = json.load(fp)
         except ValueError as e:
-            self.Logger.error(sys._getframe().f_code.co_name + ' ' + str(e))
+            self.Logger.error(sys._getframe().f_code.co_name + " " + str(e))
             return 1
         return 0
 

@@ -33,7 +33,7 @@ class AccessManager:
         )
 
         with open(self.config_filepath, "w") as fp:
-            json.dump(self.AccessDict, fp, indent='\t')
+            json.dump(self.AccessDict, fp, indent="\t")
 
     def get_access(self, player: Player) -> ConfigAccess:
         access_dict: Optional[OrderedDict] = self[player.UniqueID]

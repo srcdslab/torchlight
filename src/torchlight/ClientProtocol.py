@@ -22,8 +22,8 @@ class ClientProtocol(Protocol):
     def data_received(self, data: bytes) -> None:
         self.Buffer += data
 
-        chunks = self.Buffer.split(b'\0')
-        if data[-1] == b'\0':
+        chunks = self.Buffer.split(b"\0")
+        if data[-1] == b"\0":
             chunks = chunks[:-1]
             self.Buffer = bytearray()
         else:
@@ -34,7 +34,7 @@ class ClientProtocol(Protocol):
             self.Callback("OnReceive", chunk)
 
     def AddCallback(self, cbtype: str, cbfunc: Callable) -> bool:
-        if not cbtype in self.VALID_CALLBACKS:
+        if cbtype not in self.VALID_CALLBACKS:
             return False
 
         self.Callbacks.append((cbtype, cbfunc))

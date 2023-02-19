@@ -42,11 +42,11 @@ class AsyncClient:
                 self.Protocol.AddCallback("OnReceive", self.OnReceive)
                 self.Protocol.AddCallback("OnDisconnect", self.OnDisconnect)
                 break
-            except:
+            except Exception:
                 await asyncio.sleep(1.0)
 
     def AddCallback(self, cbtype: str, cbfunc: Callable) -> bool:
-        if not cbtype in self.VALID_CALLBACKS:
+        if cbtype not in self.VALID_CALLBACKS:
             return False
 
         self.Callbacks.append((cbtype, cbfunc))
@@ -83,7 +83,7 @@ class AsyncClient:
         if not self.Protocol:
             return None
 
-        Data = json.dumps(obj, ensure_ascii=False, separators=(',', ':')).encode(
+        Data = json.dumps(obj, ensure_ascii=False, separators=(",", ":")).encode(
             "UTF-8"
         )
 

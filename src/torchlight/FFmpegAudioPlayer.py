@@ -121,7 +121,7 @@ class FFmpegAudioPlayer:
         return True
 
     def AddCallback(self, cbtype: str, cbfunc: Callable) -> bool:
-        if not cbtype in self.VALID_CALLBACKS:
+        if cbtype not in self.VALID_CALLBACKS:
             return False
 
         self.Callbacks.append((cbtype, cbfunc))

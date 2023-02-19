@@ -7,13 +7,13 @@ from typing import Optional
 class Utils:
     @staticmethod
     def GetNum(Text: str) -> str:
-        Ret = ''
+        Ret = ""
         for c in Text:
             if c.isdigit():
                 Ret += c
             elif Ret:
                 break
-            elif c == '-':
+            elif c == "-":
                 Ret += c
 
         return Ret
@@ -42,9 +42,9 @@ class Utils:
             if len(TimeStr) > ValLen:
                 Mult = TimeStr[ValLen].lower()
                 TimeStr = TimeStr[ValLen + 1 :]
-                if Mult == 'h':
+                if Mult == "h":
                     Val *= 3600
-                elif Mult == 'm':
+                elif Mult == "m":
                     Val *= 60
             else:
                 TimeStr = None
@@ -68,17 +68,22 @@ class Utils:
             return "1 byte"
 
         suffixes_table = [
-            ('bytes', 0),
-            ('KB', 0),
-            ('MB', 1),
-            ('GB', 2),
-            ('TB', 2),
-            ('PB', 2),
+            ("bytes", 0),
+            ("KB", 0),
+            ("MB", 1),
+            ("GB", 2),
+            ("TB", 2),
+            ("PB", 2),
         ]
 
         num = float(size_bytes)
-        for suffix, precision in suffixes_table:
+
+        suffix = suffixes_table[0][0]
+        precision = 0
+        for suffix_table, precision_table in suffixes_table:
             if num < 1024.0:
+                suffix = suffix_table
+                precision = precision_table
                 break
             num /= 1024.0
 

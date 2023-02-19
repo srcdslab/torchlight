@@ -33,7 +33,7 @@ class Player:
     def OnConnect(self, storage: Dict, access: ConfigAccess) -> None:
         self.Storage = storage
 
-        if not "Audio" in self.Storage:
+        if "Audio" not in self.Storage:
             self.Storage["Audio"] = dict(
                 {"Uses": 0, "LastUse": 0.0, "LastUseLength": 0.0, "TimeUsed": 0.0}
             )
@@ -46,7 +46,7 @@ class Player:
     def OnClientPostAdminCheck(self, flag_bits: int, config: Config) -> None:
         self.Admin._FlagBits = flag_bits
         self.Logger.info(
-            "#{0} \"{1}\"({2}) FlagBits: {3}".format(
+            '#{0} "{1}"({2}) FlagBits: {3}'.format(
                 self.UserID, self.Name, self.UniqueID, self.Admin._FlagBits
             )
         )

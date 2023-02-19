@@ -42,14 +42,14 @@ class AudioClip:
         return self.audio_player.Stop()
 
     def OnPlay(self) -> None:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + self.URI)
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + self.URI)
 
         self.player.Storage["Audio"]["Uses"] += 1
         self.player.Storage["Audio"]["LastUse"] = self.torchlight.loop.time()
         self.player.Storage["Audio"]["LastUseLength"] = 0.0
 
     def OnStop(self) -> None:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + self.URI)
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + self.URI)
 
         if self.audio_player.Playing:
             Delta = self.audio_player.Position - self.LastPosition

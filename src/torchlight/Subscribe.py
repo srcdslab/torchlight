@@ -79,7 +79,7 @@ class SubscribeBase:
         asyncio.ensure_future(self.Replay(events))
 
     async def Hook(self, event: str, callback: Callable) -> bool:
-        if not event in self.Callbacks:
+        if event not in self.Callbacks:
             ret = await self._Register([event])
             if not ret or not ret[0]:
                 return False
@@ -88,10 +88,10 @@ class SubscribeBase:
         return True
 
     async def Unhook(self, event: str, callback: Callable) -> bool:
-        if not event in self.Callbacks:
+        if event not in self.Callbacks:
             return True
 
-        if not callback in self.Callbacks[event]:
+        if callback not in self.Callbacks[event]:
             return True
 
         self.Callbacks[event].discard(callback)
@@ -100,7 +100,7 @@ class SubscribeBase:
 
     async def Replay(self, events: List[str]) -> List[bool]:
         for event in events[:]:
-            if not event in self.Callbacks:
+            if event not in self.Callbacks:
                 events.remove(event)
 
         Obj = {"method": "replay", "module": self.Module, "events": events}
@@ -112,7 +112,7 @@ class SubscribeBase:
             Res = ResRaw
 
         Ret: List[bool] = []
-        for i, ret in enumerate(Res["events"]):
+        for _, ret in enumerate(Res["events"]):
             if ret >= 0:
                 Ret.append(True)
             else:

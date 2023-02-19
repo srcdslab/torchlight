@@ -25,7 +25,6 @@ class SourceRCONServer:
         self._serv_sock.listen(5)
         self.Peers: List[SourceRCONClient] = []
         self.Password = self.RCONConfig["Password"]
-        asyncio.Task(self._server())
 
     def Remove(self, Peer: SourceRCONClient) -> None:
         self.Logger.info(

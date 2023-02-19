@@ -96,13 +96,13 @@ class URLFilter(BaseCommand):
         super().__init__(torchlight, access_manager, player_manager, audio_manager)
         self.Triggers = [
             re.compile(
-                r'''(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))''',
+                r"""(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""",
                 re.IGNORECASE,
             )
         ]
         self.Level: int = -1
         self.re_youtube = re.compile(
-            r'.*?(?:youtube\.com\/\S*(?:(?:\/e(?:mbed))?\/|watch\?(?:\S*?&?v\=))|youtu\.be\/)([a-zA-Z0-9_-]{6,11}).*?'
+            r".*?(?:youtube\.com\/\S*(?:(?:\/e(?:mbed))?\/|watch\?(?:\S*?&?v\=))|youtu\.be\/)([a-zA-Z0-9_-]{6,11}).*?"
         )
 
     async def URLInfo(self, url: str, yt: bool = False) -> Tuple[str, Optional[str]]:
@@ -118,7 +118,7 @@ class URLFilter(BaseCommand):
                 or (TempPos := url.find("?t=")) != -1
                 or (TempPos := url.find("#t=")) != -1
             ):
-                TimeStr = url[TempPos + 3 :].split('&')[0].split('?')[0].split('#')[0]
+                TimeStr = url[TempPos + 3 :].split("&")[0].split("?")[0].split("#")[0]
                 if TimeStr:
                     Time = Utils.ParseTime(TimeStr)
 
@@ -127,7 +127,7 @@ class URLFilter(BaseCommand):
             )
             Out, _ = await Proc.communicate()
 
-            parts = Out.split(b'\n')
+            parts = Out.split(b"\n")
             parts.pop()  # trailing new line
 
             Info = parts.pop()
@@ -227,7 +227,7 @@ class URLFilter(BaseCommand):
 
 
 def FormatAccess(config: Config, player: Player) -> str:
-    Answer = "#{0} \"{1}\"({2}) is ".format(player.UserID, player.Name, player.UniqueID)
+    Answer = '#{0} "{1}"({2}) is '.format(player.UserID, player.Name, player.UniqueID)
     Level = str(0)
     if player.access:
         Level = str(player.access.level)
@@ -262,7 +262,7 @@ class Access(BaseCommand):
         self.Level = self.torchlight.config["CommandLevel"]["Access"]
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         if self.check_chat_cooldown(player):
             return -1
@@ -291,7 +291,7 @@ class Who(BaseCommand):
         self.Level = self.torchlight.config["CommandLevel"]["Who"]
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         Count = 0
         targeted_player: Optional[Player]
@@ -316,7 +316,7 @@ class Who(BaseCommand):
                         )
                     else:
                         self.torchlight.SayChat(
-                            "#? \"{0}\"({1}) is level {2!s} is currently offline.".format(
+                            '#? "{0}"({1}) is level {2!s} is currently offline.'.format(
                                 access.name, UniqueID, access.level
                             )
                         )
@@ -343,7 +343,7 @@ class WolframAlpha(BaseCommand):
         return re.sub(
             "[ ]{2,}",
             " ",
-            Text.replace(' | ', ': ').replace('\n', ' | ').replace('~~', ' ≈ '),
+            Text.replace(" | ", ": ").replace("\n", " | ").replace("~~", " ≈ "),
         ).strip()
 
     async def Calculate(self, Params: Dict[str, str], player: Player) -> int:
@@ -367,7 +367,7 @@ class WolframAlpha(BaseCommand):
                 None,
                 [
                     p.text.strip()
-                    for p in Root.findall('.//subpod/plaintext')
+                    for p in Root.findall(".//subpod/plaintext")
                     if p is not None and p.text is not None
                 ],
             )
@@ -386,7 +386,7 @@ class WolframAlpha(BaseCommand):
 
             Options = []
             for Didyoumean in Didyoumeans:
-                Options.append("\"{0}\"".format(Didyoumean.text))
+                Options.append('"{0}"'.format(Didyoumean.text))
             Line = " or ".join(Options)
             Line = "Did you mean {0}?".format(Line)
             self.torchlight.SayChat(Line, player)
@@ -400,14 +400,14 @@ class WolframAlpha(BaseCommand):
             return 0
 
         # If there's multiple pods, first is the question interpretation
-        Question = self.Clean(Pods[0].replace(' | ', ' ').replace('\n', ' '))
+        Question = self.Clean(Pods[0].replace(" | ", " ").replace("\n", " "))
         # and second is the best answer
         Answer = self.Clean(Pods[1])
         self.torchlight.SayChat("{0} = {1}".format(Question, Answer), player)
         return 0
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         if self.check_chat_cooldown(player):
             return -1
@@ -435,7 +435,7 @@ class UrbanDictionary(BaseCommand):
         self.Level = self.torchlight.config["CommandLevel"]["Define"]
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         if self.check_chat_cooldown(player):
             return -1
@@ -459,7 +459,7 @@ class UrbanDictionary(BaseCommand):
             if not Data:
                 return 3
 
-            if not 'list' in Data or not Data["list"]:
+            if "list" not in Data or not Data["list"]:
                 self.torchlight.SayChat(
                     "[UB] No definition found for: {}".format(message[1]), player
                 )
@@ -495,8 +495,12 @@ class OpenWeather(BaseCommand):
         self.Triggers = ["!w", "!vv"]
         self.Level = self.torchlight.config["CommandLevel"]["Weather"]
 
+    def degToCardinal(self, d):
+        directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+        return directions[int(((d + 22.5) / 45.0) % 8)]
+
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         if self.check_chat_cooldown(player):
             return -1
@@ -533,16 +537,13 @@ class OpenWeather(BaseCommand):
             self.torchlight.SayPrivate(player, "[OW] {0}".format(Data["message"]))
             return 5
 
-        degToCardinal = lambda d: ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][
-            int(((d + 22.5) / 45.0) % 8)
-        ]
         if "deg" in Data["wind"]:
-            windDir = degToCardinal(Data["wind"]["deg"])
+            windDir = self.degToCardinal(Data["wind"]["deg"])
         else:
             windDir = "?"
 
         timezone = "{}{}".format(
-            '+' if Data["timezone"] > 0 else '', int(Data["timezone"] / 3600)
+            "+" if Data["timezone"] > 0 else "", int(Data["timezone"] / 3600)
         )
         if Data["timezone"] % 3600 != 0:
             timezone += ":{}".format((Data["timezone"] % 3600) / 60)
@@ -568,72 +569,105 @@ class OpenWeather(BaseCommand):
         return 0
 
 
-'''
 class WUnderground(BaseCommand):
-	def __init__(self, async_client: AsyncClient, access_manager: AccessManager, config: Config) -> None:
-		super().__init__(torchlight, access_manager, player_manager, audio_manager)
-		self.Triggers = ["!w"]
-		self.Level = 0
+    def __init__(
+        self,
+        torchlight: Torchlight,
+        access_manager: AccessManager,
+        player_manager: PlayerManager,
+        audio_manager: AudioManager,
+    ) -> None:
+        super().__init__(torchlight, access_manager, player_manager, audio_manager)
+        self.Triggers = ["!wunder"]
+        self.Level = self.torchlight.config["CommandLevel"]["Weather"]
 
-	async def _func(self, message: List[str], player: Player) -> int:
-		if not message[1]:
-			# Use IP address
-			Search = "autoip"
-			Additional = "?geo_ip={0}".format(player.Address.split(":")[0])
-		else:
-			async with aiohttp.ClientSession() as session:
-				Response = await asyncio.wait_for(session.get("http://autocomplete.wunderground.com/aq?format=JSON&query={0}".format(message[1])), 5)
-				if not Response:
-					return 2
+    async def _func(self, message: List[str], player: Player) -> int:
+        if not message[1]:
+            # Use IP address
+            Search = "autoip"
+            Additional = "?geo_ip={0}".format(player.Address.split(":")[0])
+        else:
+            async with aiohttp.ClientSession() as session:
+                Response = await asyncio.wait_for(
+                    session.get(
+                        "http://autocomplete.wunderground.com/aq?format=JSON&query={0}".format(
+                            message[1]
+                        )
+                    ),
+                    5,
+                )
+                if not Response:
+                    return 2
 
-				Data = await asyncio.wait_for(Response.json(), 5)
-				if not Data:
-					return 3
+                Data = await asyncio.wait_for(Response.json(), 5)
+                if not Data:
+                    return 3
 
-			if not Data["RESULTS"]:
-				self.torchlight.SayPrivate(player, "[WU] No cities match your search query.")
-				return 4
+            if not Data["RESULTS"]:
+                self.torchlight.SayPrivate(
+                    player, "[WU] No cities match your search query."
+                )
+                return 4
 
-			Search = Data["RESULTS"][0]["name"]
-			Additional = ""
+            Search = Data["RESULTS"][0]["name"]
+            Additional = ""
 
-		async with aiohttp.ClientSession() as session:
-			Response = await asyncio.wait_for(session.get("http://api.wunderground.com/api/{0}/conditions/q/{1}.json{2}".format(
-				self.torchlight.config["WundergroundAPIKey"], Search, Additional)), 5)
-			if not Response:
-				return 2
+        async with aiohttp.ClientSession() as session:
+            Response = await asyncio.wait_for(
+                session.get(
+                    "http://api.wunderground.com/api/{0}/conditions/q/{1}.json{2}".format(
+                        self.torchlight.config["WundergroundAPIKey"], Search, Additional
+                    )
+                ),
+                5,
+            )
+            if not Response:
+                return 2
 
-			Data = await asyncio.wait_for(Response.json(), 5)
-			if not Data:
-				return 3
+            Data = await asyncio.wait_for(Response.json(), 5)
+            if not Data:
+                return 3
 
-		if "error" in Data["response"]:
-			self.torchlight.SayPrivate(player, "[WU] {0}.".format(Data["response"]["error"]["description"]))
-			return 5
+        if "error" in Data["response"]:
+            self.torchlight.SayPrivate(
+                player, "[WU] {0}.".format(Data["response"]["error"]["description"])
+            )
+            return 5
 
-		if not "current_observation" in Data:
-			Choices = str()
-			NumResults = len(Data["response"]["results"])
-			for i, Result in enumerate(Data["response"]["results"]):
-				Choices += "{0}, {1}".format(Result["city"],
-					Result["state"] if Result["state"] else Result ["country_iso3166"])
+        if "current_observation" not in Data:
+            Choices = str()
+            NumResults = len(Data["response"]["results"])
+            for i, Result in enumerate(Data["response"]["results"]):
+                Choices += "{0}, {1}".format(
+                    Result["city"],
+                    Result["state"] if Result["state"] else Result["country_iso3166"],
+                )
 
-				if i < NumResults - 1:
-					Choices += " | "
+                if i < NumResults - 1:
+                    Choices += " | "
 
-			self.torchlight.SayPrivate(player, "[WU] Did you mean: {0}".format(Choices))
-			return 6
+            self.torchlight.SayPrivate(player, "[WU] Did you mean: {0}".format(Choices))
+            return 6
 
-		Observation = Data["current_observation"]
+        Observation = Data["current_observation"]
 
-		self.torchlight.SayChat("[{0}, {1}] {2}°C ({3}F) {4} | Wind {5} {6}kph ({7}mph) | Humidity: {8}".format(Observation["display_location"]["city"],
-			Observation["display_location"]["state"] if Observation["display_location"]["state"] else Observation["display_location"]["country_iso3166"],
-			Observation["temp_c"], Observation["temp_f"], Observation["weather"],
-			Observation["wind_dir"], Observation["wind_kph"], Observation["wind_mph"],
-			Observation["relative_humidity"]))
+        self.torchlight.SayChat(
+            "[{0}, {1}] {2}°C ({3}F) {4} | Wind {5} {6}kph ({7}mph) | Humidity: {8}".format(
+                Observation["display_location"]["city"],
+                Observation["display_location"]["state"]
+                if Observation["display_location"]["state"]
+                else Observation["display_location"]["country_iso3166"],
+                Observation["temp_c"],
+                Observation["temp_f"],
+                Observation["weather"],
+                Observation["wind_dir"],
+                Observation["wind_kph"],
+                Observation["wind_mph"],
+                Observation["relative_humidity"],
+            )
+        )
 
-		return 0
-'''
+        return 0
 
 
 class VoteDisable(BaseCommand):
@@ -649,7 +683,7 @@ class VoteDisable(BaseCommand):
         self.Level = self.torchlight.config["CommandLevel"]["VoteDisable"]
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         if self.torchlight.disabled:
             self.torchlight.SayPrivate(
@@ -691,10 +725,10 @@ class VoiceCommands(BaseCommand):
 
     def LoadTriggers(self) -> None:
         try:
-            with open("config/triggers.json", mode="r", encoding='utf-8') as fp:
+            with open("config/triggers.json", mode="r", encoding="utf-8") as fp:
                 Triggers = json.load(fp)
         except ValueError as e:
-            self.Logger.error(sys._getframe().f_code.co_name + ' ' + str(e))
+            self.Logger.error(sys._getframe().f_code.co_name + " " + str(e))
             self.torchlight.SayChat(str(e))
 
         self.VoiceTriggers = dict()
@@ -709,7 +743,7 @@ class VoiceCommands(BaseCommand):
             self.Triggers.append(Trigger)
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         if self.check_disabled(player):
             return -1
@@ -746,7 +780,7 @@ class VoiceCommands(BaseCommand):
                 Sound = Trigger
         elif Level >= self.torchlight.config["CommandLevel"]["Trigger"]:
             if (
-                message[0][0] != '!'
+                message[0][0] != "!"
                 and Level < self.torchlight.config["CommandLevel"]["TriggerReserved"]
             ):
                 return 1
@@ -763,7 +797,7 @@ class VoiceCommands(BaseCommand):
                     Sound = Sounds[Num - 1]
 
                 elif message[1]:
-                    searching = message[1].startswith('?')
+                    searching = message[1].startswith("?")
                     search = message[1][1:] if searching else message[1]
                     Sound = None
                     names = []
@@ -838,7 +872,7 @@ class YouTube(BaseCommand):
         self.Level = self.torchlight.config["CommandLevel"]["Youtube"]
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         if self.check_disabled(player):
             return -1
@@ -855,7 +889,7 @@ class YouTube(BaseCommand):
             or (TempPos := message[1].find("#t=")) != -1
         ):
             TimeStr = (
-                message[1][TempPos + 3 :].split('&')[0].split('?')[0].split('#')[0]
+                message[1][TempPos + 3 :].split("&")[0].split("?")[0].split("#")[0]
             )
             if TimeStr:
                 Time = Utils.ParseTime(TimeStr)
@@ -880,7 +914,7 @@ class YouTubeSearch(BaseCommand):
         self.Level = self.torchlight.config["CommandLevel"]["YoutubeSearch"]
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         if self.check_disabled(player):
             return -1
@@ -894,7 +928,7 @@ class YouTubeSearch(BaseCommand):
             or (TempPos := message[1].find("#t=")) != -1
         ):
             TimeStr = (
-                message[1][TempPos + 3 :].split('&')[0].split('?')[0].split('#')[0]
+                message[1][TempPos + 3 :].split("&")[0].split("?")[0].split("#")[0]
             )
             if TimeStr:
                 Time = Utils.ParseTime(TimeStr)
@@ -910,7 +944,7 @@ class YouTubeSearch(BaseCommand):
         Out, _ = await Proc.communicate()
 
         try:
-            urlraw, Info = Out.split(b'\n', maxsplit=1)
+            urlraw, Info = Out.split(b"\n", maxsplit=1)
             url = urlraw.strip().decode("ascii")
         except Exception as e:
             self.Logger.error(f"Failed to extract url from output: {Out}")
@@ -947,66 +981,66 @@ class Say(BaseCommand):
         VALID_LANGUAGES = [lang for lang in gtts.lang.tts_langs().keys()]
     except Exception:
         VALID_LANGUAGES = [
-            'af',
-            'ar',
-            'bn',
-            'bs',
-            'ca',
-            'cs',
-            'cy',
-            'da',
-            'de',
-            'el',
-            'en',
-            'eo',
-            'es',
-            'et',
-            'fi',
-            'fr',
-            'gu',
-            'hi',
-            'hr',
-            'hu',
-            'hy',
-            'id',
-            'is',
-            'it',
-            'ja',
-            'jw',
-            'km',
-            'kn',
-            'ko',
-            'la',
-            'lv',
-            'mk',
-            'ml',
-            'mr',
-            'my',
-            'ne',
-            'nl',
-            'no',
-            'pl',
-            'pt',
-            'ro',
-            'ru',
-            'si',
-            'sk',
-            'sq',
-            'sr',
-            'su',
-            'sv',
-            'sw',
-            'ta',
-            'te',
-            'th',
-            'tl',
-            'tr',
-            'uk',
-            'ur',
-            'vi',
-            'zh-CN',
-            'zh-TW',
-            'zh',
+            "af",
+            "ar",
+            "bn",
+            "bs",
+            "ca",
+            "cs",
+            "cy",
+            "da",
+            "de",
+            "el",
+            "en",
+            "eo",
+            "es",
+            "et",
+            "fi",
+            "fr",
+            "gu",
+            "hi",
+            "hr",
+            "hu",
+            "hy",
+            "id",
+            "is",
+            "it",
+            "ja",
+            "jw",
+            "km",
+            "kn",
+            "ko",
+            "la",
+            "lv",
+            "mk",
+            "ml",
+            "mr",
+            "my",
+            "ne",
+            "nl",
+            "no",
+            "pl",
+            "pt",
+            "ro",
+            "ru",
+            "si",
+            "sk",
+            "sq",
+            "sr",
+            "su",
+            "sv",
+            "sw",
+            "ta",
+            "te",
+            "th",
+            "tl",
+            "tr",
+            "uk",
+            "ur",
+            "vi",
+            "zh-CN",
+            "zh-TW",
+            "zh",
         ]
 
     def __init__(
@@ -1040,7 +1074,7 @@ class Say(BaseCommand):
             return 1
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         if self.check_disabled(player):
             return -1
@@ -1052,7 +1086,7 @@ class Say(BaseCommand):
         if len(message[0]) > 4:
             Language = message[0][4:]
 
-        if not Language in self.VALID_LANGUAGES:
+        if Language not in self.VALID_LANGUAGES:
             return 1
 
         asyncio.ensure_future(self.Say(player, Language, message[1]))
@@ -1083,7 +1117,7 @@ class DECTalk(BaseCommand):
             cwd="dectalk",
             stdin=asyncio.subprocess.PIPE,
         )
-        await Proc.communicate(message.encode('utf-8', errors='ignore'))
+        await Proc.communicate(message.encode("utf-8", errors="ignore"))
 
         AudioClip = self.audio_manager.AudioClip(player, "file://" + TempFile.name)
         if not AudioClip:
@@ -1100,7 +1134,7 @@ class DECTalk(BaseCommand):
         return 0
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         if self.check_disabled(player):
             return -1
@@ -1125,7 +1159,7 @@ class Stop(BaseCommand):
         self.Level = self.torchlight.config["CommandLevel"]["Stop"]
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         self.audio_manager.Stop(player, message[1])
         return True
@@ -1144,7 +1178,7 @@ class EnableDisable(BaseCommand):
         self.Level = self.torchlight.config["CommandLevel"]["Enable"]
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         if message[0] == "!enable":
             if self.torchlight.disabled:
@@ -1194,7 +1228,7 @@ class AdminAccess(BaseCommand):
             player.access = access
 
     async def _func(self, message: List[str], admin_player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
         if not message[1]:
             return -1
 
@@ -1217,7 +1251,7 @@ class AdminAccess(BaseCommand):
             Temp = Buf.find(" as ")
             if Temp != -1:
                 try:
-                    Regname, LevelParsed = Buf[Temp + 4 :].rsplit(' ', 1)
+                    Regname, LevelParsed = Buf[Temp + 4 :].rsplit(" ", 1)
                 except ValueError as e:
                     self.torchlight.SayChat(str(e))
                     return 1
@@ -1227,7 +1261,7 @@ class AdminAccess(BaseCommand):
                 Buf = Buf[:Temp].strip()
             else:
                 try:
-                    Buf, LevelParsed = Buf.rsplit(' ', 1)
+                    Buf, LevelParsed = Buf.rsplit(" ", 1)
                 except ValueError as e:
                     self.torchlight.SayChat(str(e))
                     return 2
@@ -1236,7 +1270,7 @@ class AdminAccess(BaseCommand):
                 LevelParsed = LevelParsed.strip()
 
             # Find user by User ID
-            if Buf[0] == '#' and Buf[1:].isnumeric():
+            if Buf[0] == "#" and Buf[1:].isnumeric():
                 targeted_player = self.player_manager.FindUserID(int(Buf[1:]))
             # Search user by name
             else:
@@ -1250,7 +1284,7 @@ class AdminAccess(BaseCommand):
                 return 3
 
             if LevelParsed.isnumeric() or (
-                LevelParsed.startswith('-') and LevelParsed[1:].isdigit()
+                LevelParsed.startswith("-") and LevelParsed[1:].isdigit()
             ):
                 Level = int(LevelParsed)
 
@@ -1280,7 +1314,7 @@ class AdminAccess(BaseCommand):
 
                     if "Regname" in locals():
                         self.torchlight.SayChat(
-                            "Changed \"{0}\"({1}) as {2} level/name from {3} to {4} as {5}".format(
+                            'Changed "{0}"({1}) as {2} level/name from {3} to {4} as {5}'.format(
                                 targeted_player.Name,
                                 targeted_player.UniqueID,
                                 targeted_player.access.name,
@@ -1292,7 +1326,7 @@ class AdminAccess(BaseCommand):
                         targeted_player.access.name = Regname
                     else:
                         self.torchlight.SayChat(
-                            "Changed \"{0}\"({1}) as {2} level from {3} to {4}".format(
+                            'Changed "{0}"({1}) as {2} level from {3} to {4}'.format(
                                 targeted_player.Name,
                                 targeted_player.UniqueID,
                                 targeted_player.access.name,
@@ -1306,7 +1340,7 @@ class AdminAccess(BaseCommand):
                         targeted_player.UniqueID
                     ] = targeted_player.access
                 else:
-                    if not "Regname" in locals():
+                    if "Regname" not in locals():
                         Regname = targeted_player.Name
 
                     access = ConfigAccess(
@@ -1315,7 +1349,7 @@ class AdminAccess(BaseCommand):
                     self.access_manager[targeted_player.UniqueID] = access
                     targeted_player.access = access
                     self.torchlight.SayChat(
-                        "Added \"{0}\"({1}) to access list as {2} with level {3}".format(
+                        'Added "{0}"({1}) to access list as {2} with level {3}'.format(
                             targeted_player.Name,
                             targeted_player.UniqueID,
                             Regname,
@@ -1337,7 +1371,7 @@ class AdminAccess(BaseCommand):
                         return 6
 
                     self.torchlight.SayChat(
-                        "Removed \"{0}\"({1}) from access list (was {2} with level {3})".format(
+                        'Removed "{0}"({1}) from access list (was {2} with level {3})'.format(
                             targeted_player.Name,
                             targeted_player.UniqueID,
                             targeted_player.access.name,
@@ -1367,7 +1401,7 @@ class Reload(BaseCommand):
         self.Level = self.torchlight.config["CommandLevel"]["Reload"]
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
         self.torchlight.Reload()
         return 0
 
@@ -1385,7 +1419,7 @@ class Exec(BaseCommand):
         self.Level = self.torchlight.config["CommandLevel"]["Exec"]
 
     async def _func(self, message: List[str], player: Player) -> int:
-        self.Logger.debug(sys._getframe().f_code.co_name + ' ' + str(message))
+        self.Logger.debug(sys._getframe().f_code.co_name + " " + str(message))
         try:
             Response = eval(message[1])
         except Exception as e:

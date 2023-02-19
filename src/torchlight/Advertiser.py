@@ -39,7 +39,7 @@ class Advertiser:
             and CeilDur % self.config["AdStop"] == 0
         ):
             self.torchlight.SayChat(
-                f"Hint: Type {{darkred}}!stop{{default}} to stop all currently playing sounds."
+                "Hint: Type {{darkred}}!stop{{default}} to stop all currently playing sounds."
             )
             self.AdStop = CeilDur
             self.NextAdStop = 0
@@ -54,7 +54,7 @@ class Advertiser:
         )
 
         HasDominant = False
-        for Key, Clip in self.LastClips.items():
+        for _, Clip in self.LastClips.items():
             if Clip["dominant"]:
                 HasDominant = True
                 break
@@ -68,7 +68,7 @@ class Advertiser:
         self.LastClips[hash(clip)]["active"] = False
 
         if self.LastClips[hash(clip)]["dominant"]:
-            for Key, Clip in self.LastClips.items():
+            for _, Clip in self.LastClips.items():
                 if Clip["active"]:
                     Clip["dominant"] = True
                     break

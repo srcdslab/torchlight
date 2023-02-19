@@ -73,14 +73,14 @@ class CommandHandler:
             self.Setup()
 
     async def HandleCommand(self, line: str, player: Player) -> Optional[int]:
-        Message = line.split(sep=' ', maxsplit=1)
+        Message = line.split(sep=" ", maxsplit=1)
         if len(Message) < 2:
             Message.append("")
         Message[1] = Message[1].strip()
 
         if Message[1] and self.torchlight.last_url:
             Message[1] = Message[1].replace("!last", self.torchlight.last_url)
-            line = Message[0] + ' ' + Message[1]
+            line = Message[0] + " " + Message[1]
 
         Level = 0
         if player.access:
@@ -108,7 +108,7 @@ class CommandHandler:
 
                 self.Logger.debug(
                     sys._getframe().f_code.co_name
-                    + " \"{0}\" Match -> {1} | {2}".format(
+                    + ' "{0}" Match -> {1} | {2}'.format(
                         player.Name, command.__class__.__name__, Trigger
                     )
                 )
@@ -124,7 +124,7 @@ class CommandHandler:
                         RetTemp = await command._rfunc(line, RMatch, player)
 
                         if isinstance(RetTemp, str):
-                            Message = RetTemp.split(sep=' ', maxsplit=1)
+                            Message = RetTemp.split(sep=" ", maxsplit=1)
                             Ret = None
                         else:
                             Ret = RetTemp

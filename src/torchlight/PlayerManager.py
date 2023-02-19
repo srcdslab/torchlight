@@ -4,7 +4,6 @@ from typing import Generator, List, Optional
 
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
-from torchlight.Config import ConfigAccess
 from torchlight.Constants import Clients
 from torchlight.Player import Player
 from torchlight.StorageManager import StorageManager
@@ -150,21 +149,21 @@ class PlayerManager:
                 )
 
     def FindUniqueID(self, uniqueid: int) -> Optional[Player]:
-        for Player in self.players:
-            if Player and Player.UniqueID == uniqueid:
-                return Player
+        for player in self.players:
+            if player and player.UniqueID == uniqueid:
+                return player
         return None
 
     def FindUserID(self, userid: int) -> Optional[Player]:
-        for Player in self.players:
-            if Player and Player.UserID == userid:
-                return Player
+        for player in self.players:
+            if player and player.UserID == userid:
+                return player
         return None
 
     def FindName(self, name: str) -> Optional[Player]:
-        for Player in self.players:
-            if Player and Player.Name == name:
-                return Player
+        for player in self.players:
+            if player and player.Name == name:
+                return player
         return None
 
     def __len__(self) -> int:

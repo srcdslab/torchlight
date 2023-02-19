@@ -34,7 +34,7 @@ class SourceRCONClient:
     def _peer_loop(self) -> Generator:
         while True:
             Data = yield from self.loop.sock_recv(self._sock, 1024)
-            if Data == b'':
+            if Data == b"":
                 break
 
             while Data:
@@ -46,19 +46,19 @@ class SourceRCONClient:
 
     def p_send(self, p_id: int, p_type: int, p_body: str) -> None:
         Data = (
-            struct.pack('<l', p_id)
-            + struct.pack('<l', p_type)
+            struct.pack("<l", p_id)
+            + struct.pack("<l", p_type)
             + p_body.encode("UTF-8")
-            + b'\x00\x00'
+            + b"\x00\x00"
         )
-        self.send(struct.pack('<l', len(Data)) + Data)
+        self.send(struct.pack("<l", len(Data)) + Data)
 
     def ParsePacket(self, DataRaw: bytes) -> None:
-        p_size, p_id, p_type = struct.unpack('<lll', DataRaw[:12])
+        p_size, p_id, p_type = struct.unpack("<lll", DataRaw[:12])
         Data: str = (
             DataRaw[12 : p_size + 2]
             .decode(encoding="UTF-8", errors="ignore")
-            .split('\x00')[0]
+            .split("\x00")[0]
         )
 
         if not self.Authenticated:
@@ -69,23 +69,23 @@ class SourceRCONClient:
                         sys._getframe().f_code.co_name
                         + " Connection authenticated from {0}".format(self.Name)
                     )
-                    self.p_send(p_id, 0, '')
-                    self.p_send(p_id, 2, '')
+                    self.p_send(p_id, 0, "")
+                    self.p_send(p_id, 2, "")
                     self.p_send(p_id, 0, "Welcome to torchlight! - Authenticated!\n")
                 else:
                     self.Logger.info(
                         sys._getframe().f_code.co_name
                         + " Connection denied from {0}".format(self.Name)
                     )
-                    self.p_send(p_id, 0, '')
-                    self.p_send(-1, 2, '')
+                    self.p_send(p_id, 0, "")
+                    self.p_send(-1, 2, "")
                     self._sock.close()
         else:
             if p_type == 2:
                 if Data:
                     Data = Data.strip('"')
                     self.Logger.info(
-                        sys._getframe().f_code.co_name + " Exec: \"{0}\"".format(Data)
+                        sys._getframe().f_code.co_name + ' Exec: "{0}"'.format(Data)
                     )
                     player = Player(
                         0,

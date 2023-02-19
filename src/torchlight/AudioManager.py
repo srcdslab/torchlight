@@ -97,7 +97,7 @@ class AudioManager:
                     if player != AudioClip.player:
                         self.torchlight.SayPrivate(
                             player,
-                            "Stopped \"{0}\"({1}) audio clip.".format(
+                            'Stopped "{0}"({1}) audio clip.'.format(
                                 AudioClip.player.Name, AudioClip.player.UserID
                             ),
                         )
@@ -116,7 +116,7 @@ class AudioManager:
                 if player != AudioClip.player:
                     self.torchlight.SayPrivate(
                         player,
-                        "Stopped \"{0}\"({1}) audio clip.".format(
+                        'Stopped "{0}"({1}) audio clip.'.format(
                             AudioClip.player.Name, AudioClip.player.UserID
                         ),
                     )

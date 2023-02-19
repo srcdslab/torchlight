@@ -62,9 +62,9 @@ class AntiSpam:
             )
 
             # Make a copy of the list since AudioClip.Stop() will change the list
-            for AudioClip in audio_clips[:]:
-                if AudioClip.Level < self.config["ImmunityLevel"]:
-                    AudioClip.Stop()
+            for audio_clip in audio_clips[:]:
+                if audio_clip.Level < self.config["ImmunityLevel"]:
+                    audio_clip.Stop()
 
             self.LastClips.clear()
 
@@ -75,7 +75,7 @@ class AntiSpam:
         )
 
         HasDominant = False
-        for Key, Clip in self.LastClips.items():
+        for _, Clip in self.LastClips.items():
             if Clip["dominant"]:
                 HasDominant = True
                 break
@@ -89,7 +89,7 @@ class AntiSpam:
         self.LastClips[hash(clip)]["active"] = False
 
         if self.LastClips[hash(clip)]["dominant"]:
-            for Key, Clip in self.LastClips.items():
+            for _, Clip in self.LastClips.items():
                 if Clip["active"]:
                     Clip["dominant"] = True
                     break
