@@ -1,12 +1,11 @@
 import asyncio
 import logging
-from typing import Generator, List, Optional
+from typing import Dict, List, Optional
 
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
 from torchlight.Constants import Clients
 from torchlight.Player import Player
-from torchlight.StorageManager import StorageManager
 from torchlight.Torchlight import Torchlight
 
 
@@ -21,9 +20,10 @@ class PlayerManager:
         self.torchlight = torchlight
         self.audio_manager = audio_manager
         self.access_manager = access_manager
+        self.audio_storage: Dict[str, Dict] = {}
 
         self.players: List[Optional[Player]] = [None] * (Clients.MAXPLAYERS + 1)
-        self.storage_manager = StorageManager()
+        self.player_count: int = 0
 
     def Setup(self) -> None:
         self.torchlight.game_events.HookEx("player_connect", self.Event_PlayerConnect)
@@ -40,6 +40,7 @@ class PlayerManager:
     def Event_PlayerConnect(
         self, name: str, index: int, userid: int, networkid: str, address: str, bot: int
     ) -> None:
+        self.player_count += 1
         index += 1
         self.logger.info(
             "OnConnect(name={0}, index={1}, userid={2}, networkid={3}, address={4}, bot={5})".format(
@@ -54,9 +55,17 @@ class PlayerManager:
 
         player = Player(index, userid, networkid, address, name)
 
+        player.access = self.access_manager.get_access(player)
+
+        for unique_id, audio_stored in self.audio_storage.items():
+            if player.unique_id == unique_id:
+                player.storage = audio_stored
+                break
+
+        self.audio_storage[player.unique_id] = player.storage
         self.players[index] = player
-        access = self.access_manager.get_access(player)
-        player.OnConnect(self.storage_manager[player.unique_id], access)
+
+        player.OnConnect()
 
     def Event_PlayerActivate(self, userid: int) -> None:
         self.logger.info("Pre_OnActivate(userid={0})".format(userid))
@@ -107,6 +116,8 @@ class PlayerManager:
     def Event_PlayerDisconnect(
         self, userid: int, reason: str, name: str, networkid: str, bot: int
     ) -> None:
+        self.player_count -= 1
+
         player = self.FindUserID(userid)
         if player is None:
             return
@@ -117,6 +128,7 @@ class PlayerManager:
             )
         )
 
+        self.audio_storage[player.unique_id] = player.storage
         player.OnDisconnect(reason)
         self.audio_manager.OnDisconnect(player)
         self.players[player.index] = None
@@ -136,17 +148,18 @@ class PlayerManager:
     ) -> None:
         self.logger.info("ServerSpawn(mapname={0})".format(mapname))
 
-        self.storage_manager.Reset()
+        self.player_count = 0
+        self.audio_storage = {}
 
-        for i in range(1, len(self.players)):
+        for i in range(1, Clients.MAXPLAYERS):
             player = self.players[i]
             if player is not None:
-                access = self.access_manager.get_access(player)
+                self.player_count += 1
                 player.OnDisconnect("mapchange")
-                player.OnConnect(
-                    self.storage_manager[player.unique_id],
-                    access,
-                )
+                self.access_manager.Load()
+                player.access = self.access_manager.get_access(player)
+                player.OnConnect()
+                self.audio_storage[player.unique_id] = player.storage
 
     def FindUniqueID(self, uniqueid: str) -> Optional[Player]:
         for player in self.players:
@@ -165,25 +178,3 @@ class PlayerManager:
             if player and player.name == name:
                 return player
         return None
-
-    def __len__(self) -> int:
-        count = 0
-        for i in range(1, len(self.players)):
-            if self.players[i]:
-                count += 1
-        return count
-
-    def __setitem__(self, key: int, value: Optional[Player]) -> None:
-        if key > 0 and key <= Clients.MAXPLAYERS:
-            self.players[key] = value
-
-    def __getitem__(self, key: int) -> Optional[Player]:
-        if key > 0 and key <= Clients.MAXPLAYERS:
-            return self.players[key]
-        return None
-
-    def __iter__(self) -> Generator[Player, None, None]:
-        for i in range(1, len(self.players)):
-            player = self.players[i]
-            if player is not None:
-                yield player

@@ -21,6 +21,27 @@ class TorchlightHandler:
             loop if loop else asyncio.get_event_loop()
         )
 
+        self.Init()
+
+        asyncio.ensure_future(self._Connect(), loop=self.loop)
+
+    async def _Connect(self) -> None:
+        # Connect to API
+        await self.async_client.Connect()
+
+        # Pre Hook for late load
+        await self.torchlight.game_events._Register(
+            ["player_connect", "player_activate"]
+        )
+        await self.torchlight.forwards._Register(["OnClientPostAdminCheck"])
+
+        self.InitModules()
+
+        # Late load
+        await self.torchlight.game_events.Replay(["player_connect", "player_activate"])
+        await self.torchlight.forwards.Replay(["OnClientPostAdminCheck"])
+
+    def Init(self) -> None:
         self.async_client = AsyncClient(
             self.loop,
             self.config["SMAPIServer"],
@@ -45,24 +66,6 @@ class TorchlightHandler:
             self.player_manager,
             self.audio_manager,
         )
-
-        asyncio.ensure_future(self._Connect(), loop=self.loop)
-
-    async def _Connect(self) -> None:
-        # Connect to API
-        await self.async_client.Connect()
-
-        # Pre Hook for late load
-        await self.torchlight.game_events._Register(
-            ["player_connect", "player_activate"]
-        )
-        await self.torchlight.forwards._Register(["OnClientPostAdminCheck"])
-
-        self.InitModules()
-
-        # Late load
-        await self.torchlight.game_events.Replay(["player_connect", "player_activate"])
-        await self.torchlight.forwards.Replay(["OnClientPostAdminCheck"])
 
     def InitModules(self) -> None:
         self.access_manager.Load()
@@ -108,6 +111,8 @@ class TorchlightHandler:
 
     def OnDisconnect(self, exc: Optional[Exception]) -> None:
         self.logger.info("OnDisconnect({0})".format(exc))
+
+        self.Init()
 
         asyncio.ensure_future(self._Connect(), loop=self.loop)
 

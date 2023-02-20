@@ -168,5 +168,5 @@ class AudioManager:
 
     def OnDisconnect(self, player: Player) -> None:
         for audio_clip in self.audio_clips[:]:
-            if audio_clip.player == player:
+            if audio_clip.player.unique_id == player.unique_id:
                 audio_clip.Stop()

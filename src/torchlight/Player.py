@@ -30,15 +30,11 @@ class Player:
         self.active = False
         self.chat_cooldown = 0
 
-    def OnConnect(self, storage: Dict, access: ConfigAccess) -> None:
-        self.storage = storage
-
+    def OnConnect(self) -> None:
         if "Audio" not in self.storage:
             self.storage["Audio"] = dict(
                 {"Uses": 0, "LastUse": 0.0, "LastUseLength": 0.0, "TimeUsed": 0.0}
             )
-
-        self.access = access
 
     def OnActivate(self) -> None:
         self.active = True
