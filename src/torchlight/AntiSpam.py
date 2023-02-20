@@ -21,11 +21,8 @@ class AntiSpam:
         if (
             self.disabled_time
             and self.disabled_time > self.torchlight.loop.time()
-            and not (
-                player.access and player.access.level >= self.config["ImmunityLevel"]
-            )
+            and player.access.level < self.config["ImmunityLevel"]
         ):
-
             self.torchlight.SayPrivate(
                 player,
                 "Torchlight is currently on cooldown! ({0} seconds left)".format(
@@ -40,16 +37,21 @@ class AntiSpam:
         now = self.torchlight.loop.time()
         duration = 0.0
 
-        for key, clip in list(self.last_clips.items()):
-            if not clip["timestamp"]:
+        for key, last_clip in list(self.last_clips.items()):
+            if not last_clip["timestamp"]:
                 continue
 
-            if clip["timestamp"] + clip["duration"] + self.config["MaxUsageSpan"] < now:
-                if not clip["active"]:
+            if (
+                last_clip["timestamp"]
+                + last_clip["duration"]
+                + self.config["MaxUsageSpan"]
+                < now
+            ):
+                if not last_clip["active"]:
                     del self.last_clips[key]
                 continue
 
-            duration += clip["duration"]
+            duration += last_clip["duration"]
 
         if duration > self.config["MaxUsageTime"]:
             self.disabled_time = (
@@ -77,8 +79,8 @@ class AntiSpam:
         )
 
         has_dominant = False
-        for _, clip in self.last_clips.items():
-            if clip["dominant"]:
+        for _, last_clip in self.last_clips.items():
+            if last_clip["dominant"]:
                 has_dominant = True
                 break
 
@@ -91,9 +93,9 @@ class AntiSpam:
         self.last_clips[hash(clip)]["active"] = False
 
         if self.last_clips[hash(clip)]["dominant"]:
-            for _, clip in self.last_clips.items():
-                if clip["active"]:
-                    clip["dominant"] = True
+            for _, last_clip in self.last_clips.items():
+                if last_clip["active"]:
+                    last_clip["dominant"] = True
                     break
 
         self.last_clips[hash(clip)]["dominant"] = False
@@ -106,10 +108,10 @@ class AntiSpam:
         new_position: int,
     ) -> None:
         delta = new_position - old_position
-        clip = self.last_clips[hash(clip)]
+        last_clip = self.last_clips[hash(clip)]
 
-        if not clip["dominant"]:
+        if not last_clip["dominant"]:
             return
 
-        clip["duration"] += delta
+        last_clip["duration"] += delta
         self.SpamCheck(audio_clips, delta)

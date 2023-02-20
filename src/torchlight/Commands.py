@@ -24,7 +24,7 @@ from PIL import Image
 
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
-from torchlight.Config import Config, ConfigAccess
+from torchlight.Config import Config
 from torchlight.Player import Player
 from torchlight.PlayerManager import PlayerManager
 from torchlight.Torchlight import Torchlight
@@ -60,9 +60,7 @@ class BaseCommand:
         return False
 
     def check_disabled(self, player: Player) -> bool:
-        level: int = 0
-        if player.access:
-            level = player.access.level
+        level = player.access.level
 
         disabled = self.torchlight.disabled
         if disabled and (
@@ -224,12 +222,8 @@ class URLFilter(BaseCommand):
 
 def FormatAccess(config: Config, player: Player) -> str:
     answer = '#{0} "{1}"({2}) is '.format(player.user_id, player.name, player.unique_id)
-    level = str(0)
-    if player.access:
-        level = str(player.access.level)
-        answer += "level {0!s} as {1}.".format(level, player.access.name)
-    else:
-        answer += "not authenticated."
+    level = str(player.access.level)
+    answer += "level {0!s} as {1}.".format(level, player.access.name)
 
     if level in config["AudioLimits"]:
         uses = config["AudioLimits"][level]["Uses"]
@@ -501,9 +495,9 @@ class OpenWeather(BaseCommand):
         self.triggers = ["!w", "!vv"]
         self.level = self.torchlight.config["CommandLevel"]["Weather"]
 
-    def degToCardinal(self, d):
+    def degreeToCardinal(self, degree: int) -> str:
         directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
-        return directions[int(((d + 22.5) / 45.0) % 8)]
+        return directions[int(((degree + 22.5) / 45.0) % 8)]
 
     async def _func(self, message: List[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
@@ -544,7 +538,7 @@ class OpenWeather(BaseCommand):
             return 5
 
         if "deg" in data["wind"]:
-            windDir = self.degToCardinal(data["wind"]["deg"])
+            windDir = self.degreeToCardinal(data["wind"]["deg"])
         else:
             windDir = "?"
 
@@ -777,9 +771,7 @@ class VoiceCommands(BaseCommand):
         if self.check_disabled(player):
             return -1
 
-        level = 0
-        if player.access:
-            level = player.access.level
+        level = player.access.level
 
         message[0] = message[0].lower()
         message[1] = message[1].lower()
@@ -976,7 +968,7 @@ class YouTubeSearch(BaseCommand):
             url_raw, info = output.split(b"\n", maxsplit=1)
             url = url_raw.strip().decode("ascii")
         except Exception as e:
-            self.logger.error(f"Failed to extract url from output: {output}")
+            self.logger.error(f"Failed to extract url from output: {str(output)}")
             self.logger.error(e)
             self.torchlight.SayPrivate(
                 player,
@@ -1333,10 +1325,7 @@ class AdminAccess(BaseCommand):
             ):
                 level = int(level_parsed)
 
-                if (
-                    level >= admin_player.access.level
-                    and admin_player.access.level < 10
-                ):
+                if level >= admin_player.access.level:
                     self.torchlight.SayChat(
                         "Trying to assign level {0}, which is higher or equal than your level ({1})".format(
                             level, admin_player.access.level
@@ -1344,71 +1333,48 @@ class AdminAccess(BaseCommand):
                     )
                     return 4
 
-                if targeted_player.access:
-                    if (
-                        targeted_player.access.level >= admin_player.access.level
-                        and admin_player.access.level < 10
-                    ):
-                        self.torchlight.SayChat(
-                            "Trying to modify level {0}, which is higher or equal than your level ({1})".format(
-                                targeted_player.access.level,
-                                admin_player.access.level,
-                            )
-                        )
-                        return 5
-
-                    if "Regname" in locals():
-                        self.torchlight.SayChat(
-                            'Changed "{0}"({1}) as {2} level/name from {3} to {4} as {5}'.format(
-                                targeted_player.name,
-                                targeted_player.unique_id,
-                                targeted_player.access.name,
-                                targeted_player.access.level,
-                                level,
-                                reg_name,
-                            )
-                        )
-                        targeted_player.access.name = reg_name
-                    else:
-                        self.torchlight.SayChat(
-                            'Changed "{0}"({1}) as {2} level from {3} to {4}'.format(
-                                targeted_player.name,
-                                targeted_player.unique_id,
-                                targeted_player.access.name,
-                                targeted_player.access.level,
-                                level,
-                            )
-                        )
-
-                    targeted_player.access.level = level
-                    self.access_manager.config_access_list[
-                        targeted_player.unique_id
-                    ] = targeted_player.access
-                else:
-                    if "Regname" not in locals():
-                        reg_name = targeted_player.name
-
-                    access = ConfigAccess(
-                        name=reg_name, level=level, unique_id=targeted_player.unique_id
-                    )
-                    self.access_manager.config_access_list[
-                        targeted_player.unique_id
-                    ] = access
-                    targeted_player.access = access
+                if (
+                    targeted_player.access.level >= admin_player.access.level
+                    and admin_player.user_id != targeted_player.user_id
+                ):
                     self.torchlight.SayChat(
-                        'Added "{0}"({1}) to access list as {2} with level {3}'.format(
+                        "Trying to modify level {0}, which is higher or equal than your level ({1})".format(
+                            targeted_player.access.level,
+                            admin_player.access.level,
+                        )
+                    )
+                    return 5
+
+                if "Regname" in locals():
+                    self.torchlight.SayChat(
+                        'Changed "{0}"({1}) as {2} level/name from {3} to {4} as {5}'.format(
                             targeted_player.name,
                             targeted_player.unique_id,
+                            targeted_player.access.name,
+                            targeted_player.access.level,
+                            level,
                             reg_name,
+                        )
+                    )
+                    targeted_player.access.name = reg_name
+                else:
+                    self.torchlight.SayChat(
+                        'Changed "{0}"({1}) as {2} level from {3} to {4}'.format(
+                            targeted_player.name,
+                            targeted_player.unique_id,
+                            targeted_player.access.name,
+                            targeted_player.access.level,
                             level,
                         )
                     )
+
+                targeted_player.access.level = level
+                self.access_manager.config_access_list[
+                    targeted_player.unique_id
+                ] = targeted_player.access
             else:
-                if level == "revoke" and targeted_player.access:
-                    if (
-                        targeted_player.access.level >= admin_player.access.level
-                        and admin_player.access.level < 10
-                    ):
+                if level_parsed == "revoke":
+                    if targeted_player.access.level >= admin_player.access.level:
                         self.torchlight.SayChat(
                             "Trying to revoke level {0}, which is higher or equal than your level ({1})".format(
                                 targeted_player.access.level,
@@ -1425,15 +1391,14 @@ class AdminAccess(BaseCommand):
                             targeted_player.access.level,
                         )
                     )
-                    access = ConfigAccess(
-                        name=targeted_player.name,
-                        level=0,
-                        unique_id=targeted_player.unique_id,
-                    )
+                    targeted_player.access.name = "Player"
+                    targeted_player.access.level = self.torchlight.config[
+                        "AccessLevel"
+                    ]["Player"]
+                    targeted_player.access.uniqueid = targeted_player.unique_id
                     self.access_manager.config_access_list[
                         targeted_player.unique_id
-                    ] = access
-                    targeted_player.access = access
+                    ] = targeted_player.access
         return 0
 
 
