@@ -150,13 +150,13 @@ class PlayerManager:
 
         self.player_count = 0
         self.audio_storage = {}
+        self.access_manager.Load()
 
         for i in range(1, Clients.MAXPLAYERS):
             player = self.players[i]
             if player is not None:
                 self.player_count += 1
                 player.OnDisconnect("mapchange")
-                self.access_manager.Load()
                 player.access = self.access_manager.get_access(player)
                 player.OnConnect()
                 self.audio_storage[player.unique_id] = player.storage
