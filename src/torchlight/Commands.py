@@ -46,7 +46,7 @@ class BaseCommand:
         self.audio_manager = audio_manager
         self.player_manager = player_manager
         self.access_manager = access_manager
-        self.triggers: List[Union[str, Pattern]] = []
+        self.triggers: List[Union[Tuple[str, int], str, Pattern]] = []
         self.level = 0
 
     def check_chat_cooldown(self, player: Player) -> bool:
@@ -284,10 +284,12 @@ class Who(BaseCommand):
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         Count = 0
-        targeted_player: Optional[Player]
         if message[0] == "!who":
-            for targeted_player in self.player_manager:
-                if targeted_player.name.lower().find(message[1].lower()) != -1:
+            for targeted_player in self.player_manager.players:
+                if (
+                    targeted_player
+                    and targeted_player.name.lower().find(message[1].lower()) != -1
+                ):
                     self.torchlight.SayChat(
                         FormatAccess(self.torchlight.config, targeted_player)
                     )
@@ -717,7 +719,7 @@ class VoteDisable(BaseCommand):
         self.torchlight.disable_votes.add(player.unique_id)
 
         have = len(self.torchlight.disable_votes)
-        needed = len(self.player_manager) // 5
+        needed = self.player_manager.player_count // 5
         if have >= needed:
             self.torchlight.SayChat(
                 "Torchlight has been disabled for the duration of this map."
@@ -1254,9 +1256,9 @@ class AdminAccess(BaseCommand):
 
     def ReloadValidUsers(self) -> None:
         self.access_manager.Load()
-        for player in self.player_manager:
-            access = self.access_manager.get_access(player)
-            player.access = access
+        for player in self.player_manager.players:
+            if player:
+                player.access = self.access_manager.get_access(player)
 
     async def _func(self, message: List[str], admin_player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
@@ -1311,8 +1313,8 @@ class AdminAccess(BaseCommand):
                 targeted_player = self.player_manager.FindUserID(int(buffer[1:]))
             # Search user by name
             else:
-                for player in self.player_manager:
-                    if player.name.lower().find(buffer.lower()) != -1:
+                for player in self.player_manager.players:
+                    if player and player.name.lower().find(buffer.lower()) != -1:
                         targeted_player = player
                         break
 
