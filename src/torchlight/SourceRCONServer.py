@@ -28,7 +28,7 @@ class SourceRCONServer:
 
     def Remove(self, peer: SourceRCONClient) -> None:
         self.logger.info(
-            sys._getframe().f_code.co_name + " Peer {0} disconnected!".format(peer.Name)
+            sys._getframe().f_code.co_name + " Peer {0} disconnected!".format(peer.name)
         )
         self.peers.remove(peer)
 
@@ -50,7 +50,7 @@ class SourceRCONServer:
             self.peers.append(peer)
             self.logger.info(
                 sys._getframe().f_code.co_name
-                + " Peer {0} connected!".format(peer.Name)
+                + " Peer {0} connected!".format(peer.name)
             )
 
     @asyncio.coroutine

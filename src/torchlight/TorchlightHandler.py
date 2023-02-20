@@ -75,7 +75,7 @@ class TorchlightHandler:
         self.torchlight.game_events.HookEx("player_say", self.Event_PlayerSay)
 
     def OnReload(self) -> None:
-        self.command_handler.NeedsReload = True
+        self.command_handler.needs_reload = True
 
     def Event_ServerSpawn(
         self,

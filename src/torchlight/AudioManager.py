@@ -25,9 +25,7 @@ class AudioManager:
         self.logger.info("~AudioManager()")
 
     def CheckLimits(self, player: Player) -> bool:
-        level: int = 0
-        if player.access:
-            level = player.access.level
+        level = player.access.level
 
         if str(level) in self.anti_spam.config:
             if (
@@ -76,9 +74,7 @@ class AudioManager:
         return True
 
     def Stop(self, player: Player, extra: str) -> None:
-        level: int = 0
-        if player.access:
-            level = player.access.level
+        level = player.access.level
 
         for audio_clip in self.audio_clips[:]:
             if extra and not extra.lower() in audio_clip.player.name.lower():
@@ -127,9 +123,7 @@ class AudioManager:
         uri: str,
         _type: AudioPlayerType = AudioPlayerType.AUDIOPLAYER_FFMPEG,
     ) -> Optional[AudioClip]:
-        level: int = 0
-        if player.access:
-            level = player.access.level
+        level = player.access.level
 
         if self.torchlight.disabled and self.torchlight.disabled > level:
             self.torchlight.SayPrivate(player, "Torchlight is currently disabled!")
@@ -148,10 +142,7 @@ class AudioManager:
         self.audio_clips.append(clip)
         audio_player.AddCallback("Stop", lambda: self.audio_clips.remove(clip))
 
-        if (
-            not player.access
-            or player.access.level < self.anti_spam.config["ImmunityLevel"]
-        ):
+        if player.access.level < self.anti_spam.config["ImmunityLevel"]:
             clip.audio_player.AddCallback(
                 "Play", lambda *args: self.anti_spam.OnPlay(clip, *args)
             )

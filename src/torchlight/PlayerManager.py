@@ -148,7 +148,7 @@ class PlayerManager:
                     access,
                 )
 
-    def FindUniqueID(self, uniqueid: int) -> Optional[Player]:
+    def FindUniqueID(self, uniqueid: str) -> Optional[Player]:
         for player in self.players:
             if player and player.unique_id == uniqueid:
                 return player

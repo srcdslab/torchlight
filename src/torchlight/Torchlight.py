@@ -66,9 +66,7 @@ class Torchlight:
             asyncio.ensure_future(self.sourcemod_api.CPrintToChatAll(line))
 
         if player:
-            level = 0
-            if player.access:
-                level = player.access.level
+            level = player.access.level
 
             if level < self.config["AntiSpam"]["ImmunityLevel"]:
                 cooldown = len(lines) * self.config["AntiSpam"]["ChatCooldown"]
