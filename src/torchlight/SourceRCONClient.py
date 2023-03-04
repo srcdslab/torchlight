@@ -3,7 +3,8 @@ import logging
 import socket
 import struct
 import sys
-from typing import Any, Awaitable, Generator
+from collections.abc import Awaitable, Generator
+from typing import Any
 
 from torchlight.CommandHandler import CommandHandler
 from torchlight.Config import ConfigAccess
@@ -67,7 +68,7 @@ class SourceRCONClient:
                     self.authenticated = True
                     self.logger.info(
                         sys._getframe().f_code.co_name
-                        + " Connection authenticated from {0}".format(self.name)
+                        + f" Connection authenticated from {self.name}"
                     )
                     self.p_send(p_id, 0, "")
                     self.p_send(p_id, 2, "")
@@ -75,7 +76,7 @@ class SourceRCONClient:
                 else:
                     self.logger.info(
                         sys._getframe().f_code.co_name
-                        + " Connection denied from {0}".format(self.name)
+                        + f" Connection denied from {self.name}"
                     )
                     self.p_send(p_id, 0, "")
                     self.p_send(-1, 2, "")
@@ -85,7 +86,7 @@ class SourceRCONClient:
                 if data:
                     data = data.strip('"')
                     self.logger.info(
-                        sys._getframe().f_code.co_name + ' Exec: "{0}"'.format(data)
+                        sys._getframe().f_code.co_name + f' Exec: "{data}"'
                     )
                     player = Player(
                         0,

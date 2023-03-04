@@ -1,10 +1,9 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import json
 import logging
 import sys
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 
 @dataclass
@@ -22,12 +21,12 @@ class Config:
         self.config_folder = config_folder
         self.config_filename = config_filename
         self.config_filepath = f"{config_folder}/{config_filename}"
-        self.config: Dict[str, Any] = dict()
+        self.config: dict[str, Any] = {}
         self.Load()
 
     def Load(self) -> int:
         try:
-            with open(self.config_filepath, "r") as fp:
+            with open(self.config_filepath) as fp:
                 self.config = json.load(fp)
         except ValueError as e:
             self.logger.error(sys._getframe().f_code.co_name + " " + str(e))

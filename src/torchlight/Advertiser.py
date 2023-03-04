@@ -1,6 +1,6 @@
 import logging
 import math
-from typing import Any, Dict
+from typing import Any
 
 from torchlight.AudioClip import AudioClip
 from torchlight.Torchlight import Torchlight
@@ -12,7 +12,7 @@ class Advertiser:
         self.torchlight = torchlight
         self.config = self.torchlight.config["Advertiser"]
 
-        self.last_clips: Dict[int, Any] = dict()
+        self.last_clips: dict[int, Any] = {}
         self.ad_stop = 0
         self.next_ad_stop = 0
 

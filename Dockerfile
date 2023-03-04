@@ -1,6 +1,9 @@
 FROM ubuntu:20.04
 
-RUN DEBIAN_FRONTEND=noninteractive apt update -y && apt install -y libmagic-dev ffmpeg python3 python3-pip curl --no-install-recommends
+RUN DEBIAN_FRONTEND=noninteractive apt update -y && apt install -y libmagic-dev ffmpeg curl software-properties-common --no-install-recommends \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt install -y python3.10 python3.10-distutils --no-install-recommends \
+    && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
 
 WORKDIR /app
 
@@ -19,10 +22,10 @@ COPY GeoIP/GeoLite2-City.mmdb /usr/share/GeoIP/
 
 COPY requirements.txt /app/requirements.txt
 
-RUN pip install -r requirements.txt
+RUN python3.10 -m pip install -r requirements.txt
 
 COPY . /app
 
-RUN pip install --no-cache-dir --prefer-binary .
+RUN python3.10 -m pip install --no-cache-dir --prefer-binary .
 
 ENTRYPOINT ["torchlight"]

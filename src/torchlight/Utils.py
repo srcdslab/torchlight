@@ -1,7 +1,5 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import math
-from typing import Optional
 
 
 class Utils:
@@ -19,7 +17,7 @@ class Utils:
         return ret
 
     @staticmethod
-    def ParseTime(time_str: Optional[str]) -> int:
+    def ParseTime(time_str: str | None) -> int:
         negative = False
         real_time = 0
 
@@ -92,4 +90,4 @@ class Utils:
         else:
             formatted_size = str(round(num, ndigits=precision))
 
-        return "{0}{1}".format(formatted_size, suffix)
+        return f"{formatted_size}{suffix}"

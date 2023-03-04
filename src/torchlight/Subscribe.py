@@ -1,9 +1,9 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import asyncio
 import logging
 import traceback
-from typing import Any, Callable, Dict, List, Set
+from collections.abc import Callable
+from typing import Any
 
 from torchlight.AsyncClient import AsyncClient
 
@@ -14,7 +14,7 @@ class SubscribeBase:
         self.module = self.__class__.__name__.lower()
         self.async_client = async_client
 
-        self.callbacks: Dict[str, Set[Callable]] = dict()
+        self.callbacks: dict[str, set[Callable]] = {}
 
     def __del__(self) -> None:
         if not len(self.callbacks) or not self.async_client:
@@ -28,16 +28,16 @@ class SubscribeBase:
 
         asyncio.ensure_future(self.async_client.Send(json_obj))
 
-    async def _Register(self, events: List[str]) -> List[bool]:
+    async def _Register(self, events: list[str]) -> list[bool]:
         json_obj = {"method": "subscribe", "module": self.module, "events": events}
 
         res_raw = await self.async_client.Send(json_obj)
 
-        res: Dict[str, Any] = dict()
-        if isinstance(res_raw, Dict):
+        res: dict[str, Any] = {}
+        if isinstance(res_raw, dict):
             res = res_raw
 
-        ret_list: List[bool] = []
+        ret_list: list[bool] = []
         for i, ret in enumerate(res.get("events", [])):
             if ret >= 0:
                 ret_list.append(True)
@@ -48,17 +48,17 @@ class SubscribeBase:
 
         return ret_list
 
-    async def _Unregister(self, events: List[str]) -> List[bool]:
+    async def _Unregister(self, events: list[str]) -> list[bool]:
 
         json_obj = {"method": "unsubscribe", "module": self.module, "events": events}
 
         res_raw = await self.async_client.Send(json_obj)
 
-        res: Dict[str, Any] = dict()
-        if isinstance(res_raw, Dict):
+        res: dict[str, Any] = {}
+        if isinstance(res_raw, dict):
             res = res_raw
 
-        ret_list: List[bool] = []
+        ret_list: list[bool] = []
         for i, ret in enumerate(res["events"]):
             if ret >= 0:
                 ret_list.append(True)
@@ -75,7 +75,7 @@ class SubscribeBase:
     def UnhookEx(self, event: str, callback: Callable) -> None:
         asyncio.ensure_future(self.Unhook(event, callback))
 
-    def ReplayEx(self, events: List[str]) -> None:
+    def ReplayEx(self, events: list[str]) -> None:
         asyncio.ensure_future(self.Replay(events))
 
     async def Hook(self, event: str, callback: Callable) -> bool:
@@ -98,7 +98,7 @@ class SubscribeBase:
 
         return (await self._Unregister([event]))[0]
 
-    async def Replay(self, events: List[str]) -> List[bool]:
+    async def Replay(self, events: list[str]) -> list[bool]:
         for event in events[:]:
             if event not in self.callbacks:
                 events.remove(event)
@@ -107,11 +107,11 @@ class SubscribeBase:
 
         res_raw = await self.async_client.Send(json_obj)
 
-        res: Dict[str, Any] = dict()
-        if isinstance(res_raw, Dict):
+        res: dict[str, Any] = {}
+        if isinstance(res_raw, dict):
             res = res_raw
 
-        ret_list: List[bool] = []
+        ret_list: list[bool] = []
         for _, ret in enumerate(res["events"]):
             if ret >= 0:
                 ret_list.append(True)
@@ -120,7 +120,7 @@ class SubscribeBase:
 
         return ret_list
 
-    def OnPublish(self, json_obj: Dict[str, Any]) -> bool:
+    def OnPublish(self, json_obj: dict[str, Any]) -> bool:
         event = json_obj["event"]
 
         if not event["name"] in self.callbacks:

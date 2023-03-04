@@ -1,6 +1,6 @@
 import logging
 import math
-from typing import Any, Dict, List
+from typing import Any
 
 from torchlight.AudioClip import AudioClip
 from torchlight.Player import Player
@@ -13,7 +13,7 @@ class AntiSpam:
         self.torchlight = torchlight
         self.config = self.torchlight.config["AntiSpam"]
 
-        self.last_clips: Dict[int, Any] = dict()
+        self.last_clips: dict[int, Any] = {}
         self.disabled_time = None
         self.said_hint = False
 
@@ -25,7 +25,7 @@ class AntiSpam:
         ):
             self.torchlight.SayPrivate(
                 player,
-                "Torchlight is currently on cooldown! ({0} seconds left)".format(
+                "Torchlight is currently on cooldown! ({} seconds left)".format(
                     math.ceil(self.disabled_time - self.torchlight.loop.time())
                 ),
             )
@@ -33,7 +33,7 @@ class AntiSpam:
 
         return True
 
-    def SpamCheck(self, audio_clips: List[AudioClip], delta: int) -> None:
+    def SpamCheck(self, audio_clips: list[AudioClip], delta: int) -> None:
         now = self.torchlight.loop.time()
         duration = 0.0
 
@@ -58,7 +58,7 @@ class AntiSpam:
                 self.torchlight.loop.time() + self.config["PunishDelay"]
             )
             self.torchlight.SayChat(
-                "Blocked voice commands for the next {0} seconds. Used {1} seconds within {2} seconds.".format(
+                "Blocked voice commands for the next {} seconds. Used {} seconds within {} seconds.".format(
                     self.config["PunishDelay"],
                     self.config["MaxUsageTime"],
                     self.config["MaxUsageSpan"],
@@ -102,7 +102,7 @@ class AntiSpam:
 
     def OnUpdate(
         self,
-        audio_clips: List[AudioClip],
+        audio_clips: list[AudioClip],
         clip: AudioClip,
         old_position: int,
         new_position: int,

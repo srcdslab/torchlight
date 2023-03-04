@@ -1,8 +1,6 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import asyncio
 import logging
-from typing import Dict, Optional
 
 from torchlight.AccessManager import AccessManager
 from torchlight.AsyncClient import AsyncClient
@@ -14,7 +12,7 @@ from torchlight.Torchlight import Torchlight
 
 
 class TorchlightHandler:
-    def __init__(self, loop: Optional[asyncio.AbstractEventLoop], config: Config):
+    def __init__(self, loop: asyncio.AbstractEventLoop | None, config: Config):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
         self.loop: asyncio.AbstractEventLoop = (
@@ -106,11 +104,11 @@ class TorchlightHandler:
 
         asyncio.ensure_future(self.command_handler.HandleCommand(text, player))
 
-    def OnPublish(self, obj: Dict[str, str]) -> None:
+    def OnPublish(self, obj: dict[str, str]) -> None:
         self.torchlight.OnPublish(obj)
 
-    def OnDisconnect(self, exc: Optional[Exception]) -> None:
-        self.logger.info("OnDisconnect({0})".format(exc))
+    def OnDisconnect(self, exc: Exception | None) -> None:
+        self.logger.info(f"OnDisconnect({exc})")
 
         self.Init()
 

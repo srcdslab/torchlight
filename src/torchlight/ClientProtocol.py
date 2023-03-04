@@ -1,9 +1,9 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import logging
 import traceback
 from asyncio import AbstractEventLoop, Protocol, transports
-from typing import Any, Callable, List, Optional, Tuple
+from collections.abc import Callable
+from typing import Any
 
 
 class ClientProtocol(Protocol):
@@ -12,9 +12,9 @@ class ClientProtocol(Protocol):
     def __init__(self, loop: AbstractEventLoop):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.loop = loop
-        self.transport: Optional[transports.WriteTransport] = None
+        self.transport: transports.WriteTransport | None = None
         self.buffer = bytearray()
-        self.callbacks: List[Tuple[str, Callable]] = []
+        self.callbacks: list[tuple[str, Callable]] = []
 
     def connection_made(self, transport: transports.WriteTransport) -> None:  # type: ignore[override]
         self.transport = transport
@@ -48,7 +48,7 @@ class ClientProtocol(Protocol):
                 except Exception:
                     self.logger.error(traceback.format_exc())
 
-    def connection_lost(self, exc: Optional[Exception]) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         if self.transport:
             self.transport.close()
         self.transport = None

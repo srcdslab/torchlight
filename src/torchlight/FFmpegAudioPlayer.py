@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import asyncio
 import datetime
 import logging
@@ -9,7 +8,8 @@ import time
 import traceback
 from asyncio import StreamReader, StreamWriter
 from asyncio.subprocess import Process
-from typing import Any, Callable, List, Optional, Tuple
+from collections.abc import Callable
+from typing import Any
 
 from torchlight.Torchlight import Torchlight
 
@@ -30,20 +30,20 @@ class FFmpegAudioPlayer:
         self.port = self.config["Port"]
         self.sample_rate = float(self.config["SampleRate"])
 
-        self.started_playing: Optional[float] = None
-        self.stopped_playing: Optional[float] = None
+        self.started_playing: float | None = None
+        self.stopped_playing: float | None = None
         self.seconds = 0.0
 
-        self.writer: Optional[StreamWriter] = None
-        self.sub_process: Optional[Process] = None
+        self.writer: StreamWriter | None = None
+        self.sub_process: Process | None = None
 
-        self.callbacks: List[Tuple[str, Callable]] = []
+        self.callbacks: list[tuple[str, Callable]] = []
 
     def __del__(self) -> None:
         self.logger.debug("~FFmpegAudioPlayer()")
         self.Stop()
 
-    def PlayURI(self, uri: str, position: Optional[int], *args: Any) -> bool:
+    def PlayURI(self, uri: str, position: int | None, *args: Any) -> bool:
         if position is not None:
             pos_str = str(datetime.timedelta(seconds=position))
             command = [
@@ -160,7 +160,7 @@ class FFmpegAudioPlayer:
             await asyncio.sleep(0.1)
 
     async def _read_stream(
-        self, stream: Optional[StreamReader], writer: StreamWriter
+        self, stream: StreamReader | None, writer: StreamWriter
     ) -> None:
         started = False
 
@@ -188,7 +188,7 @@ class FFmpegAudioPlayer:
 
         self.stopped_playing = time.time()
 
-    async def _stream_subprocess(self, cmd: List[str]) -> None:
+    async def _stream_subprocess(self, cmd: list[str]) -> None:
         if not self.playing:
             return
 

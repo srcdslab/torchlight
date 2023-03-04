@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import asyncio
 import json
 import logging
 import traceback
 from asyncio import Future
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from collections.abc import Callable
+from typing import Any
 
 from torchlight.ClientProtocol import ClientProtocol
 
@@ -16,19 +16,19 @@ class AsyncClient:
     def __init__(
         self,
         loop: asyncio.AbstractEventLoop,
-        smapi_server_config: Dict[str, Any],
+        smapi_server_config: dict[str, Any],
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.loop: asyncio.AbstractEventLoop = loop
-        self.smapi_server_config: Dict[str, Any] = smapi_server_config
+        self.smapi_server_config: dict[str, Any] = smapi_server_config
 
         self.host = self.smapi_server_config["Host"]
         self.port = self.smapi_server_config["Port"]
 
-        self.protocol: Optional[ClientProtocol] = None
+        self.protocol: ClientProtocol | None = None
         self.send_lock = asyncio.Lock()
-        self.recv_future: Optional[Future] = None
-        self.callbacks: List[Tuple[str, Callable]] = []
+        self.recv_future: Future | None = None
+        self.callbacks: list[tuple[str, Callable]] = []
 
     async def Connect(self) -> None:
         while True:
@@ -60,7 +60,7 @@ class AsyncClient:
                 except Exception:
                     self.logger.error(traceback.format_exc())
 
-    def OnReceive(self, data: Union[str, bytes]) -> None:
+    def OnReceive(self, data: str | bytes) -> None:
         try:
             json_obj = json.loads(data)
         except Exception:
@@ -73,13 +73,13 @@ class AsyncClient:
             if self.recv_future:
                 self.recv_future.set_result(json_obj)
 
-    def OnDisconnect(self, exc: Optional[Exception]) -> None:
+    def OnDisconnect(self, exc: Exception | None) -> None:
         self.protocol = None
         if self.recv_future:
             self.recv_future.cancel()
         self.Callback("OnDisconnect", exc)
 
-    async def Send(self, json_obj: Any) -> Optional[Any]:
+    async def Send(self, json_obj: Any) -> Any | None:
         if not self.protocol:
             return None
 

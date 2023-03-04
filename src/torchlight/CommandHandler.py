@@ -1,11 +1,9 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import logging
 import sys
 import traceback
 from importlib import reload
 from re import Match
-from typing import List, Optional
 
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
@@ -27,7 +25,7 @@ class CommandHandler:
         self.access_manager = access_manager
         self.player_manager = player_manager
         self.audio_manager = audio_manager
-        self.commands: List[BaseCommand] = []
+        self.commands: list[BaseCommand] = []
         self.needs_reload = False
 
     def Setup(self) -> None:
@@ -35,8 +33,7 @@ class CommandHandler:
         self.commands.clear()
         if counter:
             self.logger.info(
-                sys._getframe().f_code.co_name
-                + " Unloaded {0} commands!".format(counter)
+                sys._getframe().f_code.co_name + f" Unloaded {counter} commands!"
             )
 
         counter = 0
@@ -59,7 +56,7 @@ class CommandHandler:
                 counter += 1
 
         self.logger.info(
-            sys._getframe().f_code.co_name + " Loaded {0} commands!".format(counter)
+            sys._getframe().f_code.co_name + f" Loaded {counter} commands!"
         )
 
     def Reload(self) -> None:
@@ -72,7 +69,7 @@ class CommandHandler:
         else:
             self.Setup()
 
-    async def HandleCommand(self, line: str, player: Player) -> Optional[int]:
+    async def HandleCommand(self, line: str, player: Player) -> int | None:
         message = line.split(sep=" ", maxsplit=1)
         if len(message) < 2:
             message.append("")
@@ -85,12 +82,12 @@ class CommandHandler:
         level = player.access.level
 
         self.logger.debug(f"Command: {message}")
-        ret_message: Optional[str] = None
-        ret: Optional[int] = None
+        ret_message: str | None = None
+        ret: int | None = None
         for command in self.commands:
             for trigger in command.triggers:
                 is_match = False
-                r_match: Optional[Match] = None
+                r_match: Match | None = None
                 self.logger.debug(type(trigger))
                 self.logger.debug(f"Trigger: {trigger}")
                 if isinstance(trigger, tuple):
@@ -109,13 +106,13 @@ class CommandHandler:
 
                 self.logger.debug(
                     sys._getframe().f_code.co_name
-                    + ' "{0}" Match -> {1} | {2}'.format(
+                    + ' "{}" Match -> {} | {}'.format(
                         player.name, command.__class__.__name__, trigger
                     )
                 )
 
                 if level < command.level:
-                    ret_message = "You do not have access to this command! (You: {0} | Required: {1})".format(
+                    ret_message = "You do not have access to this command! (You: {} | Required: {})".format(
                         level, command.level
                     )
                     continue
@@ -133,7 +130,7 @@ class CommandHandler:
                         ret = await command._func(message, player)
                 except Exception as e:
                     self.logger.error(traceback.format_exc())
-                    self.torchlight.SayChat("Error: {0}".format(str(e)))
+                    self.torchlight.SayChat(f"Error: {str(e)}")
 
                 ret_message = None
 

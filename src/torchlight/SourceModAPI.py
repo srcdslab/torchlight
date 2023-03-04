@@ -1,7 +1,6 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import functools
-from typing import Any, Dict
+from typing import Any
 
 from torchlight.AsyncClient import AsyncClient
 
@@ -18,16 +17,16 @@ class SourceModAPI:
 
     async def _MakeCall(
         self, function: str, *args: Any, **kwargs: Any
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         json_obj = {"method": "function", "function": function, "args": args}
 
         res_raw = await self.async_client.Send(json_obj)
 
-        res: Dict[str, Any] = dict()
-        if isinstance(res_raw, Dict):
+        res: dict[str, Any] = {}
+        if isinstance(res_raw, dict):
             res = res_raw
 
         if res["error"]:
-            raise Exception("{0}({1})\n{2}".format(function, args, res["error"]))
+            raise Exception("{}({})\n{}".format(function, args, res["error"]))
 
         return res
