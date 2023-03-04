@@ -1,7 +1,5 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import logging
-from typing import Dict
 
 from torchlight.Admin import Admin
 from torchlight.Config import Config, ConfigAccess
@@ -26,7 +24,7 @@ class Player:
             name=self.name, level=0, uniqueid=self.unique_id
         )
         self.admin = Admin()
-        self.storage: Dict = dict()
+        self.storage: dict = {}
         self.active = False
         self.chat_cooldown = 0
 
@@ -42,7 +40,7 @@ class Player:
     def OnClientPostAdminCheck(self, flag_bits: int, config: Config) -> None:
         self.admin._flag_bits = flag_bits
         self.logger.info(
-            '#{0} "{1}"({2}) FlagBits: {3}'.format(
+            '#{} "{}"({}) FlagBits: {}'.format(
                 self.user_id, self.name, self.unique_id, self.admin._flag_bits
             )
         )
@@ -86,4 +84,4 @@ class Player:
 
     def OnDisconnect(self, message: str) -> None:
         self.active = False
-        self.storage = dict()
+        self.storage = {}

@@ -1,10 +1,10 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import asyncio
 import logging
 import socket
 import sys
-from typing import Any, Dict, Generator, List
+from collections.abc import Generator
+from typing import Any
 
 from torchlight.SourceRCONClient import SourceRCONClient
 from torchlight.TorchlightHandler import TorchlightHandler
@@ -12,7 +12,7 @@ from torchlight.TorchlightHandler import TorchlightHandler
 
 class SourceRCONServer:
     def __init__(
-        self, rcon_config: Dict[str, Any], torchlight_handler: TorchlightHandler
+        self, rcon_config: dict[str, Any], torchlight_handler: TorchlightHandler
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.rcon_config = rcon_config
@@ -23,12 +23,12 @@ class SourceRCONServer:
         self._serv_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._serv_sock.bind((self.rcon_config["Host"], self.rcon_config["Port"]))
         self._serv_sock.listen(5)
-        self.peers: List[SourceRCONClient] = []
+        self.peers: list[SourceRCONClient] = []
         self.password = self.rcon_config["Password"]
 
     def Remove(self, peer: SourceRCONClient) -> None:
         self.logger.info(
-            sys._getframe().f_code.co_name + " Peer {0} disconnected!".format(peer.name)
+            sys._getframe().f_code.co_name + f" Peer {peer.name} disconnected!"
         )
         self.peers.remove(peer)
 
@@ -49,15 +49,14 @@ class SourceRCONServer:
             asyncio.Task(self._peer_handler(peer))
             self.peers.append(peer)
             self.logger.info(
-                sys._getframe().f_code.co_name
-                + " Peer {0} connected!".format(peer.name)
+                sys._getframe().f_code.co_name + f" Peer {peer.name} connected!"
             )
 
     @asyncio.coroutine
     def _peer_handler(self, peer: SourceRCONClient) -> Generator:
         try:
             yield from peer._peer_loop()
-        except IOError:
+        except OSError:
             pass
         finally:
             self.Remove(peer)

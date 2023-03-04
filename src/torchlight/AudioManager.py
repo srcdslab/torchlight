@@ -1,7 +1,5 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import logging
-from typing import List, Optional
 
 from torchlight.Advertiser import Advertiser
 from torchlight.AntiSpam import AntiSpam
@@ -19,7 +17,7 @@ class AudioManager:
         self.anti_spam = AntiSpam(self.torchlight)
         self.advertiser = Advertiser(self.torchlight)
         self.audio_player_factory = AudioPlayerFactory()
-        self.audio_clips: List[AudioClip] = []
+        self.audio_clips: list[AudioClip] = []
 
     def __del__(self) -> None:
         self.logger.info("~AudioManager()")
@@ -36,7 +34,7 @@ class AudioManager:
 
                 self.torchlight.SayPrivate(
                     player,
-                    "You have used up all of your free uses! ({0} uses)".format(
+                    "You have used up all of your free uses! ({} uses)".format(
                         self.anti_spam.config[str(level)]["Uses"]
                     ),
                 )
@@ -48,7 +46,7 @@ class AudioManager:
             ):
                 self.torchlight.SayPrivate(
                     player,
-                    "You have used up all of your free time! ({0} seconds)".format(
+                    "You have used up all of your free time! ({} seconds)".format(
                         self.anti_spam.config[str(level)]["TotalTime"]
                     ),
                 )
@@ -65,7 +63,7 @@ class AudioManager:
             if time_elapsed < use_delay:
                 self.torchlight.SayPrivate(
                     player,
-                    "You are currently on cooldown! ({0} seconds left)".format(
+                    "You are currently on cooldown! ({} seconds left)".format(
                         round(use_delay - time_elapsed)
                     ),
                 )
@@ -93,14 +91,14 @@ class AudioManager:
                     if player != audio_clip.player:
                         self.torchlight.SayPrivate(
                             player,
-                            'Stopped "{0}"({1}) audio clip.'.format(
+                            'Stopped "{}"({}) audio clip.'.format(
                                 audio_clip.player.name, audio_clip.player.user_id
                             ),
                         )
                 else:
                     self.torchlight.SayPrivate(
                         player,
-                        "This audio clip needs {0} more !stop's.".format(
+                        "This audio clip needs {} more !stop's.".format(
                             3 - len(audio_clip.stops)
                         ),
                     )
@@ -112,7 +110,7 @@ class AudioManager:
                 if player != audio_clip.player:
                     self.torchlight.SayPrivate(
                         player,
-                        'Stopped "{0}"({1}) audio clip.'.format(
+                        'Stopped "{}"({}) audio clip.'.format(
                             audio_clip.player.name, audio_clip.player.user_id
                         ),
                     )
@@ -122,7 +120,7 @@ class AudioManager:
         player: Player,
         uri: str,
         _type: AudioPlayerType = AudioPlayerType.AUDIOPLAYER_FFMPEG,
-    ) -> Optional[AudioClip]:
+    ) -> AudioClip | None:
         level = player.access.level
 
         if self.torchlight.disabled and self.torchlight.disabled > level:

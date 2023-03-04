@@ -1,9 +1,7 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 import json
 import logging
 from collections import OrderedDict
-from typing import Dict
 
 from torchlight.Config import ConfigAccess
 from torchlight.Player import Player
@@ -18,12 +16,12 @@ class AccessManager:
         self.config_filename = config_filename
         self.config_filepath = f"{config_folder}/{config_filename}"
         self.access_dict: OrderedDict = OrderedDict()
-        self.config_access_list: Dict[str, ConfigAccess] = {}
+        self.config_access_list: dict[str, ConfigAccess] = {}
 
     def Load(self) -> None:
-        self.logger.info("Loading access from {0}".format(self.config_filepath))
+        self.logger.info(f"Loading access from {self.config_filepath}")
 
-        with open(self.config_filepath, "r") as fp:
+        with open(self.config_filepath) as fp:
             self.access_dict = json.load(fp, object_pairs_hook=OrderedDict)
             for unique_id, access in self.access_dict.items():
                 self.config_access_list[unique_id] = ConfigAccess(
@@ -35,7 +33,7 @@ class AccessManager:
         self.logger.info(f"Loaded {self.config_access_list}")
 
     def Save(self) -> None:
-        self.logger.info("Saving access to {0}".format(self.config_filepath))
+        self.logger.info(f"Saving access to {self.config_filepath}")
 
         for unique_id, access in self.config_access_list.items():
             self.access_dict[unique_id] = {"name": access.name, "level": access.level}

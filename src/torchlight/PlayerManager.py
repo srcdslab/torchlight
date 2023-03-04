@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from typing import Dict, List, Optional
 
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
@@ -20,9 +19,9 @@ class PlayerManager:
         self.torchlight = torchlight
         self.audio_manager = audio_manager
         self.access_manager = access_manager
-        self.audio_storage: Dict[str, Dict] = {}
+        self.audio_storage: dict[str, dict] = {}
 
-        self.players: List[Optional[Player]] = [None] * (Clients.MAXPLAYERS + 1)
+        self.players: list[Player | None] = [None] * (Clients.MAXPLAYERS + 1)
         self.player_count: int = 0
 
     def Setup(self) -> None:
@@ -43,7 +42,7 @@ class PlayerManager:
         self.player_count += 1
         index += 1
         self.logger.info(
-            "OnConnect(name={0}, index={1}, userid={2}, networkid={3}, address={4}, bot={5})".format(
+            "OnConnect(name={}, index={}, userid={}, networkid={}, address={}, bot={})".format(
                 name, index, userid, networkid, address, bot
             )
         )
@@ -68,20 +67,18 @@ class PlayerManager:
         player.OnConnect()
 
     def Event_PlayerActivate(self, userid: int) -> None:
-        self.logger.info("Pre_OnActivate(userid={0})".format(userid))
+        self.logger.info(f"Pre_OnActivate(userid={userid})")
 
         player = self.FindUserID(userid)
         if player is None:
             return
 
-        self.logger.info(
-            "OnActivate(index={0}, userid={1})".format(player.index, userid)
-        )
+        self.logger.info(f"OnActivate(index={player.index}, userid={userid})")
 
         player.OnActivate()
 
     def OnClientPostAdminCheck(self, client: int) -> None:
-        self.logger.info("OnClientPostAdminCheck(client={0})".format(client))
+        self.logger.info(f"OnClientPostAdminCheck(client={client})")
 
         player = self.players[client]
         if player is None:
@@ -100,7 +97,7 @@ class PlayerManager:
     ) -> None:
         index += 1
         self.logger.info(
-            "OnInfo(name={0}, index={1}, userid={2}, networkid={3}, bot={4})".format(
+            "OnInfo(name={}, index={}, userid={}, networkid={}, bot={})".format(
                 name, index, userid, networkid, bot
             )
         )
@@ -123,7 +120,7 @@ class PlayerManager:
             return
 
         self.logger.info(
-            "OnDisconnect(index={0}, userid={1}, reason={2}, name={3}, networkid={4}, bot={5})".format(
+            "OnDisconnect(index={}, userid={}, reason={}, name={}, networkid={}, bot={})".format(
                 player.index, userid, reason, name, networkid, bot
             )
         )
@@ -146,7 +143,7 @@ class PlayerManager:
         dedicated: str,
         password: str,
     ) -> None:
-        self.logger.info("ServerSpawn(mapname={0})".format(mapname))
+        self.logger.info(f"ServerSpawn(mapname={mapname})")
 
         self.player_count = 0
         self.audio_storage = {}
@@ -163,19 +160,19 @@ class PlayerManager:
                 player.OnConnect()
                 self.audio_storage[player.unique_id] = player.storage
 
-    def FindUniqueID(self, uniqueid: str) -> Optional[Player]:
+    def FindUniqueID(self, uniqueid: str) -> Player | None:
         for player in self.players:
             if player and player.unique_id == uniqueid:
                 return player
         return None
 
-    def FindUserID(self, userid: int) -> Optional[Player]:
+    def FindUserID(self, userid: int) -> Player | None:
         for player in self.players:
             if player and player.user_id == userid:
                 return player
         return None
 
-    def FindName(self, name: str) -> Optional[Player]:
+    def FindName(self, name: str) -> Player | None:
         for player in self.players:
             if player and player.name == name:
                 return player

@@ -1,6 +1,6 @@
 import logging
 import sys
-from typing import Any, Optional, Set
+from typing import Any
 
 from torchlight.FFmpegAudioPlayer import FFmpegAudioPlayer
 from torchlight.Player import Player
@@ -22,7 +22,7 @@ class AudioClip:
         self.audio_player = audio_player
         self.uri = uri
         self.last_position: int = 0
-        self.stops: Set[int] = set()
+        self.stops: set[int] = set()
 
         self.level = self.player.access.level
 
@@ -33,7 +33,7 @@ class AudioClip:
     def __del__(self) -> None:
         self.logger.info("~AudioClip()")
 
-    def Play(self, seconds: Optional[int] = None, *args: Any) -> bool:
+    def Play(self, seconds: int | None = None, *args: Any) -> bool:
         return self.audio_player.PlayURI(self.uri, seconds, *args)
 
     def Stop(self) -> bool:
@@ -62,7 +62,7 @@ class AudioClip:
                 ):
                     self.torchlight.SayPrivate(
                         self.player,
-                        "You have used up all of your free time! ({0} seconds)".format(
+                        "You have used up all of your free time! ({} seconds)".format(
                             self.config[str(self.level)]["TotalTime"]
                         ),
                     )
@@ -72,7 +72,7 @@ class AudioClip:
                 ):
                     self.torchlight.SayPrivate(
                         self.player,
-                        "Your audio clip exceeded the maximum length! ({0} seconds)".format(
+                        "Your audio clip exceeded the maximum length! ({} seconds)".format(
                             self.config[str(self.level)]["MaxLength"]
                         ),
                     )

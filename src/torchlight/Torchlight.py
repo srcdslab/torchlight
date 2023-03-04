@@ -2,7 +2,8 @@ import asyncio
 import logging
 import textwrap
 import traceback
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+from collections.abc import Callable
+from typing import Any
 
 from torchlight.AsyncClient import AsyncClient
 from torchlight.Config import Config
@@ -27,10 +28,10 @@ class Torchlight:
         self.game_events = GameEvents(self.async_client)
         self.forwards = Forwards(self.async_client)
 
-        self.disable_votes: Set = set()
+        self.disable_votes: set = set()
         self.disabled = 0
 
-        self.callbacks: List[Tuple[str, Callable]] = []
+        self.callbacks: list[tuple[str, Callable]] = []
 
     def Reload(self) -> None:
         self.config.Load()
@@ -51,13 +52,13 @@ class Torchlight:
                 except Exception:
                     self.logger.error(traceback.format_exc())
 
-    def OnPublish(self, obj: Dict[str, str]) -> None:
+    def OnPublish(self, obj: dict[str, str]) -> None:
         if obj["module"] == "gameevents":
             self.game_events.OnPublish(obj)
         elif obj["module"] == "forwards":
             self.forwards.OnPublish(obj)
 
-    def SayChat(self, message: str, player: Optional[Player] = None) -> None:
+    def SayChat(self, message: str, player: Player | None = None) -> None:
         message = f"{{darkblue}}[Torchlight]: {{default}}{message}"
         if len(message) > 976:
             message = message[:973] + "..."
