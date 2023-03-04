@@ -156,6 +156,8 @@ class PlayerManager:
             player = self.players[i]
             if player is not None:
                 self.player_count += 1
+                if self.audio_manager.anti_spam.config["StopOnMapChange"]:
+                    self.audio_manager.OnDisconnect(player)
                 player.OnDisconnect("mapchange")
                 player.access = self.access_manager.get_access(player)
                 player.OnConnect()
