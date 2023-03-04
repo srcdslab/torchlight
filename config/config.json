@@ -37,7 +37,8 @@
 		"MaxUsageTime": 10,
 		"PunishDelay": 60,
 		"StopLevel": 3,
-		"ChatCooldown": 15
+		"ChatCooldown": 15,
+		"StopOnMapChange": true
 	},
 
 	"Advertiser":
