@@ -1,7 +1,7 @@
 # Torchlight
 
 Bot for source engine games with a lot of commands:
-  * Play music from youtube, mp3, wav.
+  * Play music from youtube, mp3, wav
   * Get the weather in real time.
   * Play tts messages
   * And much more!
