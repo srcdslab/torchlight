@@ -56,28 +56,198 @@
 		"Player": 0
 	},
 
-	"CommandLevel":
+	"Command":
 	{
-		"Exec": 100,
-		"Dec": 100,
-		"AccessAdmin": 6,
-		"Enable": 3,
-		"Disable": 3,
-		"Reload": 3,
-		"Stop": 3,
-		"Say": 2,
-		"Youtube": 2,
-		"YoutubeSearch": 2,
-		"Random": 2,
-		"Trigger": 2,
-		"TriggerReserved": 2,
-		"Who": 2,
-		"Calculate": 2,
-		"Access": 0,
-		"Search": 0,
-		"Define": 0,
-		"Weather": 0,
-		"VoteDisable": 0
+		"Exec": {
+			"level": 100,
+			"triggers": [
+				{
+					"command": "!exec"
+				}
+			]
+		},
+		"DECTalk": {
+			"level": 100,
+			"triggers": [
+				{
+					"command": "!dec"
+				}
+			]
+		},
+		"AdminAccess": {
+			"level": 6,
+			"triggers": [
+				{
+					"command": "!access"
+				}
+			]
+		},
+		"Enable": {
+			"level": 3,
+			"triggers": [
+				{
+					"command": "!enable"
+				}
+			]
+		},
+		"Disable": {
+			"level": 3,
+			"triggers": [
+				{
+					"command": "!disable"
+				}
+			]
+		},
+		"Reload": {
+			"level": 3,
+			"triggers": [
+				{
+					"command": "!reload"
+				}
+			]
+		},
+		"Stop": {
+			"level": 3,
+			"triggers": [
+				{
+					"command": "!stop"
+				}
+			]
+		},
+		"Say":
+		{
+			"level": 2,
+			"triggers": [
+				{
+					"command": "!say",
+					"starts_with": true
+				}
+			],
+			"parameters": {
+				"default": {
+					"language": "en",
+					"tld": "com"
+				}
+			}
+		},
+		"YouTube": {
+			"level": 2,
+			"triggers": [
+				{
+					"command": "!yt"
+				}
+			]
+		},
+		"YouTubeSearch": {
+			"level": 2,
+			"triggers": [
+				{
+					"command": "!yts"
+				}
+			],
+			"parameters": {
+				"keywords_banned": [
+					"earrape",
+					"rape",
+					"porn",
+					"algorithm",
+					"loud"
+				]
+			}
+		},
+		"Random": {
+			"level": 2,
+			"triggers": [
+				{
+					"command": "!random"
+				}
+			]
+		},
+		"VoiceTrigger": {
+			"level": 2
+		},
+		"VoiceTriggerReserved": {
+			"level": 2
+		},
+		"Who": {
+			"level": 2,
+			"triggers": [
+				{
+					"command": "!who"
+				},
+				{
+					"command": "!whois"
+				}
+			]
+		},
+		"WolframAlpha": {
+			"level": 2,
+			"triggers": [
+				{
+					"command": "!cc"
+				}
+			]
+		},
+		"Access": {
+			"level": 0,
+			"triggers": [
+				{
+					"command": "!access"
+				}
+			]
+		},
+		"Search": {
+			"level": 0,
+			"triggers": [
+				{
+					"command": "!search"
+				}
+			]
+		},
+		"UrbanDictionary": {
+			"level": 0,
+			"triggers": [
+				{
+					"command": "!define"
+				},
+				{
+					"command": "!ud"
+				}
+			]
+		},
+		"OpenWeather": {
+			"level": 0,
+			"triggers": [
+				{
+					"command": "!w"
+				},
+				{
+					"command": "!vv"
+				}
+			]
+		},
+		"WUnderground": {
+			"level": 0,
+			"triggers": [
+				{
+					"command": "!wunder"
+				}
+			]
+		},
+		"VoteDisable": {
+			"level": 0,
+			"triggers": [
+				{
+					"command": "!votedisable"
+				},
+				{
+					"command": "!disablevote"
+				}
+			]
+		},
+		"URLFilter": {
+			"level": 0
+		}
 	},
 
 	"TorchRCON":

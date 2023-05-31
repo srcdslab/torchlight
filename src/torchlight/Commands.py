@@ -48,6 +48,25 @@ class BaseCommand:
         self.triggers: list[tuple[str, int] | str | Pattern] = []
         self.level = 0
 
+        self.init_command()
+
+    def get_config(self) -> dict[str, Any]:
+        return self.torchlight.config["Command"][self.command_name()]
+
+    def init_command(self) -> None:
+        command_config = self.get_config()
+        self.level = command_config["level"]
+        if "triggers" in command_config:
+            for trigger in command_config["triggers"]:
+                command = trigger["command"]
+                if "starts_with" in trigger and trigger["starts_with"]:
+                    self.triggers.append((command, len(command)))
+                else:
+                    self.triggers.append(command)
+
+    def command_name(self) -> str:
+        return self.__class__.__name__
+
     def check_chat_cooldown(self, player: Player) -> bool:
         if player.chat_cooldown > self.torchlight.loop.time():
             cooldown = player.chat_cooldown - self.torchlight.loop.time()
@@ -83,6 +102,12 @@ class BaseCommand:
 class URLFilter(BaseCommand):
     order = 1
 
+    @staticmethod
+    def youtube_compile() -> Pattern:
+        return re.compile(
+            r".*?(?:youtube\.com\/\S*(?:(?:\/e(?:mbed))?\/|watch\?(?:\S*?&?v\=))|youtu\.be\/)([a-zA-Z0-9_-]{6,11}).*?"
+        )
+
     def __init__(
         self,
         torchlight: Torchlight,
@@ -98,9 +123,7 @@ class URLFilter(BaseCommand):
             )
         ]
         self.level: int = -1
-        self.re_youtube = re.compile(
-            r".*?(?:youtube\.com\/\S*(?:(?:\/e(?:mbed))?\/|watch\?(?:\S*?&?v\=))|youtu\.be\/)([a-zA-Z0-9_-]{6,11}).*?"
-        )
+        self.re_youtube = URLFilter.youtube_compile()
 
     async def URLInfo(self, url: str, yt: bool = False) -> tuple[str, str | None]:
         text = None
@@ -239,17 +262,6 @@ def FormatAccess(config: Config, player: Player) -> str:
 
 
 class Access(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!access"]
-        self.level = self.torchlight.config["CommandLevel"]["Access"]
-
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
@@ -268,17 +280,6 @@ class Access(BaseCommand):
 
 
 class Who(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!who", "!whois"]
-        self.level = self.torchlight.config["CommandLevel"]["Who"]
-
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
@@ -319,17 +320,6 @@ class Who(BaseCommand):
 
 
 class WolframAlpha(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!cc"]
-        self.level = self.torchlight.config["CommandLevel"]["Calculate"]
-
     def Clean(self, text: str) -> str:
         return re.sub(
             "[ ]{2,}",
@@ -424,17 +414,6 @@ class WolframAlpha(BaseCommand):
 
 
 class UrbanDictionary(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!define", "!ud"]
-        self.level = self.torchlight.config["CommandLevel"]["Define"]
-
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
@@ -493,8 +472,6 @@ class OpenWeather(BaseCommand):
         self.geo_ip = geoip2.database.Reader(
             f"{self.config_folder}/{self.city_filename}"
         )
-        self.triggers = ["!w", "!vv"]
-        self.level = self.torchlight.config["CommandLevel"]["Weather"]
 
     def degreeToCardinal(self, degree: int) -> str:
         directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
@@ -571,17 +548,6 @@ class OpenWeather(BaseCommand):
 
 
 class WUnderground(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!wunder"]
-        self.level = self.torchlight.config["CommandLevel"]["Weather"]
-
     async def _func(self, message: list[str], player: Player) -> int:
         if not self.torchlight.config["WundergroundAPIKey"]:
             self.torchlight.SayPrivate(
@@ -695,17 +661,6 @@ class WUnderground(BaseCommand):
 
 
 class VoteDisable(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!votedisable", "!disablevote"]
-        self.level = self.torchlight.config["CommandLevel"]["VoteDisable"]
-
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
@@ -735,34 +690,25 @@ class VoteDisable(BaseCommand):
         return 0
 
 
-class VoiceCommands(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!random", "!search"]
-        self.level = self.torchlight.config["CommandLevel"]["Search"]
-
-    def LoadTriggers(self) -> None:
+class VoiceTrigger(BaseCommand):
+    @staticmethod
+    def get_triggers() -> dict[str, str | list[str]]:
+        logger = logging.getLogger(VoiceTrigger.__class__.__name__)
         try:
             with open("config/triggers.json", encoding="utf-8") as fp:
                 triggers = json.load(fp)
         except ValueError as e:
-            self.logger.error(sys._getframe().f_code.co_name + " " + str(e))
-            self.torchlight.SayChat(str(e))
+            logger.error(sys._getframe().f_code.co_name + " " + str(e))
 
-        self.voice_triggers = {}
+        voice_triggers = {}
         for line in triggers:
             for trigger in line["names"]:
-                self.voice_triggers[trigger] = line["sound"]
+                voice_triggers[trigger] = line["sound"]
+        return voice_triggers
 
     def _setup(self) -> None:
         self.logger.debug(sys._getframe().f_code.co_name)
-        self.LoadTriggers()
+        self.voice_triggers = VoiceTrigger.get_triggers()
         for trigger in self.voice_triggers.keys():
             self.triggers.append(trigger)
 
@@ -772,103 +718,12 @@ class VoiceCommands(BaseCommand):
         if self.check_disabled(player):
             return -1
 
-        level = player.access.level
+        voice_trigger = message[0].lower()
+        trigger_number = message[1].lower()
 
-        message[0] = message[0].lower()
-        message[1] = message[1].lower()
-
-        if (
-            message[0] == "!search"
-            and level >= self.torchlight.config["CommandLevel"]["Search"]
-        ):
-            res = []
-            for key in self.voice_triggers.keys():
-                if message[1] in key.lower():
-                    res.append(key)
-            self.torchlight.SayPrivate(
-                player, "{} results: {}".format(len(res), ", ".join(res))
-            )
-            return 0
-
-        sound = None
-        if (
-            message[0] == "!random"
-            and level >= self.torchlight.config["CommandLevel"]["Random"]
-        ):
-            trigger = random.choice(list(self.voice_triggers.values()))
-            if isinstance(trigger, list):
-                sound = random.choice(trigger)
-            else:
-                sound = trigger
-        elif level >= self.torchlight.config["CommandLevel"]["Trigger"]:
-            if (
-                message[0][0] != "!"
-                and level < self.torchlight.config["CommandLevel"]["TriggerReserved"]
-            ):
-                return 1
-
-            sounds = self.voice_triggers[message[0]]
-
-            try:
-                num = int(message[1])
-            except ValueError:
-                num = None
-
-            if isinstance(sounds, list):
-                if num and num > 0 and num <= len(sounds):
-                    sound = sounds[num - 1]
-
-                elif message[1]:
-                    searching = message[1].startswith("?")
-                    search = message[1][1:] if searching else message[1]
-                    sound = None
-                    names = []
-                    matches = []
-                    for sound in sounds:
-                        name = os.path.splitext(os.path.basename(sound))[0]
-                        names.append(name)
-
-                        if search and search in name.lower():
-                            matches.append((name, sound))
-
-                    if matches:
-                        matches.sort(key=lambda t: len(t[0]))
-                        mlist = [t[0] for t in matches]
-                        if searching:
-                            self.torchlight.SayPrivate(
-                                player,
-                                "{} results: {}".format(len(mlist), ", ".join(mlist)),
-                            )
-                            return 0
-
-                        sound = matches[0][1]
-                        if len(matches) > 1:
-                            self.torchlight.SayPrivate(
-                                player, "Multiple matches: {}".format(", ".join(mlist))
-                            )
-
-                    if not sound and not num:
-                        if not searching:
-                            self.torchlight.SayPrivate(
-                                player,
-                                "Couldn't find {} in list of sounds.".format(
-                                    message[1]
-                                ),
-                            )
-                        self.torchlight.SayPrivate(player, ", ".join(names))
-                        return 1
-
-                elif num:
-                    self.torchlight.SayPrivate(
-                        player,
-                        f"Number {num} is out of bounds, max {len(sounds)}.",
-                    )
-                    return 1
-
-                else:
-                    sound = random.choice(sounds)
-            else:
-                sound = sounds
+        sound = self.get_sound_path(
+            player=player, voice_trigger=voice_trigger, trigger_number=trigger_number
+        )
 
         if not sound:
             return 1
@@ -880,19 +735,112 @@ class VoiceCommands(BaseCommand):
 
         return audio_clip.Play()
 
+    def get_sound_path(
+        self, player: Player, voice_trigger: str, trigger_number: str
+    ) -> str | None:
+        level = player.access.level
+
+        if (
+            voice_trigger[0] != "!"
+            and level < self.torchlight.config["Command"]["TriggerReserved"]["level"]
+        ):
+            return None
+
+        sound = None
+
+        sounds = self.voice_triggers[voice_trigger]
+
+        try:
+            num = int(trigger_number)
+        except ValueError:
+            num = None
+
+        if isinstance(sounds, list):
+            if num and num > 0 and num <= len(sounds):
+                sound = sounds[num - 1]
+
+            elif trigger_number:
+                searching = trigger_number.startswith("?")
+                search = trigger_number[1:] if searching else trigger_number
+                sound = None
+                names = []
+                matches = []
+                for sound in sounds:
+                    name = os.path.splitext(os.path.basename(sound))[0]
+                    names.append(name)
+
+                    if search and search in name.lower():
+                        matches.append((name, sound))
+
+                if matches:
+                    matches.sort(key=lambda t: len(t[0]))
+                    mlist = [t[0] for t in matches]
+                    if searching:
+                        self.torchlight.SayPrivate(
+                            player,
+                            "{} results: {}".format(len(mlist), ", ".join(mlist)),
+                        )
+                        return None
+
+                    sound = matches[0][1]
+                    if len(matches) > 1:
+                        self.torchlight.SayPrivate(
+                            player, "Multiple matches: {}".format(", ".join(mlist))
+                        )
+
+                if not sound and not num:
+                    if not searching:
+                        self.torchlight.SayPrivate(
+                            player,
+                            "Couldn't find {} in list of sounds.".format(
+                                trigger_number
+                            ),
+                        )
+                    self.torchlight.SayPrivate(player, ", ".join(names))
+                    return None
+
+            elif num:
+                self.torchlight.SayPrivate(
+                    player,
+                    f"Number {num} is out of bounds, max {len(sounds)}.",
+                )
+                return None
+
+            else:
+                sound = random.choice(sounds)
+        else:
+            sound = sounds
+
+        return sound
+
+
+class Random(VoiceTrigger):
+    def get_sound_path(
+        self, player: Player, voice_trigger: str, trigger_number: str
+    ) -> str | None:
+        trigger = random.choice(list(self.voice_triggers.values()))
+        if isinstance(trigger, list):
+            return random.choice(trigger)
+        return trigger
+
+
+class Search(BaseCommand):
+    async def _func(self, message: list[str], player: Player) -> int:
+        self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
+
+        voice_trigger = message[1].lower()
+
+        res = []
+        for key in VoiceTrigger.get_triggers().keys():
+            if voice_trigger in key.lower():
+                res.append(key)
+        self.torchlight.SayPrivate(
+            player, "{} results: {}".format(len(res), ", ".join(res))
+        )
+        return 0
+
 
 class YouTube(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!yt"]
-        self.level = self.torchlight.config["CommandLevel"]["Youtube"]
-
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
@@ -924,17 +872,6 @@ class YouTube(BaseCommand):
 
 
 class YouTubeSearch(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!yts"]
-        self.level = self.torchlight.config["CommandLevel"]["YoutubeSearch"]
-
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
@@ -943,24 +880,25 @@ class YouTubeSearch(BaseCommand):
 
         temp_pos: int = -1
         real_time = None
+        input_url = message[1]
 
         if (
-            (temp_pos := message[1].find("&t=")) != -1
-            or (temp_pos := message[1].find("?t=")) != -1
-            or (temp_pos := message[1].find("#t=")) != -1
+            (temp_pos := input_url.find("&t=")) != -1
+            or (temp_pos := input_url.find("?t=")) != -1
+            or (temp_pos := input_url.find("#t=")) != -1
         ):
             time_str = (
-                message[1][temp_pos + 3 :].split("&")[0].split("?")[0].split("#")[0]
+                input_url[temp_pos + 3 :].split("&")[0].split("?")[0].split("#")[0]
             )
             if time_str:
                 real_time = Utils.ParseTime(time_str)
-            message[1] = message[1][:temp_pos]
+            input_url = input_url[:temp_pos]
 
         subprocess = await asyncio.create_subprocess_exec(
             "youtube-dl",
             "--dump-json",
             "-xg",
-            "ytsearch:" + message[1],
+            "ytsearch:" + input_url,
             stdout=asyncio.subprocess.PIPE,
         )
         output, _ = await subprocess.communicate()
@@ -980,13 +918,38 @@ class YouTubeSearch(BaseCommand):
         json_info: dict[str, Any] = json.loads(info)
 
         if json_info["extractor_key"] == "Youtube":
-            self.torchlight.SayChat(
-                "{{darkred}}[YouTube]{{default}} {0} | {1} | {2:,}".format(
-                    json_info["title"],
-                    str(datetime.timedelta(seconds=json_info["duration"])),
-                    int(json_info["view_count"]),
+            title = json_info["title"]
+            title_words = title.split()
+            keywords_banned: list[str] = []
+
+            command_config = self.get_config()
+            if (
+                "parameters" in command_config
+                and "keywords_banned" in command_config["parameters"]
+            ):
+                keywords_banned = command_config["parameters"]["keywords_banned"]
+
+            for keyword_banned in keywords_banned:
+                for title_word in title_words:
+                    if (
+                        keyword_banned.lower() in title_word.lower()
+                        or title_word.lower() in keyword_banned.lower()
+                    ):
+                        self.torchlight.SayChat(
+                            "{{darkred}}[YouTube]{{default}} {0}".format(
+                                f"{title} has been flagged as inappropriate content, skipping",
+                            )
+                        )
+                        return 1
+            match = URLFilter.youtube_compile().search(input_url)
+            if not match:
+                self.torchlight.SayChat(
+                    "{{darkred}}[YouTube]{{default}} {0} | {1} | {2:,}".format(
+                        title,
+                        str(datetime.timedelta(seconds=json_info["duration"])),
+                        int(json_info["view_count"]),
+                    )
                 )
-            )
 
         audio_clip = self.audio_manager.AudioClip(player, url)
         if not audio_clip:
@@ -1065,19 +1028,10 @@ class Say(BaseCommand):
             "zh",
         ]
 
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = [("!say", 4)]
-        self.level = self.torchlight.config["CommandLevel"]["Say"]
-
-    async def Say(self, player: Player, language: str, message: str) -> int:
-        google_text_to_speech = gtts.gTTS(text=message, lang=language, lang_check=False)
+    async def Say(self, player: Player, language: str, tld: str, message: str) -> int:
+        google_text_to_speech = gtts.gTTS(
+            text=message, tld=tld, lang=language, lang_check=False
+        )
 
         temp_file = tempfile.NamedTemporaryFile(delete=False)
         google_text_to_speech.write_to_fp(temp_file)
@@ -1106,30 +1060,28 @@ class Say(BaseCommand):
         if not message[1]:
             return 1
 
-        language = "en"
+        language: str = ""
+        tld: str = "com"
+
+        command_config = self.get_config()
+        if "parameters" in command_config and "default" in command_config["parameters"]:
+            if "language" in command_config["parameters"]["default"]:
+                language = command_config["parameters"]["default"]["language"]
+            if "tld" in command_config["parameters"]["default"]:
+                tld = command_config["parameters"]["default"]["tld"]
+
         if len(message[0]) > 4:
             language = message[0][4:]
 
         self.logger.debug(f"{language}: {self.VALID_LANGUAGES}")
-        if language not in self.VALID_LANGUAGES:
+        if len(language) <= 0 or language not in self.VALID_LANGUAGES:
             return 1
 
-        asyncio.ensure_future(self.Say(player, language, message[1]))
+        asyncio.ensure_future(self.Say(player, language, tld, message[1]))
         return 0
 
 
 class DECTalk(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!dec"]
-        self.level = self.torchlight.config["CommandLevel"]["Dec"]
-
     async def Say(self, player: Player, message: str) -> int:
         message = "[:phoneme on]" + message
         temp_file = tempfile.NamedTemporaryFile(delete=False)
@@ -1154,11 +1106,9 @@ class DECTalk(BaseCommand):
                 "Stop", lambda: os.unlink(temp_file.name)
             )
             return 0
-        else:
-            os.unlink(temp_file.name)
-            return 1
 
-        return 0
+        os.unlink(temp_file.name)
+        return 1
 
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
@@ -1174,17 +1124,6 @@ class DECTalk(BaseCommand):
 
 
 class Stop(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!stop"]
-        self.level = self.torchlight.config["CommandLevel"]["Stop"]
-
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
@@ -1192,67 +1131,47 @@ class Stop(BaseCommand):
         return True
 
 
-class EnableDisable(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!enable", "!disable"]
-        self.level = self.torchlight.config["CommandLevel"]["Enable"]
-
+class Enable(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
-        if message[0] == "!enable":
-            if self.torchlight.disabled:
-                if self.torchlight.disabled > player.access.level:
-                    self.torchlight.SayPrivate(
-                        player,
-                        "You don't have access to enable torchlight, since it was disabled by a higher level user.",
-                    )
-                    return 1
-                self.torchlight.SayChat(
-                    "Torchlight has been enabled for the duration of this map - Type !disable to disable it again."
+        if self.torchlight.disabled:
+            if self.torchlight.disabled > player.access.level:
+                self.torchlight.SayPrivate(
+                    player,
+                    "You don't have access to enable torchlight, since it was disabled by a higher level user.",
                 )
+                return 1
+            self.torchlight.SayChat(
+                "Torchlight has been enabled for the duration of this map - Type !disable to disable it again."
+            )
 
-                self.torchlight.disabled = False
-            else:
-                self.torchlight.SayChat("Torchlight is already enabled.")
-
-        elif message[0] == "!disable":
-            if not self.torchlight.disabled:
-                if self.torchlight.disabled > player.access.level:
-                    self.torchlight.SayPrivate(
-                        player,
-                        "You don't have access to disable torchlight, since it was already disabled by a higher level user.",
-                    )
-                    return 1
-                self.torchlight.SayChat(
-                    "Torchlight has been disabled for the duration of this map - Type !enable to enable it again."
-                )
-                self.torchlight.disabled = player.access.level
-            else:
-                self.torchlight.SayChat("Torchlight is already disabled.")
+            self.torchlight.disabled = False
+        else:
+            self.torchlight.SayChat("Torchlight is already enabled.")
 
         return 0
 
 
-class AdminAccess(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!access"]
-        self.level: int = self.torchlight.config["CommandLevel"]["AccessAdmin"]
+class Disable(BaseCommand):
+    async def _func(self, message: list[str], player: Player) -> int:
+        if not self.torchlight.disabled:
+            if self.torchlight.disabled > player.access.level:
+                self.torchlight.SayPrivate(
+                    player,
+                    "You don't have access to disable torchlight, since it was already disabled by a higher level user.",
+                )
+                return 1
+            self.torchlight.SayChat(
+                "Torchlight has been disabled for the duration of this map - Type !enable to enable it again."
+            )
+            self.torchlight.disabled = player.access.level
+        else:
+            self.torchlight.SayChat("Torchlight is already disabled.")
+        return 0
 
+
+class AdminAccess(BaseCommand):
     def ReloadValidUsers(self) -> None:
         self.access_manager.Load()
         for player in self.player_manager.players:
@@ -1404,17 +1323,6 @@ class AdminAccess(BaseCommand):
 
 
 class Reload(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!reload"]
-        self.level = self.torchlight.config["CommandLevel"]["Reload"]
-
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
         self.torchlight.Reload()
@@ -1425,17 +1333,6 @@ class Reload(BaseCommand):
 
 
 class Exec(BaseCommand):
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
-        self.triggers = ["!exec"]
-        self.level = self.torchlight.config["CommandLevel"]["Exec"]
-
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
         try:

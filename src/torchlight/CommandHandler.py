@@ -4,10 +4,11 @@ import sys
 import traceback
 from importlib import reload
 from re import Match
+from typing import Any, Type
 
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
-from torchlight.Commands import BaseCommand
+from torchlight.Commands import BaseCommand, VoiceTrigger
 from torchlight.PlayerManager import Player, PlayerManager
 from torchlight.Torchlight import Torchlight
 
@@ -37,9 +38,10 @@ class CommandHandler:
             )
 
         counter = 0
-        for subklass in sorted(
-            BaseCommand.__subclasses__(), key=lambda x: x.order, reverse=True
-        ):
+        subklasses: list[Type[Any]] = []
+        subklasses.extend(BaseCommand.__subclasses__())
+        subklasses.extend(VoiceTrigger.__subclasses__())
+        for subklass in sorted(subklasses, key=lambda x: x.order, reverse=True):
             try:
                 command = subklass(
                     self.torchlight,
