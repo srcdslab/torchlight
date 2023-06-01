@@ -742,7 +742,7 @@ class VoiceTrigger(BaseCommand):
 
         if (
             voice_trigger[0] != "!"
-            and level < self.torchlight.config["Command"]["TriggerReserved"]["level"]
+            and level < self.torchlight.config["Command"]["VoiceTriggerReserved"]["level"]
         ):
             return None
 
