@@ -742,7 +742,8 @@ class VoiceTrigger(BaseCommand):
 
         if (
             voice_trigger[0] != "!"
-            and level < self.torchlight.config["Command"]["VoiceTriggerReserved"]["level"]
+            and level
+            < self.torchlight.config["Command"]["VoiceTriggerReserved"]["level"]
         ):
             return None
 
@@ -931,10 +932,7 @@ class YouTubeSearch(BaseCommand):
 
             for keyword_banned in keywords_banned:
                 for title_word in title_words:
-                    if (
-                        keyword_banned.lower() in title_word.lower()
-                        or title_word.lower() in keyword_banned.lower()
-                    ):
+                    if keyword_banned.lower() in title_word.lower():
                         self.torchlight.SayChat(
                             "{{darkred}}[YouTube]{{default}} {0}".format(
                                 f"{title} has been flagged as inappropriate content, skipping",
