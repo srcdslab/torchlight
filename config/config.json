@@ -130,17 +130,20 @@
 				}
 			}
 		},
-		"YouTube": {
+		"PlayMusic": {
 			"level": 2,
 			"triggers": [
 				{
-					"command": "!yt"
+					"command": "!play"
 				}
 			]
 		},
 		"YouTubeSearch": {
 			"level": 2,
 			"triggers": [
+				{
+					"command": "!yt"
+				},
 				{
 					"command": "!yts"
 				}

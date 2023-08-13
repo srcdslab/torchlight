@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import asyncio
 import logging
 import socket
@@ -21,7 +20,9 @@ class SourceRCONServer:
         self._serv_sock = socket.socket()
         self._serv_sock.setblocking(False)
         self._serv_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._serv_sock.bind((self.rcon_config["Host"], self.rcon_config["Port"]))
+        self._serv_sock.bind(
+            (self.rcon_config["Host"], self.rcon_config["Port"])
+        )
         self._serv_sock.listen(5)
         self.peers: list[SourceRCONClient] = []
         self.password = self.rcon_config["Password"]
@@ -37,7 +38,9 @@ class SourceRCONServer:
         while True:
             peer_socket: socket.socket
             peer_name: Any
-            peer_socket, peer_name = yield from self.loop.sock_accept(self._serv_sock)
+            peer_socket, peer_name = yield from self.loop.sock_accept(
+                self._serv_sock
+            )
             peer_socket.setblocking(False)
             peer = SourceRCONClient(
                 self.loop,

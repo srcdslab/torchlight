@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import asyncio
 import logging
 import traceback
@@ -29,7 +28,11 @@ class SubscribeBase:
         asyncio.ensure_future(self.async_client.Send(json_obj))
 
     async def _Register(self, events: list[str]) -> list[bool]:
-        json_obj = {"method": "subscribe", "module": self.module, "events": events}
+        json_obj = {
+            "method": "subscribe",
+            "module": self.module,
+            "events": events,
+        }
 
         res_raw = await self.async_client.Send(json_obj)
 
@@ -50,7 +53,11 @@ class SubscribeBase:
 
     async def _Unregister(self, events: list[str]) -> list[bool]:
 
-        json_obj = {"method": "unsubscribe", "module": self.module, "events": events}
+        json_obj = {
+            "method": "unsubscribe",
+            "module": self.module,
+            "events": events,
+        }
 
         res_raw = await self.async_client.Send(json_obj)
 

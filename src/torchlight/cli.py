@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import asyncio
 import logging
 
@@ -12,7 +11,9 @@ logger = logging.getLogger(__name__)
 
 
 @click.command()
-@click.option("--config-folder", default="config", help="Configuration folder path.")
+@click.option(
+    "--config-folder", default="config", help="Configuration folder path."
+)
 def cli(config_folder: str) -> None:
 
     config = Config(config_folder)

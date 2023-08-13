@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import asyncio
 import logging
 
@@ -36,7 +35,9 @@ class TorchlightHandler:
         self.InitModules()
 
         # Late load
-        await self.torchlight.game_events.Replay(["player_connect", "player_activate"])
+        await self.torchlight.game_events.Replay(
+            ["player_connect", "player_activate"]
+        )
         await self.torchlight.forwards.Replay(["OnClientPostAdminCheck"])
 
     def Init(self) -> None:
@@ -72,7 +73,9 @@ class TorchlightHandler:
 
         self.command_handler.Setup()
 
-        self.torchlight.game_events.HookEx("server_spawn", self.Event_ServerSpawn)
+        self.torchlight.game_events.HookEx(
+            "server_spawn", self.Event_ServerSpawn
+        )
         self.torchlight.game_events.HookEx("player_say", self.Event_PlayerSay)
 
     def OnReload(self) -> None:

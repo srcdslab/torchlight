@@ -1,0 +1,108 @@
+[project]
+name = "torchlight"
+dynamic = ["version"]
+description = "Stream music and more for srcds games"
+readme = "README.md"
+authors = [
+    {name = "BotoX", email = "github@botox.bz"},
+]
+classifiers = [
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "Pillow",
+    "aiohttp",
+    "beautifulsoup4",
+    "click",
+    "gTTS",
+    "geoip2",
+    "lxml",
+    "python-magic",
+    "youtube-dl @ git+https://github.com/ytdl-org/youtube-dl@master#egg=youtube-dl",
+]
+
+[project.scripts]
+torchlight = "torchlight.cli:cli"
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["*.tests", "*.tests.*", "tests.*", "tests"]
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
+
+[project.optional-dependencies]
+dev = [
+    "autoflake",
+    "bandit",
+    "black==22.10.0",
+    "flake8",
+    "flake8-bugbear",
+    "flake8-quotes",
+    "isort",
+    "mypy>=1.0.1",
+    "pip-tools>=6.14.0",
+    "pyupgrade>=3.3.1",
+]
+
+[tool.black]
+line-length = 80
+target-version = ['py310']
+exclude = '''
+
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+  | es_utils
+  | alembic
+  | documentation
+)
+'''
+
+[tool.bandit]
+exclude_dirs = ["./.git", "./documentation", "./tests", "./.venv", "./build"]
+skips = []
+
+[tool.isort]
+src_paths = "src,tests"
+profile = "black"
+line_length = 80
+sections="FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
+no_lines_before = "LOCALFOLDER"
+multi_line_output = 3
+include_trailing_comma = true
+use_parentheses = true
+force_grid_wrap = 0
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unused_configs = true
+no_implicit_optional = true
+show_error_codes = true
+files = "src"
+
+[tool.pytest.ini_config]
+log_level = "INFO"

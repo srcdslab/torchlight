@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import logging
 
 from torchlight.Advertiser import Advertiser
@@ -79,7 +78,8 @@ class AudioManager:
                 continue
 
             if not level or (
-                level < audio_clip.level and level < self.anti_spam.config["StopLevel"]
+                level < audio_clip.level
+                and level < self.anti_spam.config["StopLevel"]
             ):
                 audio_clip.stops.add(player.user_id)
 
@@ -92,7 +92,8 @@ class AudioManager:
                         self.torchlight.SayPrivate(
                             player,
                             'Stopped "{}"({}) audio clip.'.format(
-                                audio_clip.player.name, audio_clip.player.user_id
+                                audio_clip.player.name,
+                                audio_clip.player.user_id,
                             ),
                         )
                 else:
@@ -124,7 +125,9 @@ class AudioManager:
         level = player.access.level
 
         if self.torchlight.disabled and self.torchlight.disabled > level:
-            self.torchlight.SayPrivate(player, "Torchlight is currently disabled!")
+            self.torchlight.SayPrivate(
+                player, "Torchlight is currently disabled!"
+            )
             return None
 
         if not self.anti_spam.CheckAntiSpam(player):
@@ -149,7 +152,9 @@ class AudioManager:
             )
             clip.audio_player.AddCallback(
                 "Update",
-                lambda *args: self.anti_spam.OnUpdate(self.audio_clips, clip, *args),
+                lambda *args: self.anti_spam.OnUpdate(
+                    self.audio_clips, clip, *args
+                ),
             )
 
         clip.audio_player.AddCallback(

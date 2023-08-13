@@ -1,6 +1,3 @@
-#!/usr/bin/python3
-
-
 class Clients:
     MAXPLAYERS = 65
     MAX_NAME_LENGTH = 128

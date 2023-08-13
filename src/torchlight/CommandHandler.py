@@ -1,10 +1,9 @@
-#!/usr/bin/python3
 import logging
 import sys
 import traceback
 from importlib import reload
 from re import Match
-from typing import Any, Type
+from typing import Any
 
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
@@ -34,11 +33,12 @@ class CommandHandler:
         self.commands.clear()
         if counter:
             self.logger.info(
-                sys._getframe().f_code.co_name + f" Unloaded {counter} commands!"
+                sys._getframe().f_code.co_name
+                + f" Unloaded {counter} commands!"
             )
 
         counter = 0
-        subklasses: list[Type[Any]] = []
+        subklasses: list[type[Any]] = []
         subklasses.extend(BaseCommand.__subclasses__())
         subklasses.extend(VoiceTrigger.__subclasses__())
         for subklass in sorted(subklasses, key=lambda x: x.order, reverse=True):

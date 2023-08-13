@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import json
 import logging
 from collections import OrderedDict
@@ -36,10 +35,17 @@ class AccessManager:
         self.logger.info(f"Saving access to {self.config_filepath}")
 
         for unique_id, access in self.config_access_list.items():
-            self.access_dict[unique_id] = {"name": access.name, "level": access.level}
+            self.access_dict[unique_id] = {
+                "name": access.name,
+                "level": access.level,
+            }
 
         self.access_dict = OrderedDict(
-            sorted(self.access_dict.items(), key=lambda x: x[1]["level"], reverse=True)
+            sorted(
+                self.access_dict.items(),
+                key=lambda x: x[1]["level"],
+                reverse=True,
+            )
         )
 
         with open(self.config_filepath, "w") as fp:
