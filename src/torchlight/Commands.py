@@ -1,7 +1,5 @@
-#!/usr/bin/python3
 import asyncio
 import datetime
-import io
 import json
 import logging
 import os
@@ -17,9 +15,6 @@ from typing import Any
 import aiohttp
 import geoip2.database
 import gtts
-import magic
-from bs4 import BeautifulSoup
-from PIL import Image
 
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
@@ -27,7 +22,12 @@ from torchlight.Config import Config
 from torchlight.Player import Player
 from torchlight.PlayerManager import PlayerManager
 from torchlight.Torchlight import Torchlight
-from torchlight.Utils import Utils
+from torchlight.URLInfo import (
+    get_url_real_time,
+    get_url_text,
+    get_url_youtube_info,
+    print_url_metadata,
+)
 
 
 class BaseCommand:
@@ -86,7 +86,9 @@ class BaseCommand:
             or disabled == level
             and level < self.torchlight.config["AntiSpam"]["ImmunityLevel"]
         ):
-            self.torchlight.SayPrivate(player, "Torchlight is currently disabled!")
+            self.torchlight.SayPrivate(
+                player, "Torchlight is currently disabled!"
+            )
             return True
         return False
 
@@ -94,7 +96,9 @@ class BaseCommand:
         self.logger.debug(sys._getframe().f_code.co_name)
         return 0
 
-    async def _rfunc(self, line: str, match: Match, player: Player) -> str | int:
+    async def _rfunc(
+        self, line: str, match: Match, player: Player
+    ) -> str | int:
         self.logger.debug(sys._getframe().f_code.co_name)
         return 0
 
@@ -115,7 +119,9 @@ class URLFilter(BaseCommand):
         player_manager: PlayerManager,
         audio_manager: AudioManager,
     ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
+        super().__init__(
+            torchlight, access_manager, player_manager, audio_manager
+        )
         self.triggers = [
             re.compile(
                 r"""(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))""",
@@ -123,119 +129,41 @@ class URLFilter(BaseCommand):
             )
         ]
         self.level: int = -1
-        self.re_youtube = URLFilter.youtube_compile()
 
-    async def URLInfo(self, url: str, yt: bool = False) -> tuple[str, str | None]:
-        text = None
-        info = None
-        match = self.re_youtube.search(url)
-        if match or yt:
-            temp_pos: int = -1
-            real_time = None
-
-            if (
-                (temp_pos := url.find("&t=")) != -1
-                or (temp_pos := url.find("?t=")) != -1
-                or (temp_pos := url.find("#t=")) != -1
-            ):
-                time_str = url[temp_pos + 3 :].split("&")[0].split("?")[0].split("#")[0]
-                if time_str:
-                    real_time = Utils.ParseTime(time_str)
-
-            subprocess = await asyncio.create_subprocess_exec(
-                "youtube-dl", "--dump-json", "-g", url, stdout=asyncio.subprocess.PIPE
-            )
-            output, _ = await subprocess.communicate()
-
-            parts = output.split(b"\n")
-            parts.pop()  # trailing new line
-
-            info = parts.pop()
-            raw_url = parts.pop()
-
-            url = raw_url.strip().decode("ascii")
-            json_info: dict[str, Any] = json.loads(info)
-
-            if json_info["extractor_key"] == "Youtube":
-                self.torchlight.SayChat(
-                    "{{darkred}}[YouTube]{{default}} {0} | {1} | {2:,}".format(
-                        json_info["title"],
-                        str(datetime.timedelta(seconds=json_info["duration"])),
-                        int(json_info["view_count"]),
-                    )
-                )
-            else:
-                match = None
-
-            if real_time:
-                url += f"#t={real_time}"
-
-        else:
-            try:
-                async with aiohttp.ClientSession() as session:
-                    resp = await asyncio.wait_for(session.get(url), 5)
-                    if resp:
-                        content_type: str | None = resp.headers.get("Content-Type")
-                        content_length_raw: str | None = resp.headers.get(
-                            "Content-Length"
-                        )
-                        content = await asyncio.wait_for(resp.content.read(65536), 5)
-
-                        content_length = -1
-                        if content_length_raw:
-                            content_length = int(content_length_raw)
-
-                        if content_type and content_type.startswith("text"):
-                            if content_type.startswith("text/plain"):
-                                text = content.decode("utf-8", errors="ignore")
-                            else:
-                                Soup = BeautifulSoup(
-                                    content.decode("utf-8", errors="ignore"), "lxml"
-                                )
-                                if Soup.title:
-                                    self.torchlight.SayChat(
-                                        f"[URL] {Soup.title.string}"
-                                    )
-                        elif content_type and content_type.startswith("image"):
-                            fp = io.BytesIO(content)
-                            im = Image.open(fp)
-                            self.torchlight.SayChat(
-                                "[IMAGE] {} | Width: {} | Height: {} | Size: {}".format(
-                                    im.format,
-                                    im.size[0],
-                                    im.size[1],
-                                    Utils.HumanSize(content_length),
-                                )
-                            )
-                            fp.close()
-                        else:
-                            Filetype = magic.from_buffer(bytes(content))
-                            self.torchlight.SayChat(
-                                "[FILE] {} | Size: {}".format(
-                                    Filetype, Utils.HumanSize(content_length)
-                                )
-                            )
-
-                        resp.close()
-            except Exception as e:
-                self.torchlight.SayChat(f"Error: {str(e)}")
-                self.logger.error(traceback.format_exc())
+    async def URLInfo(self, url: str) -> None:
+        try:
+            await print_url_metadata(url=url, callback=self.torchlight.SayChat)
+        except Exception as e:
+            self.torchlight.SayChat(f"Error: {str(e)}")
+            self.logger.error(traceback.format_exc())
 
         self.torchlight.last_url = url
-        return url, text
 
-    async def _rfunc(self, line: str, match: Match, player: Player) -> str | int:
+    async def URLText(self, url: str) -> str:
+        text = ""
+
+        try:
+            text = await get_url_text(url=url)
+        except Exception as e:
+            self.torchlight.SayChat(f"Error: {str(e)}")
+            self.logger.error(traceback.format_exc())
+
+        self.torchlight.last_url = url
+        return text
+
+    async def _rfunc(
+        self, line: str, match: Match, player: Player
+    ) -> str | int:
         url: str = match.groups()[0]
         if not url.startswith("http") and not url.startswith("ftp"):
             url = "http://" + url
 
-        if line.startswith("!yt "):
-            url, _ = await self.URLInfo(url, True)
-            return "!yt " + url
+        if line.startswith("!yts ") or line.startswith("!yt "):
+            return line
 
         if line.startswith("!dec "):
-            _, text = await self.URLInfo(url, False)
-            if text:
+            text = await self.URLText(url)
+            if len(text) > 0:
                 return "!dec " + text
 
         asyncio.ensure_future(self.URLInfo(url))
@@ -252,10 +180,13 @@ def FormatAccess(config: Config, player: Player) -> str:
         total_time = config["AudioLimits"][level]["TotalTime"]
 
         if uses >= 0:
-            answer += " Uses: {}/{}".format(player.storage["Audio"]["Uses"], uses)
+            answer += " Uses: {}/{}".format(
+                player.storage["Audio"]["Uses"], uses
+            )
         if total_time >= 0:
             answer += " Time: {}/{}".format(
-                round(player.storage["Audio"]["TimeUsed"], 2), round(total_time, 2)
+                round(player.storage["Audio"]["TimeUsed"], 2),
+                round(total_time, 2),
             )
 
     return answer
@@ -288,7 +219,8 @@ class Who(BaseCommand):
             for targeted_player in self.player_manager.players:
                 if (
                     targeted_player
-                    and targeted_player.name.lower().find(message[1].lower()) != -1
+                    and targeted_player.name.lower().find(message[1].lower())
+                    != -1
                 ):
                     self.torchlight.SayChat(
                         FormatAccess(self.torchlight.config, targeted_player)
@@ -299,12 +231,19 @@ class Who(BaseCommand):
                         break
 
         elif message[0] == "!whois":
-            for unique_id, access in self.access_manager.config_access_list.items():
+            for (
+                unique_id,
+                access,
+            ) in self.access_manager.config_access_list.items():
                 if access.name.lower().find(message[1].lower()) != -1:
-                    targeted_player = self.player_manager.FindUniqueID(unique_id)
+                    targeted_player = self.player_manager.FindUniqueID(
+                        unique_id
+                    )
                     if targeted_player is not None:
                         self.torchlight.SayChat(
-                            FormatAccess(self.torchlight.config, targeted_player)
+                            FormatAccess(
+                                self.torchlight.config, targeted_player
+                            )
                         )
                     else:
                         self.torchlight.SayChat(
@@ -327,11 +266,14 @@ class WolframAlpha(BaseCommand):
             text.replace(" | ", ": ").replace("\n", " | ").replace("~~", " ≈ "),
         ).strip()
 
-    async def Calculate(self, parameters_json: dict[str, str], player: Player) -> int:
+    async def Calculate(
+        self, parameters_json: dict[str, str], player: Player
+    ) -> int:
         async with aiohttp.ClientSession() as session:
             resp = await asyncio.wait_for(
                 session.get(
-                    "http://api.wolframalpha.com/v2/query", params=parameters_json
+                    "http://api.wolframalpha.com/v2/query",
+                    params=parameters_json,
                 ),
                 10,
             )
@@ -407,7 +349,10 @@ class WolframAlpha(BaseCommand):
             return -1
 
         parameters_json = dict(
-            {"input": message[1], "appid": self.torchlight.config["WolframAPIKey"]}
+            {
+                "input": message[1],
+                "appid": self.torchlight.config["WolframAPIKey"],
+            }
         )
         ret = await self.Calculate(parameters_json, player)
         return ret
@@ -466,7 +411,9 @@ class OpenWeather(BaseCommand):
         player_manager: PlayerManager,
         audio_manager: AudioManager,
     ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager)
+        super().__init__(
+            torchlight, access_manager, player_manager, audio_manager
+        )
         self.config_folder = self.torchlight.config["GeoIP"]["Path"]
         self.city_filename = self.torchlight.config["GeoIP"]["CityFilename"]
         self.geo_ip = geoip2.database.Reader(
@@ -512,7 +459,9 @@ class OpenWeather(BaseCommand):
                 return 3
 
         if data["cod"] != 200:
-            self.torchlight.SayPrivate(player, "[OW] {}".format(data["message"]))
+            self.torchlight.SayPrivate(
+                player, "[OW] {}".format(data["message"])
+            )
             return 5
 
         if "deg" in data["wind"]:
@@ -598,7 +547,9 @@ class WUnderground(BaseCommand):
             resp = await asyncio.wait_for(
                 session.get(
                     "http://api.wunderground.com/api/{}/conditions/q/{}.json{}".format(
-                        self.torchlight.config["WundergroundAPIKey"], search, additional
+                        self.torchlight.config["WundergroundAPIKey"],
+                        search,
+                        additional,
                     )
                 ),
                 5,
@@ -620,7 +571,8 @@ class WUnderground(BaseCommand):
 
         if "error" in data["response"]:
             self.torchlight.SayPrivate(
-                player, "[WU] {}.".format(data["response"]["error"]["description"])
+                player,
+                "[WU] {}.".format(data["response"]["error"]["description"]),
             )
             return 5
 
@@ -630,7 +582,9 @@ class WUnderground(BaseCommand):
             for i, result in enumerate(data["response"]["results"]):
                 choices += "{}, {}".format(
                     result["city"],
-                    result["state"] if result["state"] else result["country_iso3166"],
+                    result["state"]
+                    if result["state"]
+                    else result["country_iso3166"],
                 )
 
                 if i < num_results - 1:
@@ -666,7 +620,8 @@ class VoteDisable(BaseCommand):
 
         if self.torchlight.disabled:
             self.torchlight.SayPrivate(
-                player, "Torchlight is already disabled for the duration of this map."
+                player,
+                "Torchlight is already disabled for the duration of this map.",
             )
             return -1
 
@@ -722,7 +677,9 @@ class VoiceTrigger(BaseCommand):
         trigger_number = message[1].lower()
 
         sound = self.get_sound_path(
-            player=player, voice_trigger=voice_trigger, trigger_number=trigger_number
+            player=player,
+            voice_trigger=voice_trigger,
+            trigger_number=trigger_number,
         )
 
         if not sound:
@@ -779,14 +736,17 @@ class VoiceTrigger(BaseCommand):
                     if searching:
                         self.torchlight.SayPrivate(
                             player,
-                            "{} results: {}".format(len(mlist), ", ".join(mlist)),
+                            "{} results: {}".format(
+                                len(mlist), ", ".join(mlist)
+                            ),
                         )
                         return None
 
                     sound = matches[0][1]
                     if len(matches) > 1:
                         self.torchlight.SayPrivate(
-                            player, "Multiple matches: {}".format(", ".join(mlist))
+                            player,
+                            "Multiple matches: {}".format(", ".join(mlist)),
                         )
 
                 if not sound and not num:
@@ -841,7 +801,7 @@ class Search(BaseCommand):
         return 0
 
 
-class YouTube(BaseCommand):
+class PlayMusic(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
@@ -851,21 +811,10 @@ class YouTube(BaseCommand):
         if self.torchlight.last_url:
             message[1] = message[1].replace("!last", self.torchlight.last_url)
 
-        temp_pos: int = -1
-        real_time = None
+        url = message[1]
 
-        if (
-            (temp_pos := message[1].find("&t=")) != -1
-            or (temp_pos := message[1].find("?t=")) != -1
-            or (temp_pos := message[1].find("#t=")) != -1
-        ):
-            time_str = (
-                message[1][temp_pos + 3 :].split("&")[0].split("?")[0].split("#")[0]
-            )
-            if time_str:
-                real_time = Utils.ParseTime(time_str)
-
-        audio_clip = self.audio_manager.AudioClip(player, message[1])
+        real_time = get_url_real_time(url=url)
+        audio_clip = self.audio_manager.AudioClip(player, url)
         if not audio_clip:
             return 1
 
@@ -879,75 +828,59 @@ class YouTubeSearch(BaseCommand):
         if self.check_disabled(player):
             return -1
 
-        temp_pos: int = -1
-        real_time = None
-        input_url = message[1]
-
-        if (
-            (temp_pos := input_url.find("&t=")) != -1
-            or (temp_pos := input_url.find("?t=")) != -1
-            or (temp_pos := input_url.find("#t=")) != -1
-        ):
-            time_str = (
-                input_url[temp_pos + 3 :].split("&")[0].split("?")[0].split("#")[0]
-            )
-            if time_str:
-                real_time = Utils.ParseTime(time_str)
-            input_url = input_url[:temp_pos]
-
-        subprocess = await asyncio.create_subprocess_exec(
-            "youtube-dl",
-            "--dump-json",
-            "-xg",
-            "ytsearch:" + input_url,
-            stdout=asyncio.subprocess.PIPE,
-        )
-        output, _ = await subprocess.communicate()
+        input_keywords = message[1]
+        input_url = f"ytsearch: {input_keywords}"
 
         try:
-            url_raw, info = output.split(b"\n", maxsplit=1)
-            url = url_raw.strip().decode("ascii")
+            info = get_url_youtube_info(url=input_url)
         except Exception as e:
-            self.logger.error(f"Failed to extract url from output: {str(output)}")
+            self.logger.error(
+                f"Failed to extract youtube info from: {input_url}"
+            )
             self.logger.error(e)
             self.torchlight.SayPrivate(
                 player,
-                "An error as occured while trying to retrieve the youtube result.",
+                "An error as occured while trying to retrieve youtube metadata.",
             )
             return 1
 
-        json_info: dict[str, Any] = json.loads(info)
+        if info["extractor_key"] == "YoutubeSearch":
+            input_url = (
+                f"https://youtube.com/watch?v={info['entries'][0]['id']}"
+            )
+            info = get_url_youtube_info(url=input_url)
 
-        if json_info["extractor_key"] == "Youtube":
-            title = json_info["title"]
-            title_words = title.split()
-            keywords_banned: list[str] = []
+        title = info["title"]
+        url = info["formats"][0]["url"]
+        title_words = title.split()
+        keywords_banned: list[str] = []
 
-            command_config = self.get_config()
-            if (
-                "parameters" in command_config
-                and "keywords_banned" in command_config["parameters"]
-            ):
-                keywords_banned = command_config["parameters"]["keywords_banned"]
+        command_config = self.get_config()
+        if (
+            "parameters" in command_config
+            and "keywords_banned" in command_config["parameters"]
+        ):
+            keywords_banned = command_config["parameters"]["keywords_banned"]
 
-            for keyword_banned in keywords_banned:
-                for title_word in title_words:
-                    if keyword_banned.lower() in title_word.lower():
-                        self.torchlight.SayChat(
-                            "{{darkred}}[YouTube]{{default}} {0}".format(
-                                f"{title} has been flagged as inappropriate content, skipping",
-                            )
+        for keyword_banned in keywords_banned:
+            for title_word in title_words:
+                if keyword_banned.lower() in title_word.lower():
+                    self.torchlight.SayChat(
+                        "{{darkred}}[YouTube]{{default}} {0}".format(
+                            f"{title} has been flagged as inappropriate content, skipping",
                         )
-                        return 1
-            match = URLFilter.youtube_compile().search(input_url)
-            if not match:
-                self.torchlight.SayChat(
-                    "{{darkred}}[YouTube]{{default}} {0} | {1} | {2:,}".format(
-                        title,
-                        str(datetime.timedelta(seconds=json_info["duration"])),
-                        int(json_info["view_count"]),
                     )
-                )
+                    return 1
+
+        self.torchlight.SayChat(
+            "{{darkred}}[YouTube]{{default}} {0} | {1} | {2:,}".format(
+                title,
+                str(datetime.timedelta(seconds=info["duration"])),
+                int(info["view_count"]),
+            )
+        )
+
+        real_time = get_url_real_time(url=url)
 
         audio_clip = self.audio_manager.AudioClip(player, url)
         if not audio_clip:
@@ -1026,7 +959,9 @@ class Say(BaseCommand):
             "zh",
         ]
 
-    async def Say(self, player: Player, language: str, tld: str, message: str) -> int:
+    async def Say(
+        self, player: Player, language: str, tld: str, message: str
+    ) -> int:
         google_text_to_speech = gtts.gTTS(
             text=message, tld=tld, lang=language, lang_check=False
         )
@@ -1035,7 +970,9 @@ class Say(BaseCommand):
         google_text_to_speech.write_to_fp(temp_file)
         temp_file.close()
 
-        audio_clip = self.audio_manager.AudioClip(player, "file://" + temp_file.name)
+        audio_clip = self.audio_manager.AudioClip(
+            player, "file://" + temp_file.name
+        )
         if not audio_clip:
             os.unlink(temp_file.name)
             return 1
@@ -1062,7 +999,10 @@ class Say(BaseCommand):
         tld: str = "com"
 
         command_config = self.get_config()
-        if "parameters" in command_config and "default" in command_config["parameters"]:
+        if (
+            "parameters" in command_config
+            and "default" in command_config["parameters"]
+        ):
             if "language" in command_config["parameters"]["default"]:
                 language = command_config["parameters"]["default"]["language"]
             if "tld" in command_config["parameters"]["default"]:
@@ -1094,7 +1034,9 @@ class DECTalk(BaseCommand):
         )
         await subprocess.communicate(message.encode("utf-8", errors="ignore"))
 
-        audio_clip = self.audio_manager.AudioClip(player, "file://" + temp_file.name)
+        audio_clip = self.audio_manager.AudioClip(
+            player, "file://" + temp_file.name
+        )
         if not audio_clip:
             os.unlink(temp_file.name)
             return 1
@@ -1204,7 +1146,9 @@ class AdminAccess(BaseCommand):
             temp_buffer = buffer.find(" as ")
             if temp_buffer != -1:
                 try:
-                    reg_name, level_parsed = buffer[temp_buffer + 4 :].rsplit(" ", 1)
+                    reg_name, level_parsed = buffer[temp_buffer + 4 :].rsplit(
+                        " ", 1
+                    )
                 except ValueError as e:
                     self.torchlight.SayChat(str(e))
                     return 1
@@ -1222,15 +1166,22 @@ class AdminAccess(BaseCommand):
                 buffer = buffer.strip()
                 level_parsed = level_parsed.strip()
 
-            self.logger.info(f"Searching {buffer} to set his level to {level_parsed}")
+            self.logger.info(
+                f"Searching {buffer} to set his level to {level_parsed}"
+            )
 
             # Find user by User ID
             if buffer[0] == "#" and buffer[1:].isnumeric():
-                targeted_player = self.player_manager.FindUserID(int(buffer[1:]))
+                targeted_player = self.player_manager.FindUserID(
+                    int(buffer[1:])
+                )
             # Search user by name
             else:
                 for player in self.player_manager.players:
-                    if player and player.name.lower().find(buffer.lower()) != -1:
+                    if (
+                        player
+                        and player.name.lower().find(buffer.lower()) != -1
+                    ):
                         targeted_player = player
                         break
 
@@ -1292,7 +1243,10 @@ class AdminAccess(BaseCommand):
                 ] = targeted_player.access
             else:
                 if level_parsed == "revoke":
-                    if targeted_player.access.level >= admin_player.access.level:
+                    if (
+                        targeted_player.access.level
+                        >= admin_player.access.level
+                    ):
                         self.torchlight.SayChat(
                             "Trying to revoke level {}, which is higher or equal than your level ({})".format(
                                 targeted_player.access.level,

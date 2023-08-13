@@ -16,7 +16,10 @@ class Torchlight:
     VALID_CALLBACKS = ["OnReload"]
 
     def __init__(
-        self, config: Config, loop: asyncio.AbstractEventLoop, async_client: AsyncClient
+        self,
+        config: Config,
+        loop: asyncio.AbstractEventLoop,
+        async_client: AsyncClient,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
@@ -82,7 +85,9 @@ class Torchlight:
             message = message[:973] + "..."
         lines = textwrap.wrap(message, 244, break_long_words=True)
         for line in lines:
-            asyncio.ensure_future(self.sourcemod_api.CPrintToChat(player.index, line))
+            asyncio.ensure_future(
+                self.sourcemod_api.CPrintToChat(player.index, line)
+            )
 
     def __del__(self) -> None:
         self.logger.debug("~Torchlight()")

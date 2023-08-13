@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import asyncio
 import datetime
 import logging
@@ -106,7 +105,9 @@ class FFmpegAudioPlayer:
                 writer_socket = self.writer.transport.get_extra_info("socket")
                 if writer_socket:
                     writer_socket.setsockopt(
-                        socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0)
+                        socket.SOL_SOCKET,
+                        socket.SO_LINGER,
+                        struct.pack("ii", 1, 0),
                     )
 
                 self.writer.transport.abort()
@@ -195,7 +196,9 @@ class FFmpegAudioPlayer:
         _, self.writer = await asyncio.open_connection(self.host, self.port)
 
         self.sub_process = await asyncio.create_subprocess_exec(
-            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL,
         )
 
         await self._read_stream(self.sub_process.stdout, self.writer)

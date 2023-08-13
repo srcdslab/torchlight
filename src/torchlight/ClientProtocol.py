@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import logging
 import traceback
 from asyncio import AbstractEventLoop, Protocol, transports

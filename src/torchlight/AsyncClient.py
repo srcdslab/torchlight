@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import asyncio
 import json
 import logging
@@ -64,7 +63,9 @@ class AsyncClient:
         try:
             json_obj = json.loads(data)
         except Exception:
-            self.logger.warn("OnReceive: Unable to decode data as json, skipping")
+            self.logger.warn(
+                "OnReceive: Unable to decode data as json, skipping"
+            )
             return
 
         if "method" in json_obj and json_obj["method"] == "publish":
@@ -83,9 +84,9 @@ class AsyncClient:
         if not self.protocol:
             return None
 
-        data = json.dumps(json_obj, ensure_ascii=False, separators=(",", ":")).encode(
-            "UTF-8"
-        )
+        data = json.dumps(
+            json_obj, ensure_ascii=False, separators=(",", ":")
+        ).encode("UTF-8")
 
         async with self.send_lock:
             if not self.protocol:

@@ -24,7 +24,10 @@ class Advertiser:
             if not clip["timestamp"]:
                 continue
 
-            if clip["timestamp"] + clip["duration"] + self.config["MaxSpan"] < now:
+            if (
+                clip["timestamp"] + clip["duration"] + self.config["MaxSpan"]
+                < now
+            ):
                 if not clip["active"]:
                     del self.last_clips[key]
                 continue
@@ -50,7 +53,12 @@ class Advertiser:
     def OnPlay(self, clip: AudioClip) -> None:
         now = self.torchlight.loop.time()
         self.last_clips[hash(clip)] = dict(
-            {"timestamp": now, "duration": 0.0, "dominant": False, "active": True}
+            {
+                "timestamp": now,
+                "duration": 0.0,
+                "dominant": False,
+                "active": True,
+            }
         )
 
         has_dominant = False
@@ -75,7 +83,9 @@ class Advertiser:
 
         self.last_clips[hash(clip)]["dominant"] = False
 
-    def OnUpdate(self, clip: AudioClip, old_position: int, new_position: int) -> None:
+    def OnUpdate(
+        self, clip: AudioClip, old_position: int, new_position: int
+    ) -> None:
         delta = new_position - old_position
         last_clip = self.last_clips[hash(clip)]
 

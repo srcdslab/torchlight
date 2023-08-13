@@ -1,0 +1,12 @@
+[flake8]
+max-line-length = 80
+# Enable flake8-mutable
+enable-extensions = M511
+exclude = .git,__pycache__,docs/source/conf.py,old,build,dist,.venv
+# W503 line break before binary operator. Black causes this error
+# E203 whitespace before ':'
+# E231 missing whitespace after ','. Black causes this error but seems to be right (see pep8)
+# E501 line too long
+# Q000 Double quotes found but single quotes preferred
+ignore = W503, E203, E231, E501, Q000
+jobs = 4

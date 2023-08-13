@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import logging
 
 from torchlight.Admin import Admin
@@ -31,7 +30,12 @@ class Player:
     def OnConnect(self) -> None:
         if "Audio" not in self.storage:
             self.storage["Audio"] = dict(
-                {"Uses": 0, "LastUse": 0.0, "LastUseLength": 0.0, "TimeUsed": 0.0}
+                {
+                    "Uses": 0,
+                    "LastUse": 0.0,
+                    "LastUseLength": 0.0,
+                    "TimeUsed": 0.0,
+                }
             )
 
     def OnActivate(self) -> None:
@@ -76,7 +80,10 @@ class Player:
                 uniqueid=self.unique_id,
             )
 
-        if player_access is not None and self.access.level < player_access.level:
+        if (
+            player_access is not None
+            and self.access.level < player_access.level
+        ):
             self.access = player_access
 
     def OnInfo(self, name: str) -> None:

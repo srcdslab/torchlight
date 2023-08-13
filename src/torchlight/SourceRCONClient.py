@@ -72,7 +72,9 @@ class SourceRCONClient:
                     )
                     self.p_send(p_id, 0, "")
                     self.p_send(p_id, 2, "")
-                    self.p_send(p_id, 0, "Welcome to torchlight! - Authenticated!\n")
+                    self.p_send(
+                        p_id, 0, "Welcome to torchlight! - Authenticated!\n"
+                    )
                 else:
                     self.logger.info(
                         sys._getframe().f_code.co_name
@@ -108,5 +110,7 @@ class SourceRCONClient:
                             }
                         }
                     )
-                    asyncio.Task(self.command_handler.HandleCommand(data, player))
+                    asyncio.Task(
+                        self.command_handler.HandleCommand(data, player)
+                    )
                     # self.p_send(p_id, 0, self._server.torchlight.GetLine())

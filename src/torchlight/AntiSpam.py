@@ -75,7 +75,12 @@ class AntiSpam:
     def OnPlay(self, clip: AudioClip) -> None:
         now = self.torchlight.loop.time()
         self.last_clips[hash(clip)] = dict(
-            {"timestamp": now, "duration": 0.0, "dominant": False, "active": True}
+            {
+                "timestamp": now,
+                "duration": 0.0,
+                "dominant": False,
+                "active": True,
+            }
         )
 
         has_dominant = False

@@ -25,8 +25,12 @@ class PlayerManager:
         self.player_count: int = 0
 
     def Setup(self) -> None:
-        self.torchlight.game_events.HookEx("player_connect", self.Event_PlayerConnect)
-        self.torchlight.game_events.HookEx("player_activate", self.Event_PlayerActivate)
+        self.torchlight.game_events.HookEx(
+            "player_connect", self.Event_PlayerConnect
+        )
+        self.torchlight.game_events.HookEx(
+            "player_activate", self.Event_PlayerActivate
+        )
         self.torchlight.forwards.HookEx(
             "OnClientPostAdminCheck", self.OnClientPostAdminCheck
         )
@@ -34,10 +38,18 @@ class PlayerManager:
         self.torchlight.game_events.HookEx(
             "player_disconnect", self.Event_PlayerDisconnect
         )
-        self.torchlight.game_events.HookEx("server_spawn", self.Event_ServerSpawn)
+        self.torchlight.game_events.HookEx(
+            "server_spawn", self.Event_ServerSpawn
+        )
 
     def Event_PlayerConnect(
-        self, name: str, index: int, userid: int, networkid: str, address: str, bot: int
+        self,
+        name: str,
+        index: int,
+        userid: int,
+        networkid: str,
+        address: str,
+        bot: int,
     ) -> None:
         self.player_count += 1
         index += 1
@@ -106,7 +118,9 @@ class PlayerManager:
         # We've connected to the server and receive info events about the already connected players
         # Emulate connect message
         if player is None:
-            self.Event_PlayerConnect(name, index - 1, userid, networkid, "", bot)
+            self.Event_PlayerConnect(
+                name, index - 1, userid, networkid, "", bot
+            )
         else:
             player.OnInfo(name)
 
