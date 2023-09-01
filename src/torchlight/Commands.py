@@ -1,3 +1,4 @@
+import ast
 import asyncio
 import datetime
 import json
@@ -8,11 +9,11 @@ import re
 import sys
 import tempfile
 import traceback
-import xml.etree.ElementTree as etree
 from re import Match, Pattern
 from typing import Any
 
 import aiohttp
+import defusedxml.ElementTree as etree
 import geoip2.database
 import gtts
 
@@ -23,6 +24,8 @@ from torchlight.Player import Player
 from torchlight.PlayerManager import PlayerManager
 from torchlight.Torchlight import Torchlight
 from torchlight.URLInfo import (
+    get_audio_format,
+    get_first_valid_entry,
     get_url_real_time,
     get_url_text,
     get_url_youtube_info,
@@ -829,7 +832,12 @@ class YouTubeSearch(BaseCommand):
             return -1
 
         input_keywords = message[1]
-        input_url = f"ytsearch: {input_keywords}"
+        if URLFilter.youtube_compile().search(input_keywords):
+            input_url = input_keywords
+        else:
+            input_url = f"ytsearch3: {input_keywords}"
+
+        real_time = get_url_real_time(url=input_url)
 
         try:
             info = get_url_youtube_info(url=input_url)
@@ -845,13 +853,10 @@ class YouTubeSearch(BaseCommand):
             return 1
 
         if info["extractor_key"] == "YoutubeSearch":
-            input_url = (
-                f"https://youtube.com/watch?v={info['entries'][0]['id']}"
-            )
-            info = get_url_youtube_info(url=input_url)
+            info = get_first_valid_entry(entries=info["entries"])
 
         title = info["title"]
-        url = info["formats"][0]["url"]
+        url = get_audio_format(info=info)
         title_words = title.split()
         keywords_banned: list[str] = []
 
@@ -879,8 +884,6 @@ class YouTubeSearch(BaseCommand):
                 int(info["view_count"]),
             )
         )
-
-        real_time = get_url_real_time(url=url)
 
         audio_clip = self.audio_manager.AudioClip(player, url)
         if not audio_clip:
@@ -1288,7 +1291,7 @@ class Exec(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
         try:
-            resp = eval(message[1])
+            resp = ast.literal_eval(message[1])
         except Exception as e:
             self.torchlight.SayChat(f"Error: {str(e)}")
             return 1

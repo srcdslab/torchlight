@@ -17,11 +17,12 @@ dependencies = [
     "aiohttp",
     "beautifulsoup4",
     "click",
+    "defusedxml",
     "gTTS",
     "geoip2",
     "lxml",
     "python-magic",
-    "youtube-dl @ git+https://github.com/ytdl-org/youtube-dl@master#egg=youtube-dl",
+    "yt-dlp @ git+https://github.com/yt-dlp/yt-dlp@master#egg=yt-dlp"
 ]
 
 [project.scripts]
