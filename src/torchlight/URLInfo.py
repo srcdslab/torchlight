@@ -1,14 +1,19 @@
 import asyncio
 import io
+import json
+import logging
 from collections.abc import Callable
+from typing import Any
 
 import aiohttp
 import magic
-import youtube_dl
+import yt_dlp
 from bs4 import BeautifulSoup
 from PIL import Image
 
 from torchlight.Utils import Utils
+
+logger = logging.getLogger(__name__)
 
 
 async def get_url_data(url: str) -> tuple[bytes, str, int]:
@@ -106,11 +111,37 @@ def get_url_real_time(url: str) -> int:
 
 def get_url_youtube_info(url: str) -> dict:
     # https://github.com/ytdl-org/youtube-dl/blob/3e4cedf9e8cd3157df2457df7274d0c842421945/youtube_dl/YoutubeDL.py#L137-L312
+    # https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/YoutubeDL.py#L192
     ydl_opts = {
         "extract_flat": True,
+        "skip_download": True,
+        "debug_printtraffic": False,
         "quiet": True,
-        "format": "bestaudio/best",
+        "no_warnings": True,
+        "format": "m4a/bestaudio/best",
+        "simulate": True,
+        "keepvideo": False,
     }
-    ydl = youtube_dl.YoutubeDL(ydl_opts)
+    ydl = yt_dlp.YoutubeDL(ydl_opts)
     ydl.add_default_info_extractors()
     return ydl.extract_info(url, download=False)
+
+
+def get_first_valid_entry(entries: list[Any]) -> dict[str, Any]:
+    for entry in entries:
+        input_url = f"https://youtube.com/watch?v={entry['id']}"
+        try:
+            info = get_url_youtube_info(url=input_url)
+            return info
+        except yt_dlp.utils.DownloadError:
+            logger.warn(f"Error trying to download <{input_url}>")
+            pass
+    raise Exception("No compatible youtube video found, try something else")
+
+
+def get_audio_format(info: dict[str, Any]) -> str:
+    for format in info["formats"]:
+        if "audio_channels" in format:
+            logger.debug(json.dumps(format, indent=2))
+            return format["url"]
+    raise Exception("No compatible audio format found, try something else")
