@@ -61,6 +61,12 @@ class Player:
                 name="SAdmin",
                 uniqueid=self.unique_id,
             )
+        elif self.admin.Custom4():
+            player_access = ConfigAccess(
+                level=config["AccessLevel"]["EventManager"],
+                name="EManager",
+                uniqueid=self.unique_id,
+            )
         elif self.admin.Ban():
             player_access = ConfigAccess(
                 level=config["AccessLevel"]["Admin"],
