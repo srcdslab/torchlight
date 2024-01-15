@@ -50,6 +50,7 @@
 	"AccessLevel":
 	{
 		"Root": 6,
+		"EventManager": 4,
 		"Admin": 3,
 		"DonatedAdmin": 2,
 		"VIP": 2,
