@@ -32,7 +32,7 @@
 
 	"AntiSpam":
 	{
-		"ImmunityLevel": 5,
+		"ImmunityLevel": 4,
 		"MaxUsageSpan": 60,
 		"MaxUsageTime": 10,
 		"PunishDelay": 60,
