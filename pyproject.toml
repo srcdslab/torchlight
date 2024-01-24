@@ -43,14 +43,14 @@ version = {file = "VERSION"}
 dev = [
     "autoflake",
     "bandit",
-    "black==22.10.0",
+    "black",
     "flake8",
     "flake8-bugbear",
     "flake8-quotes",
     "isort",
-    "mypy>=1.0.1",
-    "pip-tools>=6.14.0",
-    "pyupgrade>=3.3.1",
+    "mypy",
+    "pip-tools",
+    "pyupgrade",
 ]
 
 [tool.black]
