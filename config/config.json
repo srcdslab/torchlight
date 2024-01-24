@@ -32,7 +32,7 @@
 
 	"AntiSpam":
 	{
-		"ImmunityLevel": 5,
+		"ImmunityLevel": 4,
 		"MaxUsageSpan": 60,
 		"MaxUsageTime": 10,
 		"PunishDelay": 60,
@@ -50,6 +50,7 @@
 	"AccessLevel":
 	{
 		"Root": 6,
+		"EventManager": 4,
 		"Admin": 3,
 		"DonatedAdmin": 2,
 		"VIP": 2,
