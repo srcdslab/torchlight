@@ -1003,6 +1003,13 @@ class Say(BaseCommand):
 
         command_config = self.get_config()
         if (
+            "command" in command_config
+        ):
+            command = command_config["command"]
+        else:
+            command = "!say"
+
+        if (
             "parameters" in command_config
             and "default" in command_config["parameters"]
         ):
@@ -1011,8 +1018,8 @@ class Say(BaseCommand):
             if "tld" in command_config["parameters"]["default"]:
                 tld = command_config["parameters"]["default"]["tld"]
 
-        if len(message[0]) > 4:
-            language = message[0][4:]
+        if message[0].startswith(command) and len(message[0]) > len(command):
+            language = message[0][len(command):]
 
         self.logger.debug(f"{language}: {self.VALID_LANGUAGES}")
         if len(language) <= 0 or language not in self.VALID_LANGUAGES:
