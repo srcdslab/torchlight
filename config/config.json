@@ -267,6 +267,17 @@
 		"CityFilename": "GeoLite2-City.mmdb"
 	},
 
+	"DECTalk":
+	{
+		"Path": "dectalk",
+		"SayFilename": "say"
+	},
+
+	"Sounds":
+	{
+		"Path": "sounds"
+	},
+
 	"Logging":
 	{
 		"level": "INFO",

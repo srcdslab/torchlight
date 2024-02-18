@@ -1,7 +1,6 @@
 import ast
 import asyncio
 import datetime
-import json
 import logging
 import os
 import random
@@ -23,6 +22,7 @@ from torchlight.Config import Config
 from torchlight.Player import Player
 from torchlight.PlayerManager import PlayerManager
 from torchlight.Torchlight import Torchlight
+from torchlight.TriggerManager import TriggerManager
 from torchlight.URLInfo import (
     get_audio_format,
     get_first_valid_entry,
@@ -42,12 +42,14 @@ class BaseCommand:
         access_manager: AccessManager,
         player_manager: PlayerManager,
         audio_manager: AudioManager,
+        trigger_manager: TriggerManager,
     ) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.torchlight = torchlight
         self.audio_manager = audio_manager
         self.player_manager = player_manager
         self.access_manager = access_manager
+        self.trigger_manager = trigger_manager
         self.triggers: list[tuple[str, int] | str | Pattern] = []
         self.level = 0
 
@@ -121,9 +123,14 @@ class URLFilter(BaseCommand):
         access_manager: AccessManager,
         player_manager: PlayerManager,
         audio_manager: AudioManager,
+        trigger_manager: TriggerManager,
     ) -> None:
         super().__init__(
-            torchlight, access_manager, player_manager, audio_manager
+            torchlight,
+            access_manager,
+            player_manager,
+            audio_manager,
+            trigger_manager,
         )
         self.triggers = [
             re.compile(
@@ -413,9 +420,14 @@ class OpenWeather(BaseCommand):
         access_manager: AccessManager,
         player_manager: PlayerManager,
         audio_manager: AudioManager,
+        trigger_manager: TriggerManager,
     ) -> None:
         super().__init__(
-            torchlight, access_manager, player_manager, audio_manager
+            torchlight,
+            access_manager,
+            player_manager,
+            audio_manager,
+            trigger_manager,
         )
         self.config_folder = self.torchlight.config["GeoIP"]["Path"]
         self.city_filename = self.torchlight.config["GeoIP"]["CityFilename"]
@@ -649,25 +661,9 @@ class VoteDisable(BaseCommand):
 
 
 class VoiceTrigger(BaseCommand):
-    @staticmethod
-    def get_triggers() -> dict[str, str | list[str]]:
-        logger = logging.getLogger(VoiceTrigger.__class__.__name__)
-        try:
-            with open("config/triggers.json", encoding="utf-8") as fp:
-                triggers = json.load(fp)
-        except ValueError as e:
-            logger.error(sys._getframe().f_code.co_name + " " + str(e))
-
-        voice_triggers = {}
-        for line in triggers:
-            for trigger in line["names"]:
-                voice_triggers[trigger] = line["sound"]
-        return voice_triggers
-
     def _setup(self) -> None:
         self.logger.debug(sys._getframe().f_code.co_name)
-        self.voice_triggers = VoiceTrigger.get_triggers()
-        for trigger in self.voice_triggers.keys():
+        for trigger in self.trigger_manager.voice_triggers.keys():
             self.triggers.append(trigger)
 
     async def _func(self, message: list[str], player: Player) -> int:
@@ -688,8 +684,15 @@ class VoiceTrigger(BaseCommand):
         if not sound:
             return 1
 
-        os_path = os.path.abspath(os.path.join("sounds", sound))
-        audio_clip = self.audio_manager.AudioClip(player, "file://" + os_path)
+        sound_path = os.path.abspath(
+            os.path.join(
+                self.trigger_manager.sound_path,
+                sound,
+            )
+        )
+        audio_clip = self.audio_manager.AudioClip(
+            player, "file://" + sound_path
+        )
         if not audio_clip:
             return 1
 
@@ -709,7 +712,7 @@ class VoiceTrigger(BaseCommand):
 
         sound = None
 
-        sounds = self.voice_triggers[voice_trigger]
+        sounds = self.trigger_manager.voice_triggers[voice_trigger]
 
         try:
             num = int(trigger_number)
@@ -782,7 +785,9 @@ class Random(VoiceTrigger):
     def get_sound_path(
         self, player: Player, voice_trigger: str, trigger_number: str
     ) -> str | None:
-        trigger = random.choice(list(self.voice_triggers.values()))
+        trigger = random.choice(
+            list(self.trigger_manager.voice_triggers.values())
+        )
         if isinstance(trigger, list):
             return random.choice(trigger)
         return trigger
@@ -795,7 +800,7 @@ class Search(BaseCommand):
         voice_trigger = message[1].lower()
 
         res = []
-        for key in VoiceTrigger.get_triggers().keys():
+        for key in self.trigger_manager.voice_triggers.keys():
             if voice_trigger in key.lower():
                 res.append(key)
         self.torchlight.SayPrivate(
@@ -1028,11 +1033,24 @@ class DECTalk(BaseCommand):
         temp_file = tempfile.NamedTemporaryFile(delete=False)
         temp_file.close()
 
+        dectalk_path = os.path.abspath(
+            self.torchlight.config.config.get("DECTalk", {}).get(
+                "Path", "dectalk"
+            )
+        )
+        dectalk_say_path = os.path.abspath(
+            os.path.join(
+                dectalk_path,
+                self.torchlight.config.config.get("DECTalk", {}).get(
+                    "SayFilename", "say"
+                ),
+            )
+        )
         subprocess = await asyncio.create_subprocess_exec(
-            "./say",
+            dectalk_say_path,
             "-fo",
             temp_file.name,
-            cwd="dectalk",
+            cwd=dectalk_path,
             stdin=asyncio.subprocess.PIPE,
         )
         await subprocess.communicate(message.encode("utf-8", errors="ignore"))

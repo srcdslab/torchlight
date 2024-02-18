@@ -10,6 +10,7 @@ from torchlight.AudioManager import AudioManager
 from torchlight.Commands import BaseCommand, VoiceTrigger
 from torchlight.PlayerManager import Player, PlayerManager
 from torchlight.Torchlight import Torchlight
+from torchlight.TriggerManager import TriggerManager
 
 
 class CommandHandler:
@@ -19,12 +20,14 @@ class CommandHandler:
         access_manager: AccessManager,
         player_manager: PlayerManager,
         audio_manager: AudioManager,
+        trigger_manager: TriggerManager,
     ) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.torchlight = torchlight
         self.access_manager = access_manager
         self.player_manager = player_manager
         self.audio_manager = audio_manager
+        self.trigger_manager = trigger_manager
         self.commands: list[BaseCommand] = []
         self.needs_reload = False
 
@@ -48,6 +51,7 @@ class CommandHandler:
                     self.access_manager,
                     self.player_manager,
                     self.audio_manager,
+                    self.trigger_manager,
                 )
                 if hasattr(command, "_setup"):
                     command._setup()
