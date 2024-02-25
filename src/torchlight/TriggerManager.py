@@ -50,5 +50,3 @@ class TriggerManager:
                             self.logger.warn(
                                 f"Sound path {sound_path} does not exist"
                             )
-
-        self.logger.info(f"Loaded {self.triggers_dict}")
