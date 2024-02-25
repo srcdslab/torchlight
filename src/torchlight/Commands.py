@@ -229,7 +229,7 @@ class Who(BaseCommand):
             for targeted_player in self.player_manager.players:
                 if (
                     targeted_player
-                    and targeted_player.name.lower() == message[1].lower()
+                    and message[1].lower() in targeted_player.name.lower()
                 ):
                     self.torchlight.SayChat(
                         FormatAccess(self.torchlight.config, targeted_player)
@@ -241,7 +241,7 @@ class Who(BaseCommand):
 
         elif message[0] == "!whois":
             for admin in self.access_manager.admins:
-                if admin.name.lower().find(message[1].lower()) != -1:
+                if message[1].lower() in admin.name.lower():
                     targeted_player = self.player_manager.FindUniqueID(
                         admin.unique_id
                     )

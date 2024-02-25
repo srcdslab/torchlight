@@ -3,8 +3,8 @@ import json
 import logging
 import os
 import sys
+from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Any
 
 from torchlight.Config import Config
 
@@ -39,13 +39,13 @@ class SourcemodConfig:
         self.config_filepath = os.path.abspath(
             os.path.join(config_folder, config_filename)
         )
-        self.sm_flags: dict[str, Any] = {}
+        self.sm_flags: OrderedDict = OrderedDict()
         self.sm_groups: list[SourcemodGroup] = []
 
     def Load(self) -> int:
         try:
             with open(self.config_filepath) as fp:
-                self.sm_flags = json.load(fp)
+                self.sm_flags = json.load(fp, object_pairs_hook=OrderedDict)
         except ValueError as e:
             self.logger.error(sys._getframe().f_code.co_name + " " + str(e))
             return 1
@@ -61,9 +61,8 @@ class SourcemodConfig:
 
     def flagbits_to_flags(self, *, flagbits: int) -> list[str]:
         flags: list[str] = []
-        for sm_flag in self.sm_flags.values():
-            bit_shifting_right_value = ord(sm_flag["value"]) - ord("a")
-            if flagbits & (1 << bit_shifting_right_value):
+        for index, sm_flag in enumerate(self.sm_flags.values()):
+            if flagbits & (1 << index):
                 flags.append(sm_flag["value"])
         return flags
 
