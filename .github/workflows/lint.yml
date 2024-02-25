@@ -8,6 +8,9 @@ on:
     paths:
       - "**/*.py"
   pull_request:
+    branches:
+      - master
+      - main
     paths:
       - "**/*.py"
 

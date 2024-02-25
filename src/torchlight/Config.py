@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import sys
 from dataclasses import dataclass
 from typing import Any
@@ -14,12 +15,16 @@ class ConfigAccess:
 
 class Config:
     def __init__(
-        self, config_folder: str, config_filename: str = "config.json"
+        self,
+        config_folder: str,
+        config_filename: str = "config.json",
     ) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.config_folder = config_folder
+        self.config_folder = os.path.abspath(config_folder)
         self.config_filename = config_filename
-        self.config_filepath = f"{config_folder}/{config_filename}"
+        self.config_filepath = os.path.abspath(
+            os.path.join(config_folder, config_filename)
+        )
         self.config: dict[str, Any] = {}
         self.Load()
 

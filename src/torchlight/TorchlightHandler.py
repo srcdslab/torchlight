@@ -8,6 +8,7 @@ from torchlight.CommandHandler import CommandHandler
 from torchlight.Config import Config
 from torchlight.PlayerManager import PlayerManager
 from torchlight.Torchlight import Torchlight
+from torchlight.TriggerManager import TriggerManager
 
 
 class TorchlightHandler:
@@ -41,6 +42,14 @@ class TorchlightHandler:
         await self.torchlight.forwards.Replay(["OnClientPostAdminCheck"])
 
     def Init(self) -> None:
+        self.access_manager = AccessManager(self.config.config_folder)
+        self.access_manager.Load()
+
+        self.trigger_manager = TriggerManager(
+            config_folder=self.config.config_folder, config=self.config
+        )
+        self.trigger_manager.Load()
+
         self.async_client = AsyncClient(
             self.loop,
             self.config["SMAPIServer"],
@@ -50,8 +59,6 @@ class TorchlightHandler:
 
         self.torchlight = Torchlight(self.config, self.loop, self.async_client)
         self.torchlight.AddCallback("OnReload", self.OnReload)
-
-        self.access_manager = AccessManager(self.config.config_folder)
 
         self.audio_manager = AudioManager(self.torchlight)
 
@@ -64,11 +71,10 @@ class TorchlightHandler:
             self.access_manager,
             self.player_manager,
             self.audio_manager,
+            self.trigger_manager,
         )
 
     def InitModules(self) -> None:
-        self.access_manager.Load()
-
         self.player_manager.Setup()
 
         self.command_handler.Setup()
