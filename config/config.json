@@ -135,7 +135,7 @@
 			"level": 2,
 			"triggers": [
 				{
-					"command": "!play"
+					"command": "!tplay"
 				}
 			]
 		},
