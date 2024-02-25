@@ -21,7 +21,7 @@ class AntiSpam:
         if (
             self.disabled_time
             and self.disabled_time > self.torchlight.loop.time()
-            and player.access.level < self.config["ImmunityLevel"]
+            and player.admin.level < self.config["ImmunityLevel"]
         ):
             self.torchlight.SayPrivate(
                 player,

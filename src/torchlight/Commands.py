@@ -83,7 +83,7 @@ class BaseCommand:
         return False
 
     def check_disabled(self, player: Player) -> bool:
-        level = player.access.level
+        level = player.admin.level
 
         disabled = self.torchlight.disabled
         if disabled and (
@@ -182,8 +182,8 @@ class URLFilter(BaseCommand):
 
 def FormatAccess(config: Config, player: Player) -> str:
     answer = f'#{player.user_id} "{player.name}"({player.unique_id}) is '
-    level = str(player.access.level)
-    answer += f"level {level!s} as {player.access.name}."
+    level = str(player.admin.level)
+    answer += f"level {level!s} as {player.admin.name}."
 
     if level in config["AudioLimits"]:
         uses = config["AudioLimits"][level]["Uses"]
@@ -241,13 +241,10 @@ class Who(BaseCommand):
                         break
 
         elif message[0] == "!whois":
-            for (
-                unique_id,
-                access,
-            ) in self.access_manager.config_access_list.items():
-                if access.name.lower().find(message[1].lower()) != -1:
+            for admin in self.access_manager.admins:
+                if admin.name.lower().find(message[1].lower()) != -1:
                     targeted_player = self.player_manager.FindUniqueID(
-                        unique_id
+                        admin.unique_id
                     )
                     if targeted_player is not None:
                         self.torchlight.SayChat(
@@ -258,7 +255,7 @@ class Who(BaseCommand):
                     else:
                         self.torchlight.SayChat(
                             '#? "{}"({}) is level {!s} is currently offline.'.format(
-                                access.name, unique_id, access.level
+                                admin.name, admin.unique_id, admin.level
                             )
                         )
 
@@ -701,7 +698,7 @@ class VoiceTrigger(BaseCommand):
     def get_sound_path(
         self, player: Player, voice_trigger: str, trigger_number: str
     ) -> str | None:
-        level = player.access.level
+        level = player.admin.level
 
         if (
             voice_trigger[0] != "!"
@@ -1099,7 +1096,7 @@ class Enable(BaseCommand):
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         if self.torchlight.disabled:
-            if self.torchlight.disabled > player.access.level:
+            if self.torchlight.disabled > player.admin.level:
                 self.torchlight.SayPrivate(
                     player,
                     "You don't have access to enable torchlight, since it was disabled by a higher level user.",
@@ -1119,7 +1116,7 @@ class Enable(BaseCommand):
 class Disable(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
         if not self.torchlight.disabled:
-            if self.torchlight.disabled > player.access.level:
+            if self.torchlight.disabled > player.admin.level:
                 self.torchlight.SayPrivate(
                     player,
                     "You don't have access to disable torchlight, since it was already disabled by a higher level user.",
@@ -1128,7 +1125,7 @@ class Disable(BaseCommand):
             self.torchlight.SayChat(
                 "Torchlight has been disabled for the duration of this map - Type !enable to enable it again."
             )
-            self.torchlight.disabled = player.access.level
+            self.torchlight.disabled = player.admin.level
         else:
             self.torchlight.SayChat("Torchlight is already disabled.")
         return 0
@@ -1139,7 +1136,11 @@ class AdminAccess(BaseCommand):
         self.access_manager.Load()
         for player in self.player_manager.players:
             if player:
-                player.access = self.access_manager.get_access(player)
+                admin_override = self.access_manager.get_admin(
+                    unique_id=player.unique_id
+                )
+                if admin_override is not None:
+                    player.admin = admin_override
 
     async def _func(self, message: list[str], admin_player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
@@ -1149,17 +1150,13 @@ class AdminAccess(BaseCommand):
         if message[1].lower() == "reload":
             self.ReloadValidUsers()
             self.torchlight.SayChat(
-                "Loaded access list with {} users".format(
-                    len(self.access_manager.config_access_list)
-                )
+                f"Loaded access list with {len(self.access_manager.admins)} users".format()
             )
 
         elif message[1].lower() == "save":
             self.access_manager.Save()
             self.torchlight.SayChat(
-                "Saved access list with {} users".format(
-                    len(self.access_manager.config_access_list)
-                )
+                f"Saved access list with {len(self.access_manager.admins)} users".format()
             )
 
         # Modify access
@@ -1217,22 +1214,22 @@ class AdminAccess(BaseCommand):
             ):
                 level = int(level_parsed)
 
-                if level >= admin_player.access.level:
+                if level >= admin_player.admin.level:
                     self.torchlight.SayChat(
                         "Trying to assign level {}, which is higher or equal than your level ({})".format(
-                            level, admin_player.access.level
+                            level, admin_player.admin.level
                         )
                     )
                     return 4
 
                 if (
-                    targeted_player.access.level >= admin_player.access.level
+                    targeted_player.admin.level >= admin_player.admin.level
                     and admin_player.user_id != targeted_player.user_id
                 ):
                     self.torchlight.SayChat(
                         "Trying to modify level {}, which is higher or equal than your level ({})".format(
-                            targeted_player.access.level,
-                            admin_player.access.level,
+                            targeted_player.admin.level,
+                            admin_player.admin.level,
                         )
                     )
                     return 5
@@ -1242,38 +1239,36 @@ class AdminAccess(BaseCommand):
                         'Changed "{}"({}) as {} level/name from {} to {} as {}'.format(
                             targeted_player.name,
                             targeted_player.unique_id,
-                            targeted_player.access.name,
-                            targeted_player.access.level,
+                            targeted_player.admin.name,
+                            targeted_player.admin.level,
                             level,
                             reg_name,
                         )
                     )
-                    targeted_player.access.name = reg_name
+                    targeted_player.admin.name = reg_name
                 else:
                     self.torchlight.SayChat(
                         'Changed "{}"({}) as {} level from {} to {}'.format(
                             targeted_player.name,
                             targeted_player.unique_id,
-                            targeted_player.access.name,
-                            targeted_player.access.level,
+                            targeted_player.admin.name,
+                            targeted_player.admin.level,
                             level,
                         )
                     )
 
-                targeted_player.access.level = level
-                self.access_manager.config_access_list[
-                    targeted_player.unique_id
-                ] = targeted_player.access
+                targeted_player.admin.level = level
+                self.access_manager.set_admin(
+                    unique_id=targeted_player.unique_id,
+                    admin=targeted_player.admin,
+                )
             else:
                 if level_parsed == "revoke":
-                    if (
-                        targeted_player.access.level
-                        >= admin_player.access.level
-                    ):
+                    if targeted_player.admin.level >= admin_player.admin.level:
                         self.torchlight.SayChat(
                             "Trying to revoke level {}, which is higher or equal than your level ({})".format(
-                                targeted_player.access.level,
-                                admin_player.access.level,
+                                targeted_player.admin.level,
+                                admin_player.admin.level,
                             )
                         )
                         return 6
@@ -1282,18 +1277,17 @@ class AdminAccess(BaseCommand):
                         'Removed "{}"({}) from access list (was {} with level {})'.format(
                             targeted_player.name,
                             targeted_player.unique_id,
-                            targeted_player.access.name,
-                            targeted_player.access.level,
+                            targeted_player.admin.name,
+                            targeted_player.admin.level,
                         )
                     )
-                    targeted_player.access.name = "Player"
-                    targeted_player.access.level = self.torchlight.config[
-                        "AccessLevel"
-                    ]["Player"]
-                    targeted_player.access.uniqueid = targeted_player.unique_id
-                    self.access_manager.config_access_list[
-                        targeted_player.unique_id
-                    ] = targeted_player.access
+                    targeted_player.admin.name = "Revoked"
+                    targeted_player.admin.level = 0
+                    targeted_player.admin.unique_id = targeted_player.unique_id
+                    self.access_manager.set_admin(
+                        unique_id=targeted_player.unique_id,
+                        admin=targeted_player.admin,
+                    )
         return 0
 
 

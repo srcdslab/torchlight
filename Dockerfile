@@ -17,6 +17,16 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 RUN --mount=type=cache,sharing=locked,id=pipcache,mode=0777,target=/root/.cache/pip/http \
     pip install --no-compile build==$BUILD_VERSION
 
+FROM build as build-common
+
+COPY src/ ./src/
+
+RUN --mount=type=secret,id=pipconf,dst="/root/.config/pip/pip.conf" \
+    --mount=type=cache,sharing=locked,id=pipcache,mode=0777,target=/root/.cache/pip/http \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=VERSION,target=VERSION \
+    python -m build --sdist
+
 FROM build as build-production
 
 # hadolint ignore=DL3042
@@ -25,14 +35,6 @@ RUN --mount=type=secret,id=pipconf,dst="/root/.config/pip/pip.conf" \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
     pip wheel --no-deps --wheel-dir /app/wheels -r requirements.txt
 
-COPY src/ ./src/
-
-RUN --mount=type=secret,id=pipconf,dst="/root/.config/pip/pip.conf" \
-    --mount=type=cache,sharing=locked,id=pipcache,mode=0777,target=/root/.cache/pip/http \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=VERSION,target=VERSION \
-    python -m build --sdist
-
 FROM build as build-development
 
 # hadolint ignore=DL3042
@@ -40,15 +42,7 @@ RUN --mount=type=secret,id=pipconf,dst="/root/.config/pip/pip.conf" \
     --mount=type=cache,sharing=locked,id=pipcache,mode=0777,target=/root/.cache/pip/http \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
     --mount=type=bind,source=requirements-dev.txt,target=requirements-dev.txt \
-    pip wheel --no-deps --wheel-dir /app/wheels -r requirements.txt -r requirements-dev.txt \
-
-COPY src/ ./src/
-
-RUN --mount=type=secret,id=pipconf,dst="/root/.config/pip/pip.conf" \
-    --mount=type=cache,sharing=locked,id=pipcache,mode=0777,target=/root/.cache/pip/http \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=VERSION,target=VERSION \
-    python -m build --sdist
+    pip wheel --no-deps --wheel-dir /app/wheels -r requirements.txt -r requirements-dev.txt
 
 FROM python:3.10-slim-bookworm@sha256:9a97ede5d731252b42541a5d3ec60f6d4cd03747ca75315adc784ed864651c0e as runtime
 
@@ -94,9 +88,10 @@ FROM runtime as development
 USER root
 
 RUN --mount=type=bind,from=build-development,source=/app/wheels,target=/wheels \
-    --mount=type=bind,from=build-development,source=/app/dist,target=/dist \
-    pip install --no-cache-dir --no-compile --prefer-binary /wheels/* \
-    && pip install --no-cache-dir --no-compile --prefer-binary /dist/*
+    pip install --no-cache-dir --no-compile --prefer-binary /wheels/*
+
+RUN --mount=type=bind,from=build-common,source=/app/dist,target=/dist \
+    pip install --no-cache-dir --no-compile --prefer-binary /dist/*
 
 USER rootless
 
@@ -108,9 +103,10 @@ FROM runtime as production
 USER root
 
 RUN --mount=type=bind,from=build-production,source=/app/wheels,target=/wheels \
-    --mount=type=bind,from=build-production,source=/app/dist,target=/dist \
-    pip install --no-cache-dir --no-compile --prefer-binary /wheels/* \
-    && pip install --no-cache-dir --no-compile --prefer-binary /dist/*
+    pip install --no-cache-dir --no-compile --prefer-binary /wheels/*
+
+RUN --mount=type=bind,from=build-common,source=/app/dist,target=/dist \
+    pip install --no-cache-dir --no-compile --prefer-binary /dist/*
 
 USER rootless
 

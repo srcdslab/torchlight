@@ -37,7 +37,7 @@ class Torchlight:
         self.callbacks: list[tuple[str, Callable]] = []
 
     def Reload(self) -> None:
-        self.config.Load()
+        self.config.load()
         self.Callback("OnReload")
 
     def AddCallback(self, cbtype: str, cbfunc: Callable) -> bool:
@@ -70,7 +70,7 @@ class Torchlight:
             asyncio.ensure_future(self.sourcemod_api.CPrintToChatAll(line))
 
         if player:
-            level = player.access.level
+            level = player.admin.level
 
             if level < self.config["AntiSpam"]["ImmunityLevel"]:
                 cooldown = len(lines) * self.config["AntiSpam"]["ChatCooldown"]
