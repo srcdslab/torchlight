@@ -857,6 +857,8 @@ class YouTubeSearch(BaseCommand):
             )
             return 1
 
+        if "title" not in info and "url" in info:
+            info = get_url_youtube_info(url=info["url"])
         if info["extractor_key"] == "YoutubeSearch":
             info = get_first_valid_entry(entries=info["entries"])
 
