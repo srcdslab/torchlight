@@ -70,11 +70,12 @@ class AccessManager:
             json.dump(self.access_dict, fp, indent="\t")
 
     def get_admin(self, *, unique_id: str) -> SourcemodAdmin | None:
-        admin: SourcemodAdmin | None = None
+        admin_copy: SourcemodAdmin | None = None
         for admin in self.admins:
             if admin.unique_id == unique_id:
-                return admin
-        return admin
+                admin_copy = copy.deepcopy(admin)
+                break
+        return admin_copy
 
     def set_admin(self, unique_id: str, admin: SourcemodAdmin) -> None:
         admin_copy = copy.deepcopy(admin)

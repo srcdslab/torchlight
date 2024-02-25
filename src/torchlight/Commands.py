@@ -229,8 +229,7 @@ class Who(BaseCommand):
             for targeted_player in self.player_manager.players:
                 if (
                     targeted_player
-                    and targeted_player.name.lower().find(message[1].lower())
-                    != -1
+                    and targeted_player.name.lower() == message[1].lower()
                 ):
                     self.torchlight.SayChat(
                         FormatAccess(self.torchlight.config, targeted_player)
@@ -1140,6 +1139,9 @@ class AdminAccess(BaseCommand):
                     unique_id=player.unique_id
                 )
                 if admin_override is not None:
+                    self.logger.info(
+                        f"{player.unique_id}: overriding admin with {admin_override}"
+                    )
                     player.admin = admin_override
 
     async def _func(self, message: list[str], admin_player: Player) -> int:

@@ -73,6 +73,9 @@ class PlayerManager:
             unique_id=player.unique_id
         )
         if admin_override is not None:
+            self.logger.info(
+                f"{player.unique_id}: overriding admin with {admin_override}"
+            )
             player.admin = admin_override
 
         for unique_id, audio_stored in self.audio_storage.items():
@@ -183,6 +186,9 @@ class PlayerManager:
                     unique_id=player.unique_id
                 )
                 if admin_override is not None:
+                    self.logger.info(
+                        f"{player.unique_id}: overriding admin with {admin_override}"
+                    )
                     player.admin = admin_override
                 player.OnConnect()
                 self.audio_storage[player.unique_id] = player.storage
