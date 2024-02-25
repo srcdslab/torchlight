@@ -1,7 +1,6 @@
 import logging
 
-from torchlight.Admin import Admin
-from torchlight.Config import Config, ConfigAccess
+from torchlight.Sourcemod import SourcemodAdmin, SourcemodConfig
 
 
 class Player:
@@ -9,20 +8,23 @@ class Player:
         self,
         index: int,
         userid: int,
-        uniqueid: str,
+        unique_id: str,
         address: str,
         name: str,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.index = index
         self.user_id = userid
-        self.unique_id = uniqueid
+        self.unique_id = unique_id
         self.address = address
         self.name = name
-        self.access: ConfigAccess = ConfigAccess(
-            name=self.name, level=0, uniqueid=self.unique_id
+        self.admin = SourcemodAdmin(
+            name=self.name,
+            unique_id=self.unique_id,
+            flag_bits=0,
+            groups=[],
+            level=0,
         )
-        self.admin = Admin()
         self.storage: dict = {}
         self.active = False
         self.chat_cooldown = 0
@@ -41,56 +43,26 @@ class Player:
     def OnActivate(self) -> None:
         self.active = True
 
-    def OnClientPostAdminCheck(self, flag_bits: int, config: Config) -> None:
-        self.admin._flag_bits = flag_bits
+    def OnClientPostAdminCheck(
+        self,
+        *,
+        flag_bits: int,
+        sourcemod_config: SourcemodConfig,
+    ) -> None:
+        self.admin.flag_bits = flag_bits
+        self.admin.groups = sourcemod_config.get_sourcemod_groups_by_flags(
+            flagbits=flag_bits
+        )
+
         self.logger.info(
-            '#{} "{}"({}) FlagBits: {}'.format(
-                self.user_id, self.name, self.unique_id, self.admin._flag_bits
-            )
+            f'#{self.user_id} "{self.name}"({self.unique_id}) FlagBits: {flag_bits} Groups: {self.admin.groups}'
         )
 
-        player_access = ConfigAccess(
-            name="Player",
-            level=config["AccessLevel"]["Player"],
-            uniqueid=self.unique_id,
+        group = sourcemod_config.get_highest_group_level(
+            sm_groups=self.admin.groups
         )
-
-        if self.admin.RCON() or self.admin.Root():
-            player_access = ConfigAccess(
-                level=config["AccessLevel"]["Root"],
-                name="SAdmin",
-                uniqueid=self.unique_id,
-            )
-        elif self.admin.Custom4():
-            player_access = ConfigAccess(
-                level=config["AccessLevel"]["EventManager"],
-                name="EManager",
-                uniqueid=self.unique_id,
-            )
-        elif self.admin.Ban():
-            player_access = ConfigAccess(
-                level=config["AccessLevel"]["Admin"],
-                name="Admin",
-                uniqueid=self.unique_id,
-            )
-        elif self.admin.Generic():
-            player_access = ConfigAccess(
-                level=config["AccessLevel"]["DonatedAdmin"],
-                name="DAdmin",
-                uniqueid=self.unique_id,
-            )
-        elif self.admin.Custom1():
-            player_access = ConfigAccess(
-                level=config["AccessLevel"]["VIP"],
-                name="VIP",
-                uniqueid=self.unique_id,
-            )
-
-        if (
-            player_access is not None
-            and self.access.level < player_access.level
-        ):
-            self.access = player_access
+        if group is not None and group.level > self.admin.level:
+            self.admin.level = group.level
 
     def OnInfo(self, name: str) -> None:
         self.name = name

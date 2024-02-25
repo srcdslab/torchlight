@@ -1,15 +1,15 @@
+import copy
 import json
 import logging
 import os
 from collections import OrderedDict
 
-from torchlight.Config import ConfigAccess
-from torchlight.Player import Player
+from torchlight.Sourcemod import SourcemodAdmin
 
 
 class AccessManager:
     def __init__(
-        self, config_folder: str, config_filename: str = "access.json"
+        self, config_folder: str, config_filename: str = "admins.json"
     ) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config_folder = os.path.abspath(config_folder)
@@ -18,44 +18,69 @@ class AccessManager:
             os.path.join(config_folder, config_filename)
         )
         self.access_dict: OrderedDict = OrderedDict()
-        self.config_access_list: dict[str, ConfigAccess] = {}
+        self.admins: list[SourcemodAdmin] = []
 
     def Load(self) -> None:
         self.logger.info(f"Loading access from {self.config_filepath}")
 
         with open(self.config_filepath) as fp:
             self.access_dict = json.load(fp, object_pairs_hook=OrderedDict)
-            for unique_id, access in self.access_dict.items():
-                self.config_access_list[unique_id] = ConfigAccess(
-                    name=access["name"],
-                    level=access["level"],
-                    uniqueid=unique_id,
+            for admin_dict in self.access_dict["admins"]:
+                self.admins.append(
+                    SourcemodAdmin(
+                        name=admin_dict["name"],
+                        level=admin_dict["level"],
+                        unique_id=admin_dict["unique_id"],
+                        flag_bits=0,
+                        groups=[],
+                    )
                 )
 
-        self.logger.info(f"Loaded {self.config_access_list}")
+        self.logger.info(f"Loaded {self.admins}")
 
     def Save(self) -> None:
-        self.logger.info(f"Saving access to {self.config_filepath}")
+        self.logger.info(
+            f"Saving {len(self.admins)} admin access to {self.config_filepath}"
+        )
 
-        for unique_id, access in self.config_access_list.items():
-            self.access_dict[unique_id] = {
-                "name": access.name,
-                "level": access.level,
+        for admin in self.admins:
+            admin_cfg = {
+                "name": admin.name,
+                "level": admin.level,
+                "unique_id": admin.unique_id,
             }
 
-        self.access_dict = OrderedDict(
-            sorted(
-                self.access_dict.items(),
-                key=lambda x: x[1]["level"],
-                reverse=True,
-            )
+            index = 0
+            while index < len(self.access_dict["admins"]):
+                admin_dict = self.access_dict["admins"][index]
+                if admin.unique_id == admin_dict["unique_id"]:
+                    break
+                index += 1
+
+            if index >= len(self.access_dict["admins"]):
+                self.access_dict["admins"].append(admin_cfg)
+            else:
+                self.access_dict["admins"][index] = admin_cfg
+
+        self.access_dict["admins"] = sorted(
+            self.access_dict["admins"], key=lambda x: x["level"], reverse=True
         )
 
         with open(self.config_filepath, "w") as fp:
             json.dump(self.access_dict, fp, indent="\t")
 
-    def get_access(self, player: Player) -> ConfigAccess:
-        for unique_id, access in self.config_access_list.items():
-            if unique_id == player.unique_id:
-                return access
-        return player.access
+    def get_admin(self, *, unique_id: str) -> SourcemodAdmin | None:
+        admin: SourcemodAdmin | None = None
+        for admin in self.admins:
+            if admin.unique_id == unique_id:
+                return admin
+        return admin
+
+    def set_admin(self, unique_id: str, admin: SourcemodAdmin) -> None:
+        admin_copy = copy.deepcopy(admin)
+        if self.get_admin(unique_id=unique_id) is None:
+            self.admins.append(admin_copy)
+        else:
+            for index, admin in enumerate(self.admins):
+                if admin.unique_id == unique_id:
+                    self.admins[index] = admin_copy

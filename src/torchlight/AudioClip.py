@@ -24,7 +24,7 @@ class AudioClip:
         self.last_position: int = 0
         self.stops: set[int] = set()
 
-        self.level = self.player.access.level
+        self.level = self.player.admin.level
 
         self.audio_player.AddCallback("Play", self.OnPlay)
         self.audio_player.AddCallback("Stop", self.OnStop)

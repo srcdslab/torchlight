@@ -5,6 +5,7 @@ from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
 from torchlight.Constants import Clients
 from torchlight.Player import Player
+from torchlight.Sourcemod import SourcemodConfig
 from torchlight.Torchlight import Torchlight
 
 
@@ -14,11 +15,13 @@ class PlayerManager:
         torchlight: Torchlight,
         audio_manager: AudioManager,
         access_manager: AccessManager,
+        sourcemod_config: SourcemodConfig,
     ) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.torchlight = torchlight
         self.audio_manager = audio_manager
         self.access_manager = access_manager
+        self.sourcemod_config = sourcemod_config
         self.audio_storage: dict[str, dict] = {}
 
         self.players: list[Player | None] = [None] * (Clients.MAXPLAYERS + 1)
@@ -66,7 +69,11 @@ class PlayerManager:
 
         player = Player(index, userid, networkid, address, name)
 
-        player.access = self.access_manager.get_access(player)
+        admin_override = self.access_manager.get_admin(
+            unique_id=player.unique_id
+        )
+        if admin_override is not None:
+            player.admin = admin_override
 
         for unique_id, audio_stored in self.audio_storage.items():
             if player.unique_id == unique_id:
@@ -102,7 +109,9 @@ class PlayerManager:
         flag_bits: int = (
             await self.torchlight.sourcemod_api.GetUserFlagBits(player.index)
         )["result"]
-        player.OnClientPostAdminCheck(flag_bits, self.torchlight.config)
+        player.OnClientPostAdminCheck(
+            flag_bits=flag_bits, sourcemod_config=self.sourcemod_config
+        )
 
     def Event_PlayerInfo(
         self, name: str, index: int, userid: int, networkid: str, bot: int
@@ -170,7 +179,11 @@ class PlayerManager:
                 if self.audio_manager.anti_spam.config["StopOnMapChange"]:
                     self.audio_manager.OnDisconnect(player)
                 player.OnDisconnect("mapchange")
-                player.access = self.access_manager.get_access(player)
+                admin_override = self.access_manager.get_admin(
+                    unique_id=player.unique_id
+                )
+                if admin_override is not None:
+                    player.admin = admin_override
                 player.OnConnect()
                 self.audio_storage[player.unique_id] = player.storage
 

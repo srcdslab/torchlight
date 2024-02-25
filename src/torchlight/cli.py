@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 def cli(config_folder: str) -> None:
 
     config = Config(config_folder)
+    config.load()
 
     logging.basicConfig(
         level=logging.getLevelName(config["Logging"]["level"]),

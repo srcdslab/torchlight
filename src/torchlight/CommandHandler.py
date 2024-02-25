@@ -85,7 +85,7 @@ class CommandHandler:
             message[1] = message[1].replace("!last", self.torchlight.last_url)
             line = message[0] + " " + message[1]
 
-        level = player.access.level
+        level = player.admin.level
 
         self.logger.debug(f"Command: {message}")
         ret_message: str | None = None

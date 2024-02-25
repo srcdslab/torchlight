@@ -2,15 +2,7 @@ import json
 import logging
 import os
 import sys
-from dataclasses import dataclass
 from typing import Any
-
-
-@dataclass
-class ConfigAccess:
-    name: str
-    level: int
-    uniqueid: str
 
 
 class Config:
@@ -26,9 +18,8 @@ class Config:
             os.path.join(config_folder, config_filename)
         )
         self.config: dict[str, Any] = {}
-        self.Load()
 
-    def Load(self) -> int:
+    def load(self) -> int:
         try:
             with open(self.config_filepath) as fp:
                 self.config = json.load(fp)

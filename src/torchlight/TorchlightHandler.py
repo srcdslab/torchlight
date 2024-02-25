@@ -7,6 +7,7 @@ from torchlight.AudioManager import AudioManager
 from torchlight.CommandHandler import CommandHandler
 from torchlight.Config import Config
 from torchlight.PlayerManager import PlayerManager
+from torchlight.Sourcemod import SourcemodConfig
 from torchlight.Torchlight import Torchlight
 from torchlight.TriggerManager import TriggerManager
 
@@ -50,6 +51,11 @@ class TorchlightHandler:
         )
         self.trigger_manager.Load()
 
+        self.sourcemod_config = SourcemodConfig(
+            config_folder=self.config.config_folder, config=self.config
+        )
+        self.sourcemod_config.Load()
+
         self.async_client = AsyncClient(
             self.loop,
             self.config["SMAPIServer"],
@@ -63,7 +69,10 @@ class TorchlightHandler:
         self.audio_manager = AudioManager(self.torchlight)
 
         self.player_manager = PlayerManager(
-            self.torchlight, self.audio_manager, self.access_manager
+            self.torchlight,
+            self.audio_manager,
+            self.access_manager,
+            self.sourcemod_config,
         )
 
         self.command_handler = CommandHandler(

@@ -47,15 +47,50 @@
 		"AdStop": 10
 	},
 
-	"AccessLevel":
-	{
-		"Root": 6,
-		"EventManager": 4,
-		"Admin": 3,
-		"DonatedAdmin": 2,
-		"VIP": 2,
-		"Player": 0
-	},
+	"SourcemodGroups":
+	[
+		{
+			"name": "Root",
+			"flags": [
+				"z",
+				"m"
+			],
+			"level": 6
+		},
+		{
+			"name": "Event Manager",
+			"flags": [
+				"r"
+			],
+			"level": 4
+		},
+		{
+			"name": "Server admin",
+			"flags": [
+				"d"
+			],
+			"level": 3
+		},
+		{
+			"name": "Donated admin",
+			"flags": [
+				"b"
+			],
+			"level": 2
+		},
+		{
+			"name": "VIP",
+			"flags": [
+				"o"
+			],
+			"level": 2
+		},
+		{
+			"name": "Player",
+			"flags": [],
+			"level": 0
+		}
+	],
 
 	"Command":
 	{
