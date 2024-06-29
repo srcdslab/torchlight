@@ -58,7 +58,11 @@ Don't put `+map` into your startup cmdline.
 
 ## Running torchlight
 ```
-torchlight -vvv
+torchlight
+```
+You can find more information about available commands with
+```
+torchlight --help
 ```
 
 ## Docker
