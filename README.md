@@ -56,6 +56,11 @@ map de_dust2
 
 Don't put `+map` into your startup cmdline.
 
+## Running torchlight
+```
+torchlight -vvv
+```
+
 ## Docker
 ```
 version: '3.7'
