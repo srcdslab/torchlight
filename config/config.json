@@ -1,15 +1,51 @@
 {
-	"VoiceServer":
+	"WolframAPIKey": "",
+	"WundergroundAPIKey": "",
+	"OpenWeatherAPIKey": "",
+
+	"Logging":
 	{
-		"Host": "127.0.0.1",
-		"Port": 27020,
-		"SampleRate": 22050
+		"level": "INFO",
+		"output": "default",
+		"format": "%(asctime)s | %(levelname)s | %(message)s",
+		"datefmt": "%Y-%m-%dT%H:%M:%S%z"
+	},
+
+	"TorchRCON":
+	{
+		"Host": "0.0.0.0",
+		"Port": 27004,
+		"Password": "supersecretpassword"
 	},
 
 	"SMAPIServer":
 	{
 		"Host": "127.0.0.1",
-		"Port": 27021
+		"Port": 27014
+	},
+
+	"VoiceServer":
+	{
+		"Host": "127.0.0.1",
+		"Port": 27019,
+		"SampleRate": 22050
+	},
+
+	"GeoIP":
+	{
+		"Path": "/usr/share/GeoIP",
+		"CityFilename": "GeoLite2-City.mmdb"
+	},
+
+	"DECTalk":
+	{
+		"Path": "dectalk",
+		"SayFilename": "say"
+	},
+
+	"Sounds":
+	{
+		"Path": "sounds"
 	},
 
 	"AudioLimits":
@@ -287,41 +323,5 @@
 		"URLFilter": {
 			"level": 0
 		}
-	},
-
-	"TorchRCON":
-	{
-		"Host": "0.0.0.0",
-		"Port": 27115,
-		"Password": "supersecretpassword"
-	},
-
-	"GeoIP":
-	{
-		"Path": "/usr/share/GeoIP",
-		"CityFilename": "GeoLite2-City.mmdb"
-	},
-
-	"DECTalk":
-	{
-		"Path": "dectalk",
-		"SayFilename": "say"
-	},
-
-	"Sounds":
-	{
-		"Path": "sounds"
-	},
-
-	"Logging":
-	{
-		"level": "INFO",
-		"output": "default",
-		"format": "%(asctime)s | %(levelname)s | %(message)s",
-		"datefmt": "%Y-%m-%dT%H:%M:%S%z"
-	},
-
-	"WolframAPIKey": "",
-	"WundergroundAPIKey": "",
-	"OpenWeatherAPIKey": ""
+	}
 }
