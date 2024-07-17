@@ -58,7 +58,7 @@ pycryptodomex==3.20.0
     # via yt-dlp
 python-magic==0.4.27
     # via torchlight (pyproject.toml)
-requests==2.31.0
+requests==2.32.3
     # via
     #   geoip2
     #   gtts
@@ -73,7 +73,7 @@ websockets==12.0
     # via yt-dlp
 yarl==1.9.4
     # via aiohttp
-yt-dlp @ git+https://github.com/yt-dlp/yt-dlp@5f25f348f9eb5db842b1ec6799f95bebb7ba35a7
+yt-dlp @ git+https://github.com/yt-dlp/yt-dlp@37c233562db26dd3401fa188dbeb9cabdb284a62
     # via torchlight (pyproject.toml)
 
 # The following packages are considered to be unsafe in a requirements file:
