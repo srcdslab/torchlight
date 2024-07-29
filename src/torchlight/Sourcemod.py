@@ -49,6 +49,7 @@ class SourcemodConfig:
         except ValueError as e:
             self.logger.error(sys._getframe().f_code.co_name + " " + str(e))
             return 1
+        self.sm_groups.clear()
         for sm_group in self.config["SourcemodGroups"]:
             self.sm_groups.append(
                 SourcemodGroup(
@@ -75,9 +76,9 @@ class SourcemodConfig:
             if sm_group.flags:
                 for flag in flags:
                     if flag in sm_group.flags and sm_group not in groups:
-                        groups.append(copy.deepcopy(sm_group))
+                        groups.append(sm_group)
             else:
-                groups.append(copy.deepcopy(sm_group))
+                groups.append(sm_group)
         return groups
 
     def get_highest_group_level(
