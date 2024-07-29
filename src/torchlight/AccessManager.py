@@ -25,6 +25,7 @@ class AccessManager:
 
         with open(self.config_filepath) as fp:
             self.access_dict = json.load(fp, object_pairs_hook=OrderedDict)
+            self.admins.clear()
             for admin_dict in self.access_dict["admins"]:
                 self.admins.append(
                     SourcemodAdmin(
@@ -70,18 +71,14 @@ class AccessManager:
             json.dump(self.access_dict, fp, indent="\t")
 
     def get_admin(self, *, unique_id: str) -> SourcemodAdmin | None:
-        admin_copy: SourcemodAdmin | None = None
         for admin in self.admins:
             if admin.unique_id == unique_id:
-                admin_copy = copy.deepcopy(admin)
-                break
-        return admin_copy
+                return copy.deepcopy(admin)
+        return None
 
     def set_admin(self, unique_id: str, admin: SourcemodAdmin) -> None:
-        admin_copy = copy.deepcopy(admin)
-        if self.get_admin(unique_id=unique_id) is None:
-            self.admins.append(admin_copy)
-        else:
-            for index, admin in enumerate(self.admins):
-                if admin.unique_id == unique_id:
-                    self.admins[index] = admin_copy
+        for index, existing_admin in enumerate(self.admins):
+            if existing_admin.unique_id == unique_id:
+                self.admins[index] = copy.deepcopy(admin)
+                return
+        self.admins.append(copy.deepcopy(admin))
