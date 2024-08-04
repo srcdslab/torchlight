@@ -19,9 +19,7 @@ class AudioPlayerFactory:
     def __del__(self) -> None:
         self.logger.info("~AudioPlayerFactory()")
 
-    def NewPlayer(
-        self, _type: AudioPlayerType, torchlight: Torchlight
-    ) -> FFmpegAudioPlayer:
+    def NewPlayer(self, _type: AudioPlayerType, torchlight: Torchlight) -> FFmpegAudioPlayer:
         if _type == AudioPlayerType.AUDIOPLAYER_FFMPEG:
             return self.ffmpeg_audio_player_factory.NewPlayer(torchlight)
         return self.ffmpeg_audio_player_factory.NewPlayer(torchlight)

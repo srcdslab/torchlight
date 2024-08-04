@@ -41,56 +41,12 @@ version = {file = "VERSION"}
 
 [project.optional-dependencies]
 dev = [
-    "autoflake",
-    "bandit",
-    "black",
-    "flake8",
-    "flake8-bugbear",
-    "flake8-quotes",
-    "isort",
+    "ruff",
+    "memory_profiler",
     "mypy",
     "pip-tools",
     "pyupgrade",
 ]
-
-[tool.black]
-line-length = 80
-target-version = ['py310']
-exclude = '''
-
-(
-  /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-  )/
-  | es_utils
-  | alembic
-  | documentation
-)
-'''
-
-[tool.bandit]
-exclude_dirs = ["./.git", "./documentation", "./tests", "./.venv", "./build"]
-skips = []
-
-[tool.isort]
-src_paths = "src,tests"
-profile = "black"
-line_length = 80
-sections="FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
-no_lines_before = "LOCALFOLDER"
-multi_line_output = 3
-include_trailing_comma = true
-use_parentheses = true
-force_grid_wrap = 0
 
 [tool.mypy]
 python_version = "3.10"
@@ -105,5 +61,57 @@ no_implicit_optional = true
 show_error_codes = true
 files = "src"
 
-[tool.pytest.ini_config]
-log_level = "INFO"
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+exclude = [
+    ".bzr",
+    ".git",
+    ".svn",
+    ".hg",
+    "typings"
+]
+
+[tool.ruff.lint]
+# https://docs.astral.sh/ruff/rules/
+select = [
+    "E", # pycodestyle
+    "F", # pyflakes
+    "I", # isort
+    "Q", # flake8-quotes-q
+    "S",  # flake8-bandit-s
+    "UP", # pyupgrade
+    "W",  # pycodestyle
+]
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+force-wrap-aliases = true
+forced-separate = ["tests"]
+known-local-folder = [
+    "torchlight",
+    "src",
+    "tests"
+]
+known-first-party = [
+]
+# required-imports = ["from __future__ import annotations"]
+
+[tool.ruff.lint.per-file-ignores]
+"*/__init__.py" = [
+    "F401"
+]
+"alembic/*" = [
+    "S608", # Possible SQL injection vector through string-based query construction
+]
+"tests/**/*.py" = [
+    "S101", # asserts allowed in tests
+    "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
+    # "S603", # `subprocess` call: check for execution of untrusted input
+]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 120

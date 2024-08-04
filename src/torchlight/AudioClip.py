@@ -31,7 +31,7 @@ class AudioClip:
         self.audio_player.AddCallback("Update", self.OnUpdate)
 
     def __del__(self) -> None:
-        self.logger.info("~AudioClip()")
+        self.logger.debug("~AudioClip()")
 
     def Play(self, seconds: int | None = None, *args: Any) -> bool:
         return self.audio_player.PlayURI(self.uri, seconds, *args)
@@ -56,20 +56,14 @@ class AudioClip:
 
         if str(self.level) in self.config:
             if self.player.storage:
-                if (
-                    self.player.storage["Audio"]["TimeUsed"]
-                    >= self.config[str(self.level)]["TotalTime"]
-                ):
+                if self.player.storage["Audio"]["TimeUsed"] >= self.config[str(self.level)]["TotalTime"]:
                     self.torchlight.SayPrivate(
                         self.player,
                         "You have used up all of your free time! ({} seconds)".format(
                             self.config[str(self.level)]["TotalTime"]
                         ),
                     )
-                elif (
-                    self.player.storage["Audio"]["LastUseLength"]
-                    >= self.config[str(self.level)]["MaxLength"]
-                ):
+                elif self.player.storage["Audio"]["LastUseLength"] >= self.config[str(self.level)]["MaxLength"]:
                     self.torchlight.SayPrivate(
                         self.player,
                         "Your audio clip exceeded the maximum length! ({} seconds)".format(
@@ -86,13 +80,11 @@ class AudioClip:
         self.player.storage["Audio"]["TimeUsed"] += delta
         self.player.storage["Audio"]["LastUseLength"] += delta
 
-        if not str(self.level) in self.config:
+        if str(self.level) not in self.config:
             return
 
         if (
-            self.player.storage["Audio"]["TimeUsed"]
-            >= self.config[str(self.level)]["TotalTime"]
-            or self.player.storage["Audio"]["LastUseLength"]
-            >= self.config[str(self.level)]["MaxLength"]
+            self.player.storage["Audio"]["TimeUsed"] >= self.config[str(self.level)]["TotalTime"]
+            or self.player.storage["Audio"]["LastUseLength"] >= self.config[str(self.level)]["MaxLength"]
         ):
             self.Stop()

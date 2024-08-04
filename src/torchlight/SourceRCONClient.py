@@ -31,6 +31,7 @@ class SourceRCONClient:
     def send(self, data: bytes) -> Awaitable:
         return self.loop.sock_sendall(self._sock, data)
 
+    # @profile
     @asyncio.coroutine
     def _peer_loop(self) -> Generator:
         while True:
@@ -45,41 +46,26 @@ class SourceRCONClient:
                 self.ParsePacket(data[: p_size + 4])
                 data = data[p_size + 4 :]
 
+    # @profile
     def p_send(self, p_id: int, p_type: int, p_body: str) -> None:
-        data = (
-            struct.pack("<l", p_id)
-            + struct.pack("<l", p_type)
-            + p_body.encode("UTF-8")
-            + b"\x00\x00"
-        )
+        data = struct.pack("<l", p_id) + struct.pack("<l", p_type) + p_body.encode("UTF-8") + b"\x00\x00"
         self.send(struct.pack("<l", len(data)) + data)
 
+    # @profile
     def ParsePacket(self, data_raw: bytes) -> None:
         p_size, p_id, p_type = struct.unpack("<lll", data_raw[:12])
-        data: str = (
-            data_raw[12 : p_size + 2]
-            .decode(encoding="UTF-8", errors="ignore")
-            .split("\x00")[0]
-        )
+        data: str = data_raw[12 : p_size + 2].decode(encoding="UTF-8", errors="ignore").split("\x00")[0]
 
         if not self.authenticated:
             if p_type == 3:
                 if data == self.server_password:
                     self.authenticated = True
-                    self.logger.info(
-                        sys._getframe().f_code.co_name
-                        + f" Connection authenticated from {self.name}"
-                    )
+                    self.logger.info(sys._getframe().f_code.co_name + f" Connection authenticated from {self.name}")
                     self.p_send(p_id, 0, "")
                     self.p_send(p_id, 2, "")
-                    self.p_send(
-                        p_id, 0, "Welcome to torchlight! - Authenticated!\n"
-                    )
+                    self.p_send(p_id, 0, "Welcome to torchlight! - Authenticated!\n")
                 else:
-                    self.logger.info(
-                        sys._getframe().f_code.co_name
-                        + f" Connection denied from {self.name}"
-                    )
+                    self.logger.info(sys._getframe().f_code.co_name + f" Connection denied from {self.name}")
                     self.p_send(p_id, 0, "")
                     self.p_send(-1, 2, "")
                     self._sock.close()
@@ -87,9 +73,7 @@ class SourceRCONClient:
             if p_type == 2:
                 if data:
                     data = data.strip('"')
-                    self.logger.info(
-                        sys._getframe().f_code.co_name + f' Exec: "{data}"'
-                    )
+                    self.logger.info(sys._getframe().f_code.co_name + f' Exec: "{data}"')
                     player = Player(
                         0,
                         0,
@@ -114,7 +98,5 @@ class SourceRCONClient:
                             }
                         }
                     )
-                    asyncio.Task(
-                        self.command_handler.HandleCommand(data, player)
-                    )
+                    asyncio.Task(self.command_handler.HandleCommand(data, player))
                     # self.p_send(p_id, 0, self._server.torchlight.GetLine())

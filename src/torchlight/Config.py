@@ -14,9 +14,7 @@ class Config:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config_folder = os.path.abspath(config_folder)
         self.config_filename = config_filename
-        self.config_filepath = os.path.abspath(
-            os.path.join(config_folder, config_filename)
-        )
+        self.config_filepath = os.path.abspath(os.path.join(config_folder, config_filename))
         self.config: dict[str, Any] = {}
 
     def load(self) -> int:

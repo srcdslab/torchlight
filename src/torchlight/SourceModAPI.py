@@ -14,9 +14,8 @@ class SourceModAPI:
         # except AttributeError:
         return functools.partial(self._MakeCall, attr)
 
-    async def _MakeCall(
-        self, function: str, *args: Any, **kwargs: Any
-    ) -> dict[str, Any]:
+    # @profile
+    async def _MakeCall(self, function: str, *args: Any, **kwargs: Any) -> dict[str, Any]:
         json_obj = {"method": "function", "function": function, "args": args}
 
         res_raw = await self.async_client.Send(json_obj)

@@ -16,9 +16,7 @@ class TorchlightHandler:
     def __init__(self, loop: asyncio.AbstractEventLoop | None, config: Config):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
-        self.loop: asyncio.AbstractEventLoop = (
-            loop if loop else asyncio.get_event_loop()
-        )
+        self.loop: asyncio.AbstractEventLoop = loop if loop else asyncio.get_event_loop()
 
         self.Init()
 
@@ -29,31 +27,23 @@ class TorchlightHandler:
         await self.async_client.Connect()
 
         # Pre Hook for late load
-        await self.torchlight.game_events._Register(
-            ["player_connect", "player_activate"]
-        )
+        await self.torchlight.game_events._Register(["player_connect", "player_activate"])
         await self.torchlight.forwards._Register(["OnClientPostAdminCheck"])
 
         self.InitModules()
 
         # Late load
-        await self.torchlight.game_events.Replay(
-            ["player_connect", "player_activate"]
-        )
+        await self.torchlight.game_events.Replay(["player_connect", "player_activate"])
         await self.torchlight.forwards.Replay(["OnClientPostAdminCheck"])
 
     def Init(self) -> None:
         self.access_manager = AccessManager(self.config.config_folder)
         self.access_manager.Load()
 
-        self.trigger_manager = TriggerManager(
-            config_folder=self.config.config_folder, config=self.config
-        )
+        self.trigger_manager = TriggerManager(config_folder=self.config.config_folder, config=self.config)
         self.trigger_manager.Load()
 
-        self.sourcemod_config = SourcemodConfig(
-            config_folder=self.config.config_folder, config=self.config
-        )
+        self.sourcemod_config = SourcemodConfig(config_folder=self.config.config_folder, config=self.config)
         self.sourcemod_config.Load()
 
         self.async_client = AsyncClient(
@@ -88,9 +78,7 @@ class TorchlightHandler:
 
         self.command_handler.Setup()
 
-        self.torchlight.game_events.HookEx(
-            "server_spawn", self.Event_ServerSpawn
-        )
+        self.torchlight.game_events.HookEx("server_spawn", self.Event_ServerSpawn)
         self.torchlight.game_events.HookEx("player_say", self.Event_PlayerSay)
 
     def OnReload(self) -> None:
@@ -112,6 +100,7 @@ class TorchlightHandler:
         self.torchlight.disable_votes = set()
         self.torchlight.disabled = 0
 
+    # @profile
     def Event_PlayerSay(self, userid: int, text: str) -> None:
         if userid == 0:
             return

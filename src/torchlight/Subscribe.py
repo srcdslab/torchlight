@@ -44,7 +44,7 @@ class SubscribeBase:
         for i, ret in enumerate(res.get("events", [])):
             if ret >= 0:
                 ret_list.append(True)
-                if not events[i] in self.callbacks:
+                if events[i] not in self.callbacks:
                     self.callbacks[events[i]] = set()
             else:
                 ret_list.append(False)
@@ -52,7 +52,6 @@ class SubscribeBase:
         return ret_list
 
     async def _Unregister(self, events: list[str]) -> list[bool]:
-
         json_obj = {
             "method": "unsubscribe",
             "module": self.module,
@@ -130,7 +129,7 @@ class SubscribeBase:
     def OnPublish(self, json_obj: dict[str, Any]) -> bool:
         event = json_obj["event"]
 
-        if not event["name"] in self.callbacks:
+        if event["name"] not in self.callbacks:
             return False
 
         callbacks = self.callbacks[event["name"]]

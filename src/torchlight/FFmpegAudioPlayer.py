@@ -42,6 +42,7 @@ class FFmpegAudioPlayer:
         self.logger.debug("~FFmpegAudioPlayer()")
         self.Stop()
 
+    # @profile
     def PlayURI(self, uri: str, position: int | None, *args: Any) -> bool:
         if position is not None:
             pos_str = str(datetime.timedelta(seconds=position))
@@ -82,12 +83,13 @@ class FFmpegAudioPlayer:
                 "-",
             ]
 
-        print(command)
+        self.logger.debug(command)
 
         self.playing = True
         asyncio.ensure_future(self._stream_subprocess(command))
         return True
 
+    # @profile
     def Stop(self, force: bool = True) -> bool:
         if not self.playing:
             return False
@@ -97,7 +99,8 @@ class FFmpegAudioPlayer:
                 self.sub_process.terminate()
                 self.sub_process.kill()
                 self.sub_process = None
-            except ProcessLookupError:
+            except ProcessLookupError as exc:
+                self.logger.debug(exc)
                 pass
 
         if self.writer:
@@ -113,6 +116,15 @@ class FFmpegAudioPlayer:
                 self.writer.transport.abort()
 
             self.writer.close()
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    loop.create_task(self.writer.wait_closed())
+                else:
+                    loop.run_until_complete(self.writer.wait_closed())
+            except Exception as exc:
+                self.logger.warn(exc)
+                pass
 
         self.playing = False
 
@@ -121,6 +133,7 @@ class FFmpegAudioPlayer:
 
         return True
 
+    # @profile
     def AddCallback(self, cbtype: str, cbfunc: Callable) -> bool:
         if cbtype not in self.VALID_CALLBACKS:
             return False
@@ -128,14 +141,17 @@ class FFmpegAudioPlayer:
         self.callbacks.append((cbtype, cbfunc))
         return True
 
+    # @profile
     def Callback(self, cbtype: str, *args: Any, **kwargs: Any) -> None:
         for callback in self.callbacks:
             if callback[0] == cbtype:
                 try:
+                    self.logger.debug(f"{callback[1]}({args}, {kwargs}")
                     callback[1](*args, **kwargs)
                 except Exception:
                     self.logger.error(traceback.format_exc())
 
+    # @profile
     async def _updater(self) -> None:
         last_seconds_elapsed = 0.0
 
@@ -152,7 +168,7 @@ class FFmpegAudioPlayer:
 
             if seconds_elapsed >= self.seconds:
                 if not self.stopped_playing:
-                    print("BUFFER UNDERRUN!")
+                    self.logger.warn("BUFFER UNDERRUN!")
                 self.Stop(False)
                 return
 
@@ -160,35 +176,33 @@ class FFmpegAudioPlayer:
 
             await asyncio.sleep(0.1)
 
-    async def _read_stream(
-        self, stream: StreamReader | None, writer: StreamWriter
-    ) -> None:
+    # @profile
+    async def _read_stream(self, stream: StreamReader | None, writer: StreamWriter) -> None:
         started = False
 
         while stream and self.playing:
             data = await stream.read(65536)
-
-            if data:
-                writer.write(data)
-                await writer.drain()
-
-                bytes_len = len(data)
-                samples = bytes_len / SAMPLEBYTES
-                seconds = samples / self.sample_rate
-
-                self.seconds += seconds
-
-                if not started:
-                    started = True
-                    self.Callback("Play")
-                    self.started_playing = time.time()
-                    asyncio.ensure_future(self._updater())
-            else:
-                self.sub_process = None
+            if not data:
                 break
+
+            writer.write(data)
+            await writer.drain()
+
+            bytes_len = len(data)
+            samples = bytes_len / SAMPLEBYTES
+            seconds = samples / self.sample_rate
+
+            self.seconds += seconds
+
+            if not started:
+                started = True
+                self.Callback("Play")
+                self.started_playing = time.time()
+                asyncio.ensure_future(self._updater())
 
         self.stopped_playing = time.time()
 
+    # @profile
     async def _stream_subprocess(self, cmd: list[str]) -> None:
         if not self.playing:
             return
