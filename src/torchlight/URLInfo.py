@@ -16,6 +16,7 @@ from torchlight.Utils import Utils
 logger = logging.getLogger(__name__)
 
 
+# @profile
 async def get_url_data(url: str) -> tuple[bytes, str, int]:
     async with aiohttp.ClientSession() as session:
         resp = await asyncio.wait_for(session.get(url), 5)
@@ -32,39 +33,29 @@ async def get_url_data(url: str) -> tuple[bytes, str, int]:
     return content, content_type, content_length
 
 
-def get_page_metadata(
-    *, content: bytes, content_type: str, content_length: int
-) -> str:
+def get_page_metadata(*, content: bytes, content_type: str, content_length: int) -> str:
     metadata = ""
 
     if content_type and content_type.startswith("text"):
         if not content_type.startswith("text/plain"):
-            Soup = BeautifulSoup(
-                content.decode("utf-8", errors="ignore"), "lxml"
-            )
+            Soup = BeautifulSoup(content.decode("utf-8", errors="ignore"), "lxml")
             if Soup.title:
                 metadata = f"[URL] {Soup.title.string}"
     elif content_type and content_type.startswith("image"):
         fp = io.BytesIO(content)
         im = Image.open(fp)
-        metadata = "[IMAGE] {} | Width: {} | Height: {} | Size: {}".format(
-            im.format,
-            im.size[0],
-            im.size[1],
-            Utils.HumanSize(content_length),
+        metadata = (
+            f"[IMAGE] {im.format} | Width: {im.size[0]} | Height: {im.size[1]}"
+            f" | Size: {Utils.HumanSize(content_length)}"
         )
         fp.close()
     else:
         Filetype = magic.from_buffer(bytes(content))
-        metadata = "[FILE] {} | Size: {}".format(
-            Filetype, Utils.HumanSize(content_length)
-        )
+        metadata = f"[FILE] {Filetype} | Size: {Utils.HumanSize(content_length)}"
     return metadata
 
 
-def get_page_text(
-    *, content: bytes, content_type: str, content_length: int
-) -> str:
+def get_page_text(*, content: bytes, content_type: str, content_length: int) -> str:
     text = ""
 
     if content_type and content_type.startswith("text"):
@@ -86,6 +77,7 @@ async def print_url_metadata(url: str, callback: Callable) -> None:
         callback(metadata)
 
 
+# @profile
 async def get_url_text(url: str) -> str:
     content, content_type, content_length = await get_url_data(url=url)
     return get_page_text(
@@ -109,6 +101,7 @@ def get_url_real_time(url: str) -> int:
     return 0
 
 
+# @profile
 def get_url_youtube_info(url: str) -> dict:
     # https://github.com/ytdl-org/youtube-dl/blob/3e4cedf9e8cd3157df2457df7274d0c842421945/youtube_dl/YoutubeDL.py#L137-L312
     # https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/YoutubeDL.py#L192
@@ -127,6 +120,7 @@ def get_url_youtube_info(url: str) -> dict:
     return ydl.extract_info(url, download=False)
 
 
+# @profile
 def get_first_valid_entry(entries: list[Any]) -> dict[str, Any]:
     for entry in entries:
         input_url = f"https://youtube.com/watch?v={entry['id']}"

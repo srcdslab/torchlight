@@ -13,6 +13,7 @@ class FFmpegAudioPlayerFactory:
         self.logger.info("~FFmpegAudioPlayerFactory()")
         self.Quit()
 
+    # @profile
     def NewPlayer(self, torchlight: Torchlight) -> FFmpegAudioPlayer:
         self.logger.debug(sys._getframe().f_code.co_name)
         ffmpeg_audio_player = FFmpegAudioPlayer(torchlight)

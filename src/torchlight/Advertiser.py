@@ -24,10 +24,7 @@ class Advertiser:
             if not clip["timestamp"]:
                 continue
 
-            if (
-                clip["timestamp"] + clip["duration"] + self.config["MaxSpan"]
-                < now
-            ):
+            if clip["timestamp"] + clip["duration"] + self.config["MaxSpan"] < now:
                 if not clip["active"]:
                     del self.last_clips[key]
                 continue
@@ -36,14 +33,8 @@ class Advertiser:
 
         self.next_ad_stop -= delta
         ceil_duration = math.ceil(duration)
-        if (
-            ceil_duration > self.ad_stop
-            and self.next_ad_stop <= 0
-            and ceil_duration % self.config["AdStop"] == 0
-        ):
-            self.torchlight.SayChat(
-                "Hint: Type {darkred}!stop{default} to stop all currently playing sounds."
-            )
+        if ceil_duration > self.ad_stop and self.next_ad_stop <= 0 and ceil_duration % self.config["AdStop"] == 0:
+            self.torchlight.SayChat("Hint: Type {darkred}!stop{default} to stop all currently playing sounds.")
             self.ad_stop = ceil_duration
             self.next_ad_stop = 0
         elif ceil_duration < self.ad_stop:
@@ -83,9 +74,7 @@ class Advertiser:
 
         self.last_clips[hash(clip)]["dominant"] = False
 
-    def OnUpdate(
-        self, clip: AudioClip, old_position: int, new_position: int
-    ) -> None:
+    def OnUpdate(self, clip: AudioClip, old_position: int, new_position: int) -> None:
         delta = new_position - old_position
         last_clip = self.last_clips[hash(clip)]
 

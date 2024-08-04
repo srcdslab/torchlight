@@ -36,9 +36,7 @@ class SourcemodConfig:
         self.config = config
         self.config_folder = os.path.abspath(config_folder)
         self.config_filename = config_filename
-        self.config_filepath = os.path.abspath(
-            os.path.join(config_folder, config_filename)
-        )
+        self.config_filepath = os.path.abspath(os.path.join(config_folder, config_filename))
         self.sm_flags: OrderedDict = OrderedDict()
         self.sm_groups: list[SourcemodGroup] = []
 
@@ -49,6 +47,7 @@ class SourcemodConfig:
         except ValueError as e:
             self.logger.error(sys._getframe().f_code.co_name + " " + str(e))
             return 1
+        self.sm_groups.clear()
         for sm_group in self.config["SourcemodGroups"]:
             self.sm_groups.append(
                 SourcemodGroup(
@@ -66,9 +65,7 @@ class SourcemodConfig:
                 flags.append(sm_flag["value"])
         return flags
 
-    def get_sourcemod_groups_by_flags(
-        self, *, flagbits: int
-    ) -> list[SourcemodGroup]:
+    def get_sourcemod_groups_by_flags(self, *, flagbits: int) -> list[SourcemodGroup]:
         groups = []
         flags = self.flagbits_to_flags(flagbits=flagbits)
         for sm_group in self.sm_groups:
@@ -80,9 +77,7 @@ class SourcemodConfig:
                 groups.append(copy.deepcopy(sm_group))
         return groups
 
-    def get_highest_group_level(
-        self, *, sm_groups: list[SourcemodGroup]
-    ) -> (SourcemodGroup | None):
+    def get_highest_group_level(self, *, sm_groups: list[SourcemodGroup]) -> SourcemodGroup | None:
         highest_group: SourcemodGroup | None = None
         for sm_group in sm_groups:
             if highest_group is None or sm_group.level > highest_group.level:

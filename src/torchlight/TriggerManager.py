@@ -17,14 +17,10 @@ class TriggerManager:
         self.config = config
         self.config_folder = os.path.abspath(config_folder)
         self.config_filename = config_filename
-        self.config_filepath = os.path.abspath(
-            os.path.join(config_folder, config_filename)
-        )
+        self.config_filepath = os.path.abspath(os.path.join(config_folder, config_filename))
         self.triggers_dict: OrderedDict = OrderedDict()
         self.voice_triggers: dict[str, str | list[str]] = {}
-        self.sound_path = self.config.config.get("Sounds", {}).get(
-            "Path", "sounds"
-        )
+        self.sound_path = self.config.config.get("Sounds", {}).get("Path", "sounds")
 
     def Load(self) -> None:
         self.logger.info(f"Loading triggers from {self.config_filepath}")
@@ -43,10 +39,6 @@ class TriggerManager:
                         sounds.extend(config_sounds)
 
                     for sound in sounds:
-                        sound_path = os.path.abspath(
-                            os.path.join(self.sound_path, sound)
-                        )
+                        sound_path = os.path.abspath(os.path.join(self.sound_path, sound))
                         if not os.path.exists(sound_path):
-                            self.logger.warn(
-                                f"Sound path {sound_path} does not exist"
-                            )
+                            self.logger.warn(f"Sound path {sound_path} does not exist")

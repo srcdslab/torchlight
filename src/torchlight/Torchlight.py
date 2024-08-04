@@ -55,12 +55,14 @@ class Torchlight:
                 except Exception:
                     self.logger.error(traceback.format_exc())
 
+    # @profile
     def OnPublish(self, obj: dict[str, str]) -> None:
         if obj["module"] == "gameevents":
             self.game_events.OnPublish(obj)
         elif obj["module"] == "forwards":
             self.forwards.OnPublish(obj)
 
+    # @profile
     def SayChat(self, message: str, player: Player | None = None) -> None:
         message = f"{{darkblue}}[Torchlight]: {{default}}{message}"
         if len(message) > 976:
@@ -79,15 +81,14 @@ class Torchlight:
                 else:
                     player.chat_cooldown = self.loop.time() + cooldown
 
+    # @profile
     def SayPrivate(self, player: Player, message: str) -> None:
         message = f"{{darkblue}}[Torchlight]: {{default}}{message}"
         if len(message) > 976:
             message = message[:973] + "..."
         lines = textwrap.wrap(message, 244, break_long_words=True)
         for line in lines:
-            asyncio.ensure_future(
-                self.sourcemod_api.CPrintToChat(player.index, line)
-            )
+            asyncio.ensure_future(self.sourcemod_api.CPrintToChat(player.index, line))
 
     def __del__(self) -> None:
         self.logger.debug("~Torchlight()")

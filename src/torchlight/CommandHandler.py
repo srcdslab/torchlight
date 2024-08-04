@@ -35,10 +35,7 @@ class CommandHandler:
         counter = len(self.commands)
         self.commands.clear()
         if counter:
-            self.logger.info(
-                sys._getframe().f_code.co_name
-                + f" Unloaded {counter} commands!"
-            )
+            self.logger.info(sys._getframe().f_code.co_name + f" Unloaded {counter} commands!")
 
         counter = 0
         subklasses: list[type[Any]] = []
@@ -61,9 +58,7 @@ class CommandHandler:
                 self.commands.append(command)
                 counter += 1
 
-        self.logger.info(
-            sys._getframe().f_code.co_name + f" Loaded {counter} commands!"
-        )
+        self.logger.info(sys._getframe().f_code.co_name + f" Loaded {counter} commands!")
 
     def Reload(self) -> None:
         from . import Commands
@@ -75,6 +70,7 @@ class CommandHandler:
         else:
             self.Setup()
 
+    # @profile
     async def HandleCommand(self, line: str, player: Player) -> int | None:
         message = line.split(sep=" ", maxsplit=1)
         if len(message) < 2:
@@ -87,7 +83,10 @@ class CommandHandler:
 
         level = player.admin.level
 
-        self.logger.debug(f"Command: {message}")
+        if not message[0].startswith("!"):
+            return None
+
+        self.logger.info(f"{player.name}: {message}")
         ret_message: str | None = None
         ret: int | None = None
         for command in self.commands:
@@ -97,30 +96,22 @@ class CommandHandler:
                 self.logger.debug(type(trigger))
                 self.logger.debug(f"Trigger: {trigger}")
                 if isinstance(trigger, tuple):
-                    if message[0].lower().startswith(trigger[0], 0, trigger[1]):
-                        is_match = True
+                    is_match = message[0].lower().startswith(trigger[0], 0, trigger[1])
                 elif isinstance(trigger, str):
-                    if message[0].lower() == trigger.lower():
-                        is_match = True
+                    is_match = message[0].lower() == trigger.lower()
                 else:  # compiled regex
-                    r_match = trigger.search(line)
-                    if r_match:
-                        is_match = True
+                    is_match = trigger.search(line) is not None
 
                 if not is_match:
                     continue
 
                 self.logger.debug(
                     sys._getframe().f_code.co_name
-                    + ' "{}" Match -> {} | {}'.format(
-                        player.name, command.__class__.__name__, trigger
-                    )
+                    + f' "{player.name}" Match -> {command.__class__.__name__} | {trigger}'
                 )
 
                 if level < command.level:
-                    ret_message = "You do not have access to this command! (You: {} | Required: {})".format(
-                        level, command.level
-                    )
+                    ret_message = f"You do not have access to this command! (You: {level} | Required: {command.level})"
                     continue
 
                 try:

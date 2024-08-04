@@ -56,8 +56,10 @@ class Utils:
     @staticmethod
     def HumanSize(size_bytes: int) -> str:
         """
-        format a size in bytes into a 'human' file size, e.g. bytes, KB, MB, GB, TB, PB
-        Note that bytes/KB will be reported in whole numbers but MB and above will have greater precision
+        format a size in bytes into a 'human' file size
+        e.g. bytes, KB, MB, GB, TB, PB
+        Note that bytes/KB will be reported in whole numbers but MB and above
+        will have greater precision
         e.g. 1 byte, 43 bytes, 443 KB, 4.3 MB, 4.43 GB, etc
         """
         if size_bytes == 1:

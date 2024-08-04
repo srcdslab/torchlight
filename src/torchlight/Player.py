@@ -50,17 +50,13 @@ class Player:
         sourcemod_config: SourcemodConfig,
     ) -> None:
         self.admin.flag_bits = flag_bits
-        self.admin.groups = sourcemod_config.get_sourcemod_groups_by_flags(
-            flagbits=flag_bits
-        )
+        self.admin.groups = sourcemod_config.get_sourcemod_groups_by_flags(flagbits=flag_bits)
 
         self.logger.info(
             f'#{self.user_id} "{self.name}"({self.unique_id}) FlagBits: {flag_bits} Groups: {self.admin.groups}'
         )
 
-        group = sourcemod_config.get_highest_group_level(
-            sm_groups=self.admin.groups
-        )
+        group = sourcemod_config.get_highest_group_level(sm_groups=self.admin.groups)
         if group is not None and group.level > self.admin.level:
             self.admin.level = group.level
 

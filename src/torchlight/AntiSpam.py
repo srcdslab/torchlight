@@ -23,11 +23,10 @@ class AntiSpam:
             and self.disabled_time > self.torchlight.loop.time()
             and player.admin.level < self.config["ImmunityLevel"]
         ):
+            cooldown = math.ceil(self.disabled_time - self.torchlight.loop.time())
             self.torchlight.SayPrivate(
                 player,
-                "Torchlight is currently on cooldown! ({} seconds left)".format(
-                    math.ceil(self.disabled_time - self.torchlight.loop.time())
-                ),
+                f"Torchlight is currently on cooldown! ({cooldown} seconds left)",
             )
             return False
 
@@ -41,12 +40,7 @@ class AntiSpam:
             if not last_clip["timestamp"]:
                 continue
 
-            if (
-                last_clip["timestamp"]
-                + last_clip["duration"]
-                + self.config["MaxUsageSpan"]
-                < now
-            ):
+            if last_clip["timestamp"] + last_clip["duration"] + self.config["MaxUsageSpan"] < now:
                 if not last_clip["active"]:
                     del self.last_clips[key]
                 continue
@@ -54,9 +48,7 @@ class AntiSpam:
             duration += last_clip["duration"]
 
         if duration > self.config["MaxUsageTime"]:
-            self.disabled_time = (
-                self.torchlight.loop.time() + self.config["PunishDelay"]
-            )
+            self.disabled_time = self.torchlight.loop.time() + self.config["PunishDelay"]
             self.torchlight.SayChat(
                 "Blocked voice commands for the next {} seconds. Used {} seconds within {} seconds.".format(
                     self.config["PunishDelay"],
