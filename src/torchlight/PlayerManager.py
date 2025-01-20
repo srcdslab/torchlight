@@ -154,7 +154,7 @@ class PlayerManager:
                 player.OnDisconnect("mapchange")
                 admin_override = self.access_manager.get_admin(unique_id=player.unique_id)
                 if admin_override is not None:
-                    self.logger.info(f"{player.unique_id}: overriding admin" f" with {admin_override}")
+                    self.logger.info(f"{player.unique_id}: overriding admin with {admin_override}")
                     player.admin = admin_override
                 player.OnConnect()
                 self.audio_storage[player.unique_id] = player.storage
