@@ -28,6 +28,7 @@ class FFmpegAudioPlayer:
         self.host = self.config["Host"]
         self.port = self.config["Port"]
         self.sample_rate = float(self.config["SampleRate"])
+        self.volume = float(self.config["Volume"])
 
         self.started_playing: float | None = None
         self.stopped_playing: float | None = None
@@ -58,6 +59,8 @@ class FFmpegAudioPlayer:
                 "1",
                 "-ar",
                 str(int(self.sample_rate)),
+                "-filter:a",
+                f"volume={str(float(self.volume))}",
                 "-f",
                 "s16le",
                 "-vn",
@@ -76,6 +79,8 @@ class FFmpegAudioPlayer:
                 "1",
                 "-ar",
                 str(int(self.sample_rate)),
+                "-filter:a",
+                f"volume={str(float(self.volume))}",
                 "-f",
                 "s16le",
                 "-vn",

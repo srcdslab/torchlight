@@ -28,7 +28,8 @@
 	{
 		"Host": "127.0.0.1",
 		"Port": 27019,
-		"SampleRate": 22050
+		"SampleRate": 22050,
+		"Volume": 1.0
 	},
 
 	"GeoIP":
