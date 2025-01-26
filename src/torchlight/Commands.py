@@ -752,6 +752,8 @@ class YouTubeSearch(BaseCommand):
         if self.check_disabled(player):
             return -1
 
+        command_config = self.get_config()
+
         input_keywords = message[1]
         if URLFilter.youtube_regex.search(input_keywords):
             input_url = input_keywords
@@ -760,8 +762,11 @@ class YouTubeSearch(BaseCommand):
 
         real_time = get_url_real_time(url=input_url)
 
+        if "parameters" in command_config and "proxy" in command_config["parameters"]:
+            proxy = command_config["parameters"]["proxy"]
+
         try:
-            info = get_url_youtube_info(url=input_url)
+            info = get_url_youtube_info(url=input_url, proxy=proxy)
         except Exception as e:
             self.logger.error(f"Failed to extract youtube info from: {input_url}")
             self.logger.error(e)
@@ -772,16 +777,15 @@ class YouTubeSearch(BaseCommand):
             return 1
 
         if "title" not in info and "url" in info:
-            info = get_url_youtube_info(url=info["url"])
+            info = get_url_youtube_info(url=info["url"], proxy=proxy)
         if info["extractor_key"] == "YoutubeSearch":
-            info = get_first_valid_entry(entries=info["entries"])
+            info = get_first_valid_entry(entries=info["entries"], proxy=proxy)
 
         title = info["title"]
         url = get_audio_format(info=info)
         title_words = title.split()
         keywords_banned: list[str] = []
 
-        command_config = self.get_config()
         if "parameters" in command_config and "keywords_banned" in command_config["parameters"]:
             keywords_banned = command_config["parameters"]["keywords_banned"]
 

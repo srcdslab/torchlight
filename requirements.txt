@@ -58,5 +58,5 @@ urllib3==2.1.0
     # via requests
 yarl==1.9.4
     # via aiohttp
-yt-dlp @ git+https://github.com/yt-dlp/yt-dlp@af2c821d74049b519895288aca23cee81fc4b049#egg=yt-dlp
+yt-dlp @ git+https://github.com/yt-dlp/yt-dlp@5ff7a43623e3a92270f66a7e37b5fc53d7a57fdf#egg=yt-dlp
     # via torchlight (pyproject.toml)

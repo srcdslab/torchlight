@@ -29,7 +29,8 @@
 		"Host": "127.0.0.1",
 		"Port": 27019,
 		"SampleRate": 22050,
-		"Volume": 1.0
+		"Volume": 1.0,
+		"Proxy": ""
 	},
 
 	"GeoIP":
@@ -222,6 +223,7 @@
 				}
 			],
 			"parameters": {
+				"proxy": "",
 				"keywords_banned": [
 					"earrape",
 					"rape",

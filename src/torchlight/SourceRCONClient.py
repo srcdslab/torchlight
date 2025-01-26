@@ -3,7 +3,7 @@ import logging
 import socket
 import struct
 import sys
-from collections.abc import Awaitable, Generator
+from collections.abc import Awaitable
 from typing import Any
 
 from torchlight.CommandHandler import CommandHandler
@@ -32,10 +32,9 @@ class SourceRCONClient:
         return self.loop.sock_sendall(self._sock, data)
 
     # @profile
-    @asyncio.coroutine
-    def _peer_loop(self) -> Generator:
+    async def _peer_loop(self) -> None:
         while True:
-            data = yield from self.loop.sock_recv(self._sock, 1024)
+            data = await self.loop.sock_recv(self._sock, 1024)
             if data == b"":
                 break
 

@@ -29,13 +29,15 @@ class FFmpegAudioPlayer:
         self.port = self.config["Port"]
         self.sample_rate = float(self.config["SampleRate"])
         self.volume = float(self.config["Volume"])
+        self.proxy = self.config["Proxy"]
 
         self.started_playing: float | None = None
         self.stopped_playing: float | None = None
         self.seconds = 0.0
 
         self.writer: StreamWriter | None = None
-        self.sub_process: Process | None = None
+        self.ffmpeg_process: Process | None = None
+        self.curl_process: Process | None = None
 
         self.callbacks: list[tuple[str, Callable]] = []
 
@@ -45,53 +47,48 @@ class FFmpegAudioPlayer:
 
     # @profile
     def PlayURI(self, uri: str, position: int | None, *args: Any) -> bool:
+        curl_command = ["/usr/bin/curl", "-L", uri]
+        if self.proxy:
+            curl_command.extend(
+                [
+                    "-x",
+                    self.proxy,
+                ]
+            )
+        ffmpeg_command = [
+            "/usr/bin/ffmpeg",
+            "-i",
+            "pipe:0",
+            "-acodec",
+            "pcm_s16le",
+            "-ac",
+            "1",
+            "-ar",
+            str(int(self.sample_rate)),
+            "-filter:a",
+            f"volume={str(float(self.volume))}",
+            "-f",
+            "s16le",
+            "-vn",
+            *args,
+            "-",
+        ]
+
         if position is not None:
             pos_str = str(datetime.timedelta(seconds=position))
-            command = [
-                "/usr/bin/ffmpeg",
-                "-ss",
-                pos_str,
-                "-i",
-                uri,
-                "-acodec",
-                "pcm_s16le",
-                "-ac",
-                "1",
-                "-ar",
-                str(int(self.sample_rate)),
-                "-filter:a",
-                f"volume={str(float(self.volume))}",
-                "-f",
-                "s16le",
-                "-vn",
-                *args,
-                "-",
-            ]
+            ffmpeg_command.extend(
+                [
+                    "-ss",
+                    pos_str,
+                ]
+            )
             self.position = position
-        else:
-            command = [
-                "/usr/bin/ffmpeg",
-                "-i",
-                uri,
-                "-acodec",
-                "pcm_s16le",
-                "-ac",
-                "1",
-                "-ar",
-                str(int(self.sample_rate)),
-                "-filter:a",
-                f"volume={str(float(self.volume))}",
-                "-f",
-                "s16le",
-                "-vn",
-                *args,
-                "-",
-            ]
 
-        self.logger.debug(command)
+        self.logger.debug(curl_command)
+        self.logger.debug(ffmpeg_command)
 
         self.playing = True
-        asyncio.ensure_future(self._stream_subprocess(command))
+        asyncio.ensure_future(self._stream_subprocess(curl_command, ffmpeg_command))
         return True
 
     # @profile
@@ -99,11 +96,20 @@ class FFmpegAudioPlayer:
         if not self.playing:
             return False
 
-        if self.sub_process:
+        if self.ffmpeg_process:
             try:
-                self.sub_process.terminate()
-                self.sub_process.kill()
-                self.sub_process = None
+                self.ffmpeg_process.terminate()
+                self.ffmpeg_process.kill()
+                self.ffmpeg_process = None
+            except ProcessLookupError as exc:
+                self.logger.debug(exc)
+                pass
+
+        if self.curl_process:
+            try:
+                self.curl_process.terminate()
+                self.curl_process.kill()
+                self.curl_process = None
             except ProcessLookupError as exc:
                 self.logger.debug(exc)
                 pass
@@ -128,7 +134,7 @@ class FFmpegAudioPlayer:
                 else:
                     loop.run_until_complete(self.writer.wait_closed())
             except Exception as exc:
-                self.logger.warn(exc)
+                self.logger.warning(exc)
                 pass
 
         self.playing = False
@@ -173,7 +179,7 @@ class FFmpegAudioPlayer:
 
             if seconds_elapsed >= self.seconds:
                 if not self.stopped_playing:
-                    self.logger.warn("BUFFER UNDERRUN!")
+                    self.logger.debug("BUFFER UNDERRUN!")
                 self.Stop(False)
                 return
 
@@ -208,21 +214,55 @@ class FFmpegAudioPlayer:
         self.stopped_playing = time.time()
 
     # @profile
-    async def _stream_subprocess(self, cmd: list[str]) -> None:
+    async def _stream_subprocess(self, curl_command: list[str], ffmpeg_command: list[str]) -> None:
         if not self.playing:
             return
 
         _, self.writer = await asyncio.open_connection(self.host, self.port)
 
-        self.sub_process = await asyncio.create_subprocess_exec(
-            *cmd,
+        self.ffmpeg_process = await asyncio.create_subprocess_exec(
+            *ffmpeg_command,
+            stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.PIPE,
         )
 
-        await self._read_stream(self.sub_process.stdout, self.writer)
-        if self.sub_process is not None:
-            await self.sub_process.wait()
+        self.curl_process = await asyncio.create_subprocess_exec(
+            *curl_command,
+            stdout=asyncio.subprocess.PIPE,
+        )
+
+        asyncio.create_task(self._wait_for_process_exit(self.curl_process))
+
+        asyncio.create_task(self._write_stream(self.curl_process.stdout, self.ffmpeg_process.stdin))
+
+        await self._read_stream(self.ffmpeg_process.stdout, self.writer)
+
+        if self.ffmpeg_process is not None:
+            if self.ffmpeg_process.stdin:
+                self.ffmpeg_process.stdin.close()
+            await self.ffmpeg_process.wait()
+
+        self.writer.close()
+        await self.writer.wait_closed()
 
         if self.seconds == 0.0:
+            self.Stop()
+
+    async def _write_stream(self, stream: StreamReader | None, writer: StreamWriter | None) -> None:
+        while True:
+            if not stream:
+                break
+            chunk = await stream.read(65536)
+            if not chunk:
+                break
+
+            if writer:
+                writer.write(chunk)
+                await writer.drain()
+
+    async def _wait_for_process_exit(self, curl_process: Process) -> None:
+        await curl_process.wait()
+        if curl_process.returncode != 0:
+            self.logger.error(f"Curl process exited with error code {curl_process.returncode}")
             self.Stop()
