@@ -41,11 +41,9 @@ version = {file = "VERSION"}
 
 [project.optional-dependencies]
 dev = [
-    "ruff",
     "memory_profiler",
     "mypy",
-    "pip-tools",
-    "pyupgrade",
+    "ruff",
 ]
 
 [tool.mypy]

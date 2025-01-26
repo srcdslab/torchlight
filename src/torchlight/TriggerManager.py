@@ -41,4 +41,4 @@ class TriggerManager:
                     for sound in sounds:
                         sound_path = os.path.abspath(os.path.join(self.sound_path, sound))
                         if not os.path.exists(sound_path):
-                            self.logger.warn(f"Sound path {sound_path} does not exist")
+                            self.logger.warning(f"Sound path {sound_path} does not exist")

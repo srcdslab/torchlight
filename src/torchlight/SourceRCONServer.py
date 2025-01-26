@@ -2,7 +2,6 @@ import asyncio
 import logging
 import socket
 import sys
-from collections.abc import Generator
 from typing import Any
 
 from torchlight.SourceRCONClient import SourceRCONClient
@@ -27,12 +26,11 @@ class SourceRCONServer:
         self.logger.info(sys._getframe().f_code.co_name + f" Peer {peer.name} disconnected!")
         self.peers.remove(peer)
 
-    @asyncio.coroutine
-    def _server(self) -> Generator:
+    async def _server(self) -> None:
         while True:
             peer_socket: socket.socket
             peer_name: Any
-            peer_socket, peer_name = yield from self.loop.sock_accept(self._serv_sock)
+            peer_socket, peer_name = await self.loop.sock_accept(self._serv_sock)
             peer_socket.setblocking(False)
             peer = SourceRCONClient(
                 self.loop,
@@ -45,10 +43,9 @@ class SourceRCONServer:
             self.peers.append(peer)
             self.logger.info(sys._getframe().f_code.co_name + f" Peer {peer.name} connected!")
 
-    @asyncio.coroutine
-    def _peer_handler(self, peer: SourceRCONClient) -> Generator:
+    async def _peer_handler(self, peer: SourceRCONClient) -> None:
         try:
-            yield from peer._peer_loop()
+            await peer._peer_loop()
         except OSError:
             pass
         finally:

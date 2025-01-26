@@ -32,7 +32,7 @@ class AsyncClient:
     # @profile
     async def Connect(self) -> None:
         while True:
-            self.logger.warn("Reconnecting...")
+            self.logger.warning("Reconnecting...")
             try:
                 _, self.protocol = await self.loop.create_connection(
                     lambda: ClientProtocol(self.loop),
@@ -64,7 +64,7 @@ class AsyncClient:
         try:
             json_obj = json.loads(data)
         except Exception:
-            self.logger.warn("OnReceive: Unable to decode data as json, skipping")
+            self.logger.warning("OnReceive: Unable to decode data as json, skipping")
             return
 
         if "method" in json_obj and json_obj["method"] == "publish":

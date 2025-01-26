@@ -17,8 +17,6 @@ beautifulsoup4==4.12.3
     # via
     #   -c requirements.txt
     #   torchlight (pyproject.toml)
-build==1.0.3
-    # via pip-tools
 certifi==2023.11.17
     # via
     #   -c requirements.txt
@@ -32,7 +30,6 @@ click==8.1.7
     #   -c requirements.txt
     #   torchlight (pyproject.toml)
     #   gtts
-    #   pip-tools
 defusedxml==0.7.1
     # via
     #   -c requirements.txt
@@ -74,26 +71,16 @@ mypy==1.8.0
     # via torchlight (pyproject.toml)
 mypy-extensions==1.0.0
     # via mypy
-packaging==23.2
-    # via build
 pillow==10.2.0
     # via
     #   -c requirements.txt
     #   torchlight (pyproject.toml)
-pip==24.3.1
-    # via pip-tools
-pip-tools==7.3.0
-    # via torchlight (pyproject.toml)
 psutil==6.1.1
     # via memory-profiler
-pyproject-hooks==1.0.0
-    # via build
 python-magic==0.4.27
     # via
     #   -c requirements.txt
     #   torchlight (pyproject.toml)
-pyupgrade==3.15.0
-    # via torchlight (pyproject.toml)
 requests==2.32.3
     # via
     #   -c requirements.txt
@@ -106,26 +93,21 @@ setuptools==75.8.0
     #   -c requirements.txt
     #   geoip2
     #   maxminddb
-    #   pip-tools
 soupsieve==2.5
     # via
     #   -c requirements.txt
     #   beautifulsoup4
-tokenize-rt==5.2.0
-    # via pyupgrade
 typing-extensions==4.9.0
     # via mypy
 urllib3==2.1.0
     # via
     #   -c requirements.txt
     #   requests
-wheel==0.42.0
-    # via pip-tools
 yarl==1.9.4
     # via
     #   -c requirements.txt
     #   aiohttp
-yt-dlp @ git+https://github.com/yt-dlp/yt-dlp@af2c821d74049b519895288aca23cee81fc4b049#egg=yt-dlp
+yt-dlp @ git+https://github.com/yt-dlp/yt-dlp@5ff7a43623e3a92270f66a7e37b5fc53d7a57fdf#egg=yt-dlp
     # via
     #   -c requirements.txt
     #   torchlight (pyproject.toml)
