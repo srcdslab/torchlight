@@ -83,6 +83,9 @@ class Torchlight:
 
     # @profile
     def SayPrivate(self, player: Player, message: str) -> None:
+        if player.index == 0:
+            return
+
         message = f"{{darkblue}}[Torchlight]: {{default}}{message}"
         if len(message) > 976:
             message = message[:973] + "..."
