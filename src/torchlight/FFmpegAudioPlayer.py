@@ -262,7 +262,6 @@ class FFmpegAudioPlayer:
             self.curl_process = await asyncio.create_subprocess_exec(
                 *curl_command,
                 stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.DEVNULL,
             )
 
             self.ffmpeg_process = await asyncio.create_subprocess_exec(
