@@ -8,6 +8,7 @@ import secrets
 import sys
 import tempfile
 import traceback
+from pathlib import Path
 from re import Match, Pattern
 from typing import Any
 
@@ -624,7 +625,7 @@ class VoiceTrigger(BaseCommand):
                 sound,
             )
         )
-        audio_clip = self.audio_manager.AudioClip(player, "file://" + sound_path)
+        audio_clip = self.audio_manager.AudioClip(player, Path(sound_path).absolute().as_uri())
         if not audio_clip:
             return 1
 
@@ -883,7 +884,7 @@ class Say(BaseCommand):
         google_text_to_speech.write_to_fp(temp_file)
         temp_file.close()
 
-        audio_clip = self.audio_manager.AudioClip(player, "file://" + temp_file.name)
+        audio_clip = self.audio_manager.AudioClip(player, Path(temp_file.name).absolute().as_uri())
         if not audio_clip:
             os.unlink(temp_file.name)
             return 1
@@ -947,7 +948,7 @@ class DECTalk(BaseCommand):
         )
         await subprocess.communicate(message.encode("utf-8", errors="ignore"))
 
-        audio_clip = self.audio_manager.AudioClip(player, "file://" + temp_file.name)
+        audio_clip = self.audio_manager.AudioClip(player, Path(temp_file.name).absolute().as_uri())
         if not audio_clip:
             os.unlink(temp_file.name)
             return 1
