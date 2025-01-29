@@ -114,8 +114,9 @@ def get_url_youtube_info(url: str, proxy: str = "") -> dict:
         "format": "m4a/bestaudio/best",
         "simulate": True,
         "keepvideo": False,
-        "proxy": proxy,
     }
+    if proxy:
+        ydl_opts["proxy"] = proxy
     ydl = yt_dlp.YoutubeDL(ydl_opts)
     ydl.add_default_info_extractors()
     return ydl.extract_info(url, download=False)

@@ -762,14 +762,13 @@ class YouTubeSearch(BaseCommand):
 
         real_time = get_url_real_time(url=input_url)
 
-        if "parameters" in command_config and "proxy" in command_config["parameters"]:
-            proxy = command_config["parameters"]["proxy"]
+        proxy = command_config.get("parameters", {}).get("proxy", "")
 
         try:
             info = get_url_youtube_info(url=input_url, proxy=proxy)
-        except Exception as e:
+        except Exception as exc:
             self.logger.error(f"Failed to extract youtube info from: {input_url}")
-            self.logger.error(e)
+            self.logger.error(exc)
             self.torchlight.SayPrivate(
                 player,
                 "An error as occured while trying to retrieve youtube metadata.",
