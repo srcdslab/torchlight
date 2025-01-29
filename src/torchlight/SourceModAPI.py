@@ -24,7 +24,7 @@ class SourceModAPI:
         if isinstance(res_raw, dict):
             res = res_raw
 
-        if res["error"]:
+        if "error" in res and res["error"]:
             raise Exception("{}({})\n{}".format(function, args, res["error"]))
 
         return res

@@ -5,7 +5,7 @@ from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
 from torchlight.Constants import Clients
 from torchlight.Player import Player
-from torchlight.Sourcemod import SourcemodConfig
+from torchlight.Sourcemod import SourcemodAdmin, SourcemodConfig
 from torchlight.Torchlight import Torchlight
 
 
@@ -176,3 +176,31 @@ class PlayerManager:
             if player and player.name == name:
                 return player
         return None
+
+    @staticmethod
+    def create_console_player() -> Player:
+        player = Player(
+            0,
+            0,
+            "[CONSOLE]",
+            "127.0.0.1",
+            "CONSOLE",
+        )
+        player.admin = SourcemodAdmin(
+            name="CONSOLE",
+            unique_id=player.unique_id,
+            level=100,
+            flag_bits=0,
+            groups=[],
+        )
+        player.storage = dict(
+            {
+                "Audio": {
+                    "Uses": 0,
+                    "LastUse": 0.0,
+                    "LastUseLength": 0.0,
+                    "TimeUsed": 0.0,
+                }
+            }
+        )
+        return player

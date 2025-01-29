@@ -7,8 +7,7 @@ from collections.abc import Awaitable
 from typing import Any
 
 from torchlight.CommandHandler import CommandHandler
-from torchlight.Player import Player
-from torchlight.Sourcemod import SourcemodAdmin
+from torchlight.PlayerManager import PlayerManager
 
 
 class SourceRCONClient:
@@ -73,29 +72,7 @@ class SourceRCONClient:
                 if data:
                     data = data.strip('"')
                     self.logger.info(sys._getframe().f_code.co_name + f' Exec: "{data}"')
-                    player = Player(
-                        0,
-                        0,
-                        "[CONSOLE]",
-                        "127.0.0.1",
-                        "CONSOLE",
-                    )
-                    player.admin = SourcemodAdmin(
-                        name="CONSOLE",
-                        unique_id=player.unique_id,
-                        level=100,
-                        flag_bits=0,
-                        groups=[],
-                    )
-                    player.storage = dict(
-                        {
-                            "Audio": {
-                                "Uses": 0,
-                                "LastUse": 0.0,
-                                "LastUseLength": 0.0,
-                                "TimeUsed": 0.0,
-                            }
-                        }
-                    )
+
+                    player = PlayerManager.create_console_player()
                     asyncio.Task(self.command_handler.HandleCommand(data, player))
                     # self.p_send(p_id, 0, self._server.torchlight.GetLine())
