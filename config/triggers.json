@@ -1,4 +1,8 @@
 [
-	{"names": ["!tuturu"],							"sound": "Tutturuu_v1.wav"},
-	{"names": ["!tuturulist"],						"sound": ["Tutturuu_v1.wav", "Tutturuu_v1.wav"]}
+    {"names": ["!tuturu"],                "sound": "Tutturuu_v1.wav"},
+    {"names": ["!tuturulist"],            "sound": ["Tutturuu_v1.wav", "Tutturuu_v1.wav"]},
+    {
+        "names": ["!china"],
+        "sound": ["china1.mp3", "china2.mp3"]
+    }
 ]
