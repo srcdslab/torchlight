@@ -41,7 +41,7 @@
 
 	"DECTalk":
 	{
-		"Path": "dectalk",
+		"Path": "/opt/dectalk",
 		"SayFilename": "say"
 	},
 
