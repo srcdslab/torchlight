@@ -105,7 +105,7 @@ inside your JSON configuration.
    ```json
    {
      "Sounds": {
-       "Path"        "Sounds"
+       "Path"        "Sounds",
        "CookieFile": "config/cookies.txt"
      }
    }
