@@ -53,6 +53,7 @@ class BaseCommand:
         self.trigger_manager = trigger_manager
         self.triggers: list[tuple[str, int] | str | Pattern] = []
         self.level = 0
+        self.random_trigger_name: str | None = None
 
         self.init_command()
 
@@ -629,6 +630,9 @@ class VoiceTrigger(BaseCommand):
         if not audio_clip:
             return 1
 
+        if self.random_trigger_name:
+            self.torchlight.SayChat(f"Now playing {{olive}}{self.random_trigger_name}")
+
         return audio_clip.Play()
 
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
@@ -706,7 +710,10 @@ class VoiceTrigger(BaseCommand):
 
 class Random(VoiceTrigger):
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
-        trigger = secrets.choice(list(self.trigger_manager.voice_triggers.values()))
+        trigger_name, trigger = secrets.choice(list(self.trigger_manager.voice_triggers.items()))
+
+        self.random_trigger_name = trigger_name
+
         if isinstance(trigger, list):
             return secrets.choice(trigger)
         return trigger
