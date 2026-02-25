@@ -65,6 +65,72 @@ You can find more information about available commands with
 torchlight --help
 ```
 
+## YouTube Cookies
+
+In some environments (VPS, dedicated servers, VPN/WARP containers), YouTube search may fail due to rate limits or bot protection.  
+Providing a valid YouTube cookie file can resolve this issue.
+
+Configure the cookie file in:
+
+`Sounds > CookieFile`
+
+inside your JSON configuration.
+
+---
+
+### How to Get YouTube Cookies
+
+1. Install a browser extension that exports cookies in **Netscape format (`cookies.txt`)**
+   - Chrome: **Get cookies.txt LOCALLY**
+   - Firefox: **cookies.txt**
+
+2. Open https://youtube.com and make sure you are logged in.
+
+3. Use the extension to export cookies for `youtube.com`.
+
+4. Save the file as:
+
+   ```
+   cookies.txt
+   ```
+
+5. Upload it to your server (example):
+
+   ```
+   /app/config/cookies.txt
+   ```
+
+6. Set the path in your configuration:
+
+   ```json
+   {
+     "Sounds": {
+       "Path"        "Sounds"
+       "CookieFile": "config/cookies.txt"
+     }
+   }
+   ```
+
+7. Restart the container after updating the configuration.
+
+8. It's prefered to use **Cloudflare WARP** (recommended for VPS environments), you can run it using:  
+   https://github.com/cmj2002/warp-docker  
+
+   Then configure Torchlight to use the WARP container's network:
+
+   ```yaml
+   network_mode: "container:warp"
+   ```
+
+   This routes all requests through WARP, which helps prevent YouTube blocking server IP addresses.
+---
+
+### Notes
+
+- Keep your cookie file private (it contains session authentication data).
+- If YouTube search stops working, export fresh cookies.
+- Do **not** share your cookie file publicly.
+
 ## Docker
 ```
 version: '3.7'
@@ -75,6 +141,10 @@ services:
     container_name: torchlight
     ports:
       - 27115:27115
+
+    # ⚠ If you want Youtube Search to work properly then
+    # change this to: network_mode: "container:warp"
+    # This allows Torchlight to use the WARP container's network stack and bypasses a lot of youtube's robot checks.
     network_mode: host
     volumes:
       - /my/path/to/sounds:/app/sounds
