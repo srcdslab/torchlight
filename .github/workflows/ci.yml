@@ -16,6 +16,7 @@ on:
     branches:
       - 'main'
       - 'master'
+      - 'main-dolly6'
   pull_request:
     branches:
       - master
@@ -65,3 +66,4 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
