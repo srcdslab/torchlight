@@ -772,8 +772,13 @@ class YouTubeSearch(BaseCommand):
 
         proxy = command_config.get("parameters", {}).get("proxy", "")
 
+        cookiefile = self.torchlight.config["Sounds"]["CookieFile"]
+        if not os.path.isfile(cookiefile):
+            self.logger.warning(f"Cookie file {cookiefile} does not exist")
+            cookiefile = ""
+
         try:
-            info = get_url_youtube_info(url=input_url, proxy=proxy)
+            info = get_url_youtube_info(url=input_url, proxy=proxy, cookiefile=cookiefile)
         except Exception as exc:
             self.logger.error(f"Failed to extract youtube info from: {input_url}")
             self.logger.error(exc)

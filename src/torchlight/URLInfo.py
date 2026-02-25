@@ -102,7 +102,7 @@ def get_url_real_time(url: str) -> int:
 
 
 # @profile
-def get_url_youtube_info(url: str, proxy: str = "") -> dict:
+def get_url_youtube_info(url: str, proxy: str = "", cookiefile: str = "") -> dict:
     # https://github.com/ytdl-org/youtube-dl/blob/3e4cedf9e8cd3157df2457df7274d0c842421945/youtube_dl/YoutubeDL.py#L137-L312
     # https://github.com/yt-dlp/yt-dlp/blob/master/yt_dlp/YoutubeDL.py#L192
     ydl_opts = {
@@ -114,7 +114,17 @@ def get_url_youtube_info(url: str, proxy: str = "") -> dict:
         "format": "m4a/bestaudio/best",
         "simulate": True,
         "keepvideo": False,
+        "nocheckcertificate": True,
+        "add_header": [
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 "
+            "Safari/537.36",
+            "Accept-Language: en-US,en;q=0.9",
+            "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        ],
+        "cookiefile": cookiefile,
     }
+
     if proxy:
         ydl_opts["proxy"] = proxy
     ydl = yt_dlp.YoutubeDL(ydl_opts)

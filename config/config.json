@@ -47,7 +47,8 @@
 
 	"Sounds":
 	{
-		"Path": "sounds"
+		"Path": "sounds",
+		"CookieFile": "config/cookies.txt"
 	},
 
 	"AudioLimits":
