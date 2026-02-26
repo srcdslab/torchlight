@@ -913,6 +913,9 @@ class Say(BaseCommand):
         if self.check_disabled(player):
             return -1
 
+        if self.check_chat_cooldown(player):
+            return -1
+
         if not message[1]:
             return 1
 
@@ -934,6 +937,7 @@ class Say(BaseCommand):
             return 1
 
         asyncio.ensure_future(self.Say(player, language, tld, message[1]))
+        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return 0
 
 
@@ -977,10 +981,14 @@ class DECTalk(BaseCommand):
         if self.check_disabled(player):
             return -1
 
+        if self.check_chat_cooldown(player):
+            return -1
+
         if not message[1]:
             return 1
 
         asyncio.ensure_future(self.Say(player, message[1]))
+        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return 0
 
 
