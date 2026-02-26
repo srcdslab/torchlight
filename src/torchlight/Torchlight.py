@@ -72,14 +72,7 @@ class Torchlight:
             asyncio.ensure_future(self.sourcemod_api.CPrintToChatAll(line))
 
         if player:
-            level = player.admin.level
-
-            if level < self.config["AntiSpam"]["ImmunityLevel"]:
-                cooldown = len(lines) * self.config["AntiSpam"]["ChatCooldown"]
-                if player.chat_cooldown > self.loop.time():
-                    player.chat_cooldown += cooldown
-                else:
-                    player.chat_cooldown = self.loop.time() + cooldown
+            self.SetPlayerCooldown(player, len(lines) * self.config["AntiSpam"]["ChatCooldown"])
 
     # @profile
     def SayPrivate(self, player: Player, message: str) -> None:
@@ -92,6 +85,19 @@ class Torchlight:
         lines = textwrap.wrap(message, 244, break_long_words=True)
         for line in lines:
             asyncio.ensure_future(self.sourcemod_api.CPrintToChat(player.index, line))
+
+    def SetPlayerCooldown(self, player: Player, cooldown: int) -> None:
+        if player.index == 0:
+            return
+        
+        level = player.admin.level
+        if level >= self.config["AntiSpam"]["ImmunityLevel"]:
+            return
+        
+        if player.chat_cooldown > self.loop.time():
+            player.chat_cooldown += cooldown
+        else:
+            player.chat_cooldown = self.loop.time() + cooldown
 
     def __del__(self) -> None:
         self.logger.debug("~Torchlight()")

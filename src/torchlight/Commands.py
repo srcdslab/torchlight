@@ -608,6 +608,9 @@ class VoiceTrigger(BaseCommand):
         if self.check_disabled(player):
             return -1
 
+        if self.check_chat_cooldown(player):
+            return -1
+        
         voice_trigger = message[0].lower()
         trigger_number = message[1].lower()
 
@@ -633,6 +636,7 @@ class VoiceTrigger(BaseCommand):
         if self.random_trigger_name:
             self.torchlight.SayChat(f"Now playing {{olive}}{self.random_trigger_name}")
 
+        self.torchlight.SetPlayerCooldown(player, 1000 * self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return audio_clip.Play()
 
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
