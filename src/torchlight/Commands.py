@@ -610,7 +610,7 @@ class VoiceTrigger(BaseCommand):
 
         if self.check_chat_cooldown(player):
             return -1
-        
+
         voice_trigger = message[0].lower()
         trigger_number = message[1].lower()
 

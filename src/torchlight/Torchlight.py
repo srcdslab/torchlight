@@ -89,11 +89,11 @@ class Torchlight:
     def SetPlayerCooldown(self, player: Player, cooldown: int) -> None:
         if player.index == 0:
             return
-        
+
         level = player.admin.level
         if level >= self.config["AntiSpam"]["ImmunityLevel"]:
             return
-        
+
         if player.chat_cooldown > self.loop.time():
             player.chat_cooldown += cooldown
         else:
