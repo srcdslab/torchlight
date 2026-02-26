@@ -86,7 +86,7 @@ class Torchlight:
         for line in lines:
             asyncio.ensure_future(self.sourcemod_api.CPrintToChat(player.index, line))
 
-    def SetPlayerCooldown(self, player: Player, cooldown: int) -> None:
+    def SetPlayerCooldown(self, player: Player, cooldown: float) -> None:
         if player.index == 0:
             return
 
