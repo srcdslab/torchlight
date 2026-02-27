@@ -648,7 +648,7 @@ class VoiceTrigger(BaseCommand):
 
         sound = None
 
-        sounds: = self.trigger_manager.voice_triggers[voice_trigger]["sounds"]
+        sounds = self.trigger_manager.voice_triggers[voice_trigger]["sounds"]
 
         try:
             num = int(trigger_number)
