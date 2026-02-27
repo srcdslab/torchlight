@@ -1208,7 +1208,10 @@ class MyInstantsSearch(BaseCommand):
         for keyword_banned in keywords_banned:
             for word in search.split():
                 if keyword_banned.lower() in word.lower():
-                    self.torchlight.SayPrivate(player, f"{{darkred}}[MyInstants]{{default}} Cannot play sounds for {search}")
+                    self.torchlight.SayPrivate(
+                        player,
+                        f"{{darkred}}[MyInstants] {{default}}Cannot play sounds for {search}",
+                    )
                     return 1
 
         url = myinstants_get_random_sound(search)
