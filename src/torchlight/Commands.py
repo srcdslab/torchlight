@@ -648,7 +648,7 @@ class VoiceTrigger(BaseCommand):
 
         sound = None
 
-        sounds: str | list[str] = self.trigger_manager.voice_triggers[voice_trigger]["sounds"]
+        sounds: = self.trigger_manager.voice_triggers[voice_trigger]["sounds"]
 
         try:
             num = int(trigger_number)
@@ -708,7 +708,7 @@ class VoiceTrigger(BaseCommand):
             else:
                 sound = secrets.choice(sounds)
         else:
-            sound = sounds["sounds"]
+            sound = cast(str, sounds["sounds"])
 
         return sound
 
