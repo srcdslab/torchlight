@@ -1,6 +1,6 @@
 import re
-import secrets
 from urllib.parse import urljoin
+import secrets
 
 from bs4 import BeautifulSoup
 import requests
