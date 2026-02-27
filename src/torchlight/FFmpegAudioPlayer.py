@@ -50,13 +50,13 @@ class FFmpegAudioPlayer:
 
     # @profile
     def PlayURI(
-        self, 
-        uri: str, 
-        position: int | None, 
+        self,
+        uri: str,
+        position: int | None,
         *args: Any,
         volume: float | None = None,
         speed: float | None = None,
-        pitch: float | None = None 
+        pitch: float | None = None
     ) -> bool:
         if volume is None:
             volume = self.volume

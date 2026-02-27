@@ -34,8 +34,8 @@ class AudioClip:
         self.logger.debug("~AudioClip()")
 
     def Play(
-        self, 
-        seconds: int | None = None, 
+        self,
+        seconds: int | None = None,
         *args: Any,
         volume: float | None = None,
         speed: float | None = None,
