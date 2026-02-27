@@ -30,6 +30,8 @@ class FFmpegAudioPlayer:
         self.port = self.config["Port"]
         self.sample_rate = float(self.config["SampleRate"])
         self.volume = float(self.config["Volume"])
+        self.speed = float(self.config["Speed"])
+        self.pitch = float(self.config["Pitch"])
         self.proxy = self.config.get("Proxy", "")
 
         self.started_playing: float | None = None
@@ -47,7 +49,24 @@ class FFmpegAudioPlayer:
         self.Stop()
 
     # @profile
-    def PlayURI(self, uri: str, position: int | None, *args: Any) -> bool:
+    def PlayURI(
+            self, 
+            uri: str, 
+            position: int | None, 
+            *args: Any,
+            volume: float | None = None,
+            speed: float | None = None,
+            pitch: float | None = None 
+        ) -> bool:
+        if volume is None:
+            volume = self.volume
+
+        if speed is None:
+            speed = self.speed
+
+        if pitch is None:
+            pitch = self.pitch
+
         curl_command = [
             "/usr/bin/curl",
             "--silent",
@@ -82,6 +101,7 @@ class FFmpegAudioPlayer:
             str(int(self.sample_rate)),
             "-filter:a",
             f"volume={str(float(self.volume))}",
+            f"rubberband=tempo={speed}:pitch={pitch}"
             "-f",
             "s16le",
             "-vn",

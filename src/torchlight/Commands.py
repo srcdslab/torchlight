@@ -633,7 +633,11 @@ class VoiceTrigger(BaseCommand):
         if self.random_trigger_name:
             self.torchlight.SayChat(f"Now playing {{olive}}{self.random_trigger_name}")
 
-        return audio_clip.Play()
+        volume = self.trigger_manager.voice_triggers[voice_trigger]["parameters"]["Volume"]
+        speed = self.trigger_manager.voice_triggers[voice_trigger]["parameters"]["Speed"]
+        pitch = self.trigger_manager.voice_triggers[voice_trigger]["parameters"]["Pitch"]
+
+        return audio_clip.Play(volume=volume, speed=speed, pitch=pitch)
 
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
         level = player.admin.level
@@ -643,7 +647,7 @@ class VoiceTrigger(BaseCommand):
 
         sound = None
 
-        sounds = self.trigger_manager.voice_triggers[voice_trigger]
+        sounds = self.trigger_manager.voice_triggers[voice_trigger]["sounds"]
 
         try:
             num = int(trigger_number)
@@ -714,9 +718,9 @@ class Random(VoiceTrigger):
 
         self.random_trigger_name = trigger_name
 
-        if isinstance(trigger, list):
-            return secrets.choice(trigger)
-        return trigger
+        if isinstance(trigger["sounds"], list):
+            return secrets.choice(trigger["sounds"])
+        return trigger["sounds"]
 
 
 class Search(BaseCommand):

@@ -33,8 +33,15 @@ class AudioClip:
     def __del__(self) -> None:
         self.logger.debug("~AudioClip()")
 
-    def Play(self, seconds: int | None = None, *args: Any) -> bool:
-        return self.audio_player.PlayURI(self.uri, seconds, *args)
+    def Play(
+            self, 
+            seconds: int | None = None, 
+            *args: Any,
+            volume: float | None = None,
+            speed: float | None = None,
+            pitch: float | None = None
+        ) -> bool:
+        return self.audio_player.PlayURI(self.uri, seconds, *args, volume=volume, speed=speed, pitch=pitch)
 
     def Stop(self) -> bool:
         return self.audio_player.Stop()
