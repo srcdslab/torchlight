@@ -1,9 +1,9 @@
 import re
 import secrets
-
-from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+
 import requests
+from bs4 import BeautifulSoup
 
 MYINSTANTS_URL = "https://www.myinstants.com"
 
