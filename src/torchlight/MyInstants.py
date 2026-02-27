@@ -1,8 +1,9 @@
-from bs4 import BeautifulSoup
 import re
-import requests
-import random
+import secrets
 from urllib.parse import urljoin
+
+from bs4 import BeautifulSoup
+import requests
 
 MYINSTANTS_URL = "https://www.myinstants.com"
 
@@ -16,7 +17,7 @@ def myinstants_get_random_sound(query: str | None) -> str | None:
     else:
         search_url = f"{MYINSTANTS_URL}/en/search/?name={query}"
 
-    r = requests.get(search_url, headers=HEADERS)
+    r = requests.get(search_url, headers=HEADERS, timeout=10)
 
     if r.status_code != 200:
         return None
@@ -36,5 +37,5 @@ def myinstants_get_random_sound(query: str | None) -> str | None:
     if not mp3_paths:
         return None
 
-    mp3_url = urljoin(MYINSTANTS_URL, random.choice(mp3_paths))
+    mp3_url = urljoin(MYINSTANTS_URL, secrets.choice(mp3_paths))
     return mp3_url

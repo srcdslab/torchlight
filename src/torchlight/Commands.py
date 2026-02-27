@@ -1189,8 +1189,8 @@ class MyInstantsSearch(BaseCommand):
         if player.myinstants_cooldown > current_time:
             time_left = player.myinstants_cooldown - current_time
             self.torchlight.SayPrivate(
-                player, 
-                f"{{darkred}}[MyInstants] {{default}}You are currently on cooldown for the next {time_left:.1f} seconds"
+                player,
+                f"{{darkred}}[MyInstants] {{default}}You are currently on cooldown for the next {time_left:.1f} seconds",
             )
             return 1
 
@@ -1210,7 +1210,7 @@ class MyInstantsSearch(BaseCommand):
                 if keyword_banned.lower() in word.lower():
                     self.torchlight.SayPrivate(
                         player,
-                        f"{{darkred}}[MyInstants]{{default}} {search} has been flagged as inappropriate content, skipping"
+                        f"{{darkred}}[MyInstants]{{default}} Cannot play sounds for {search}"
                     )
                     return 1
 
@@ -1221,16 +1221,16 @@ class MyInstantsSearch(BaseCommand):
             else:
                 self.torchlight.SayPrivate(player, f"{{darkred}}[MyInstants]{{default}} No sounds found")
             return 1
-        
+
         audio_clip = self.audio_manager.AudioClip(player, url)
         if not audio_clip:
             return 1
-        
+
         self.torchlight.last_url = url
-        
+
         # Default cooldown
         cooldown = 10
-        
+
         if "Cooldown" in command_config:
             cooldown = command_config["Cooldown"]
 
