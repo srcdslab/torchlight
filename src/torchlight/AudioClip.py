@@ -39,7 +39,7 @@ class AudioClip:
         *args: Any,
         volume: float | None = None,
         speed: float | None = None,
-        pitch: float | None = None
+        pitch: float | None = None,
     ) -> bool:
         return self.audio_player.PlayURI(self.uri, seconds, *args, volume=volume, speed=speed, pitch=pitch)
 

@@ -56,7 +56,7 @@ class FFmpegAudioPlayer:
         *args: Any,
         volume: float | None = None,
         speed: float | None = None,
-        pitch: float | None = None
+        pitch: float | None = None,
     ) -> bool:
         if volume is None:
             volume = self.volume
