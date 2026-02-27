@@ -10,7 +10,7 @@ import tempfile
 import traceback
 from pathlib import Path
 from re import Match, Pattern
-from typing import Any
+from typing import Any, cast
 
 import aiohttp
 import defusedxml.ElementTree as etree
@@ -633,9 +633,10 @@ class VoiceTrigger(BaseCommand):
         if self.random_trigger_name:
             self.torchlight.SayChat(f"Now playing {{olive}}{self.random_trigger_name}")
 
-        volume = float(self.trigger_manager.voice_triggers[voice_trigger]["parameters"]["Volume"])
-        speed = float(self.trigger_manager.voice_triggers[voice_trigger]["parameters"]["Speed"])
-        pitch = float(self.trigger_manager.voice_triggers[voice_trigger]["parameters"]["Pitch"])
+        params = cast(dict, self.trigger_manager.voice_triggers[voice_trigger]["parameters"])
+        volume = float(params["Volume"])
+        speed = float(params["Speed"])
+        pitch = float(params["Pitch"])
 
         return audio_clip.Play(volume=volume, speed=speed, pitch=pitch)
 
@@ -647,7 +648,7 @@ class VoiceTrigger(BaseCommand):
 
         sound = None
 
-        sounds = self.trigger_manager.voice_triggers[voice_trigger]["sounds"]
+        sounds: str | list[str] = self.trigger_manager.voice_triggers[voice_trigger]["sounds"]
 
         try:
             num = int(trigger_number)
@@ -707,7 +708,7 @@ class VoiceTrigger(BaseCommand):
             else:
                 sound = secrets.choice(sounds)
         else:
-            sound = str(sounds["sounds"])
+            sound = sounds["sounds"]
 
         return sound
 
@@ -720,7 +721,7 @@ class Random(VoiceTrigger):
 
         if isinstance(trigger["sounds"], list):
             return secrets.choice(trigger["sounds"])
-        return str(trigger["sounds"])
+        return cast(str, trigger["sounds"])
 
 
 class Search(BaseCommand):
