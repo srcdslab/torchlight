@@ -1229,10 +1229,10 @@ class MyInstantsSearch(BaseCommand):
         self.torchlight.last_url = url
 
         # Default cooldown
-        cooldown = 10
+        cooldown = 10.0
 
         if "Cooldown" in command_config:
-            cooldown = command_config["Cooldown"]
+            cooldown = command_config["Cooldown"] * 1.0
 
         player.myinstants_cooldown = current_time + cooldown
         return audio_clip.Play()
