@@ -28,6 +28,7 @@ class Player:
         self.storage: dict = {}
         self.active = False
         self.chat_cooldown = 0
+        self.myinstants_cooldown = 0
 
     def OnConnect(self) -> None:
         if "Audio" not in self.storage:

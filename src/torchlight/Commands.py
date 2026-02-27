@@ -20,6 +20,7 @@ import gtts
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
 from torchlight.Config import Config
+from torchlight.MyInstants import myinstants_get_random_sound
 from torchlight.Player import Player
 from torchlight.PlayerManager import PlayerManager
 from torchlight.Torchlight import Torchlight
@@ -1175,3 +1176,63 @@ class Exec(BaseCommand):
             return 1
         self.torchlight.SayChat(str(resp))
         return 0
+
+
+class MyInstantsSearch(BaseCommand):
+    async def _func(self, message: list[str], player: Player) -> int:
+        self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
+
+        if self.check_disabled(player):
+            return -1
+
+        current_time = self.torchlight.loop.time()
+        if player.myinstants_cooldown > current_time:
+            time_left = player.myinstants_cooldown - current_time
+            self.torchlight.SayPrivate(
+                player, 
+                f"{{darkred}}[MyInstants] {{default}}You are currently on cooldown for the next {time_left:.1f} seconds"
+            )
+            return 1
+
+        search = message[1]
+        if search:
+            search = search.lower()
+
+        command_config = self.get_config()
+
+        keywords_banned: list[str] = []
+
+        if search and "parameters" in command_config and "keywords_banned" in command_config["parameters"]:
+            keywords_banned = command_config["parameters"]["keywords_banned"]
+
+        for keyword_banned in keywords_banned:
+            for word in search.split():
+                if keyword_banned.lower() in word.lower():
+                    self.torchlight.SayPrivate(
+                        player,
+                        f"{{darkred}}[MyInstants]{{default}} {search} has been flagged as inappropriate content, skipping"
+                    )
+                    return 1
+
+        url = myinstants_get_random_sound(search)
+        if url is None:
+            if search:
+                self.torchlight.SayPrivate(player, f"{{darkred}}[MyInstants]{{default}} No sound found for {search}")
+            else:
+                self.torchlight.SayPrivate(player, f"{{darkred}}[MyInstants]{{default}} No sounds found")
+            return 1
+        
+        audio_clip = self.audio_manager.AudioClip(player, url)
+        if not audio_clip:
+            return 1
+        
+        self.torchlight.last_url = url
+        
+        # Default cooldown
+        cooldown = 10
+        
+        if "Cooldown" in command_config:
+            cooldown = command_config["Cooldown"]
+
+        player.myinstants_cooldown = current_time + cooldown
+        return audio_clip.Play()
