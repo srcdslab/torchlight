@@ -101,7 +101,7 @@ class FFmpegAudioPlayer:
             str(int(self.sample_rate)),
             "-filter:a",
             f"volume={str(float(self.volume))}",
-            f"rubberband=tempo={speed}:pitch={pitch}"
+            f"rubberband=tempo={speed}:pitch={pitch}",
             "-f",
             "s16le",
             "-vn",
