@@ -633,9 +633,9 @@ class VoiceTrigger(BaseCommand):
         if self.random_trigger_name:
             self.torchlight.SayChat(f"Now playing {{olive}}{self.random_trigger_name}")
 
-        volume = self.trigger_manager.voice_triggers[voice_trigger]["parameters"]["Volume"]
-        speed = self.trigger_manager.voice_triggers[voice_trigger]["parameters"]["Speed"]
-        pitch = self.trigger_manager.voice_triggers[voice_trigger]["parameters"]["Pitch"]
+        volume = float(self.trigger_manager.voice_triggers[voice_trigger]["parameters"]["Volume"])
+        speed = float(self.trigger_manager.voice_triggers[voice_trigger]["parameters"]["Speed"])
+        pitch = float(self.trigger_manager.voice_triggers[voice_trigger]["parameters"]["Pitch"])
 
         return audio_clip.Play(volume=volume, speed=speed, pitch=pitch)
 
@@ -707,7 +707,7 @@ class VoiceTrigger(BaseCommand):
             else:
                 sound = secrets.choice(sounds)
         else:
-            sound = sounds
+            sound = str(sounds["sounds"])
 
         return sound
 
@@ -720,7 +720,7 @@ class Random(VoiceTrigger):
 
         if isinstance(trigger["sounds"], list):
             return secrets.choice(trigger["sounds"])
-        return trigger["sounds"]
+        return str(trigger["sounds"])
 
 
 class Search(BaseCommand):
