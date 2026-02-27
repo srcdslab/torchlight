@@ -7,9 +7,7 @@ from bs4 import BeautifulSoup
 
 MYINSTANTS_URL = "https://www.myinstants.com"
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-}
+HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 def myinstants_get_random_sound(query: str | None) -> str | None:
     if not query:
