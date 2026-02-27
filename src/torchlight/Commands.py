@@ -708,7 +708,7 @@ class VoiceTrigger(BaseCommand):
             else:
                 sound = secrets.choice(sounds)
         else:
-            sound = cast(str, sounds["sounds"])
+            sound = cast(str, sounds)
 
         return sound
 
