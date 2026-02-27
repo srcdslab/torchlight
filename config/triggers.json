@@ -1,5 +1,5 @@
 [
-    {"names": ["!tuturu"],                "sound": "Tutturuu_v1.wav"},
+    {"names": ["!tuturu"],                "sound": "Tutturuu_v1.wav", "parameters": {"Volume": 0.5, "Speed": 1.0, "Pitch": 1.0}},
     {"names": ["!tuturulist"],            "sound": ["Tutturuu_v1.wav", "Tutturuu_v1.wav"]},
     {
         "names": ["!china"],
