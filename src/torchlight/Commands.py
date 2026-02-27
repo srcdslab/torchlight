@@ -1187,10 +1187,10 @@ class MyInstantsSearch(BaseCommand):
 
         current_time = self.torchlight.loop.time()
         if player.myinstants_cooldown > current_time:
-            time_left = player.myinstants_cooldown - current_time
+            left = player.myinstants_cooldown - current_time
             self.torchlight.SayPrivate(
                 player,
-                f"{{darkred}}[MyInstants] {{default}}You are currently on cooldown for the next {time_left:.1f} seconds",
+                f"{{darkred}}[MyInstants] {{default}}You are currently on cooldown for the next {left:.1f} seconds",
             )
             return 1
 
@@ -1219,7 +1219,7 @@ class MyInstantsSearch(BaseCommand):
             if search:
                 self.torchlight.SayPrivate(player, f"{{darkred}}[MyInstants]{{default}} No sound found for {search}")
             else:
-                self.torchlight.SayPrivate(player, f"{{darkred}}[MyInstants]{{default}} No sounds found")
+                self.torchlight.SayPrivate(player, "{{darkred}}[MyInstants]{{default}} No sounds found")
             return 1
 
         audio_clip = self.audio_manager.AudioClip(player, url)
