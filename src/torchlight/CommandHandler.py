@@ -83,7 +83,7 @@ class CommandHandler:
 
         level = player.admin.level
 
-        if not message[0].startswith("!"):
+        if not message[0].startswith(("!", "#", "_", "$", "@", "%", "^", "&", "*")):
             return None
 
         self.logger.info(f"{player.name}: {message}")
