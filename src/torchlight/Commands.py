@@ -632,6 +632,7 @@ class VoiceTrigger(BaseCommand):
 
         if self.random_trigger_name:
             self.torchlight.SayChat(f"Now playing {{olive}}{self.random_trigger_name}")
+            voice_trigger = self.random_trigger_name
 
         params = cast(dict, self.trigger_manager.voice_triggers[voice_trigger]["parameters"])
         volume = float(params["Volume"])
