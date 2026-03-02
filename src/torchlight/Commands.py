@@ -608,6 +608,9 @@ class VoiceTrigger(BaseCommand):
         if self.check_disabled(player):
             return -1
 
+        if self.check_chat_cooldown(player):
+            return -1
+
         voice_trigger = message[0].lower()
         trigger_number = message[1].lower()
 
@@ -633,6 +636,7 @@ class VoiceTrigger(BaseCommand):
         if self.random_trigger_name:
             self.torchlight.SayChat(f"Now playing {{olive}}{self.random_trigger_name}")
 
+        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return audio_clip.Play()
 
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
@@ -709,6 +713,9 @@ class VoiceTrigger(BaseCommand):
 
 
 class Random(VoiceTrigger):
+    def _setup(self) -> None:
+        self.logger.debug(sys._getframe().f_code.co_name)
+
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
         trigger_name, trigger = secrets.choice(list(self.trigger_manager.voice_triggers.items()))
 
@@ -909,6 +916,9 @@ class Say(BaseCommand):
         if self.check_disabled(player):
             return -1
 
+        if self.check_chat_cooldown(player):
+            return -1
+
         if not message[1]:
             return 1
 
@@ -930,6 +940,7 @@ class Say(BaseCommand):
             return 1
 
         asyncio.ensure_future(self.Say(player, language, tld, message[1]))
+        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return 0
 
 
@@ -973,10 +984,14 @@ class DECTalk(BaseCommand):
         if self.check_disabled(player):
             return -1
 
+        if self.check_chat_cooldown(player):
+            return -1
+
         if not message[1]:
             return 1
 
         asyncio.ensure_future(self.Say(player, message[1]))
+        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return 0
 
 
