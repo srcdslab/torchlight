@@ -1175,8 +1175,23 @@ class AdminAccess(BaseCommand):
 class Reload(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
+<<<<<<< HEAD
+        required_level = self.get_config()["level"]
+        player_level = player.admin.level
+        if player_level < required_level:
+            self.torchlight.SayPrivate(
+                player, f"This command requires level {required_level} or higher. Your level is {player_level}."
+            )
+            return 1
+        self.logger.info(f"Reloading configuration by {player.name}")
+        self.torchlight.Reload()
+        self.torchlight.SayPrivate(
+            player, "Torchlight configuration has been reloaded (config, triggers, access list)."
+        )
+=======
         self.torchlight.Reload()
         self.torchlight.SayPrivate(message="Torchlight has been reloaded", player=player)
+>>>>>>> 72b76ca6eddc897a12209cb59cf949620bf97ca1
         return 0
 
 
