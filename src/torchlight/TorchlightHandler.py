@@ -28,7 +28,7 @@ class TorchlightHandler:
 
         # Pre Hook for late load
         await self.torchlight.game_events._Register(["player_connect", "player_activate"])
-        await self.torchlight.forwards._Register(["OnClientPostAdminCheck"])
+        await self.torchlight.forwards._Register(["OnClientPostAdminCheck", "OnMenuSelect"])
 
         self.InitModules()
 
@@ -72,6 +72,8 @@ class TorchlightHandler:
             self.audio_manager,
             self.trigger_manager,
         )
+
+        self.player_manager.torchlight.command_handler = self.command_handler
 
     def InitModules(self) -> None:
         self.player_manager.Setup()
