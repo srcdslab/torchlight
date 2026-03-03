@@ -734,12 +734,12 @@ class Random(VoiceTrigger):
 
 class Search(BaseCommand):
     def get_menu_page_content(
-        self, 
-        cmd: str, 
-        search: str, 
-        res: dict[str, str], 
-        page: int, 
-        max_items: int, 
+        self,
+        cmd: str,
+        search: str,
+        res: dict[str, str],
+        page: int,
+        max_items: int,
         max_pages: int,
     ) -> dict[str, str]:
         start = (page - 1) * max_items
@@ -768,7 +768,7 @@ class Search(BaseCommand):
 
         return {**items, **soundsItems}
 
-    async def _func(self, message: list[str], player: Player) -> int: 
+    async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         voice_trigger = message[1].lower()
@@ -809,15 +809,6 @@ class Search(BaseCommand):
         if actual_count > max:
             end = start + max
             max_pages = (actual_count + max - 1) // max
-            if not page:
-                page = 1
-                self.torchlight.SayPrivate(
-                    player,
-                    f"Found {actual_count} results, showing first {max}. Use '{message[0]} {message[1]} <page>' to see other results.",
-                )
-            elif page < 1 or page > max_pages:
-                self.torchlight.SayPrivate(player, f"Page must be between 1 and {max_pages}.")
-                return 1
 
             res = self.get_menu_page_content(
                 cmd=message[0],

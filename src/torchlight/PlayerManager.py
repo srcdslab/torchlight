@@ -162,7 +162,7 @@ class PlayerManager:
 
     def OnMenuSelect(self, type: str, client: int, option: str) -> None:
         if type != "trigger":
-            return  
+            return
 
         player = self.players[client]
         if player is None:
