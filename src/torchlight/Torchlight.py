@@ -107,7 +107,7 @@ class Torchlight:
 
         asyncio.ensure_future(
             self.sourcemod_api.CreateMenu(
-                player.index, 
+                player.index,
                 {
                     "title": title,
                     "options": list(options.items())
