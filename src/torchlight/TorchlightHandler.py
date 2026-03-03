@@ -82,7 +82,6 @@ class TorchlightHandler:
         self.torchlight.game_events.HookEx("player_say", self.Event_PlayerSay)
 
     def OnReload(self) -> None:
-<<<<<<< HEAD
         # self.command_handler.needs_reload = True
         self.logger.info("Full configuration reload triggered")
         self.config.load()
@@ -98,9 +97,6 @@ class TorchlightHandler:
         self.audio_manager.anti_spam.config = self.config["AntiSpam"]
         self.command_handler.Reload()
         self.logger.info("Configuration reload completed")
-=======
-        self.command_handler.needs_reload = True
->>>>>>> 72b76ca6eddc897a12209cb59cf949620bf97ca1
 
     def Event_ServerSpawn(
         self,

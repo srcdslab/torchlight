@@ -69,10 +69,7 @@ class CommandHandler:
             self.logger.error(traceback.format_exc())
         else:
             self.Setup()
-<<<<<<< HEAD
             self.logger.info("Commands reloaded successfully")
-=======
->>>>>>> 72b76ca6eddc897a12209cb59cf949620bf97ca1
 
     # @profile
     async def HandleCommand(self, line: str, player: Player) -> int | None:
