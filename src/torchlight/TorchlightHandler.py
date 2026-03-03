@@ -84,7 +84,21 @@ class TorchlightHandler:
         self.torchlight.game_events.HookEx("player_say", self.Event_PlayerSay)
 
     def OnReload(self) -> None:
-        self.command_handler.needs_reload = True
+        # self.command_handler.needs_reload = True
+        self.logger.info("Full configuration reload triggered")
+        self.config.load()
+        self.access_manager.Load()
+        self.trigger_manager.Load()
+        self.sourcemod_config.Load()
+        for player in self.player_manager.players:
+            if player:
+                admin_override = self.access_manager.get_admin(unique_id=player.unique_id)
+                if admin_override is not None:
+                    player.admin = admin_override
+                    self.logger.info(f"Updated {player.name} with new admin level: {player.admin.level}")
+        self.audio_manager.anti_spam.config = self.config["AntiSpam"]
+        self.command_handler.Reload()
+        self.logger.info("Configuration reload completed")
 
     def Event_ServerSpawn(
         self,
