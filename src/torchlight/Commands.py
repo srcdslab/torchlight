@@ -637,7 +637,6 @@ class VoiceTrigger(BaseCommand):
             self.torchlight.SayChat(f"Now playing {{olive}}{self.random_trigger_name}")
             voice_trigger = self.random_trigger_name
 
-<<<<<<< main-dolly13
         params = cast(dict, self.trigger_manager.voice_triggers[voice_trigger]["parameters"])
         volume = float(params["Volume"])
         speed = float(params["Speed"])
@@ -645,10 +644,6 @@ class VoiceTrigger(BaseCommand):
 
         self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return audio_clip.Play(volume=volume, speed=speed, pitch=pitch)
-=======
-        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
-        return audio_clip.Play()
->>>>>>> master
 
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
         level = player.admin.level
