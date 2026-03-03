@@ -827,7 +827,11 @@ class Search(BaseCommand):
 
         title += f"\nDisplaying {start + 1}-{min(end, actual_count)} of {actual_count} results."
 
-        self.torchlight.CreateMenu(player, title=title, options=res,)
+        self.torchlight.CreateMenu(
+            player,
+            title=title,
+            options=res,
+        )
         return 0
 
 
