@@ -206,6 +206,22 @@
 				}
 			}
 		},
+		"TranslateSay":
+		{
+			"level": 2,
+			"triggers": [
+				{
+					"command": "!tsay",
+					"starts_with": true
+				}
+			],
+			"parameters": {
+				"default": {
+					"language": "en",
+					"tld": "com"
+				}
+			}
+		},
 		"PlayMusic": {
 			"level": 2,
 			"triggers": [
