@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import textwrap
 import traceback
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from torchlight.AsyncClient import AsyncClient
 from torchlight.Config import Config
 from torchlight.Player import Player
 from torchlight.SourceModAPI import SourceModAPI
 from torchlight.Subscribe import Forwards, GameEvents
+
+if TYPE_CHECKING:
+    from .CommandHandler import CommandHandler
 
 
 class Torchlight:
@@ -20,6 +25,7 @@ class Torchlight:
         config: Config,
         loop: asyncio.AbstractEventLoop,
         async_client: AsyncClient,
+        command_handler: CommandHandler | None = None,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
@@ -35,6 +41,8 @@ class Torchlight:
         self.disabled = 0
 
         self.callbacks: list[tuple[str, Callable]] = []
+
+        self.command_handler = command_handler
 
     def Reload(self) -> None:
         self.config.load()
@@ -98,6 +106,14 @@ class Torchlight:
             player.chat_cooldown += cooldown
         else:
             player.chat_cooldown = self.loop.time() + cooldown
+
+    def CreateMenu(self, player: Player, title: str, options: dict[str, str]) -> None:
+        if player.index == 0:
+            return
+
+        asyncio.ensure_future(
+            self.sourcemod_api.CreateMenu(player.index, {"title": title, "options": list(options.items())})
+        )
 
     def __del__(self) -> None:
         self.logger.debug("~Torchlight()")

@@ -6,6 +6,8 @@ Bot for source engine games with a lot of commands:
   * Play tts messages
   * And much more!
 
+> [!IMPORTANT]
+> You need to run SMJSONAPI 1.1.x at minimum in order to have all features working properly
 
 ## Requirements
 ### Linux
