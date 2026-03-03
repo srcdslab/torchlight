@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import textwrap
 import traceback
 from collections.abc import Callable
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from torchlight.AsyncClient import AsyncClient
 from torchlight.Config import Config
 from torchlight.Player import Player
 from torchlight.SourceModAPI import SourceModAPI
 from torchlight.Subscribe import Forwards, GameEvents
+
+if TYPE_CHECKING:
+    from .CommandHandler import CommandHandler
 
 
 class Torchlight:
@@ -20,7 +25,7 @@ class Torchlight:
         config: Config,
         loop: asyncio.AbstractEventLoop,
         async_client: AsyncClient,
-        command_handler: "CommandHandler" | None = None,
+        command_handler: CommandHandler | None = None,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
@@ -37,7 +42,7 @@ class Torchlight:
 
         self.callbacks: list[tuple[str, Callable]] = []
 
-        self.command_handler = None
+        self.command_handler = command_handler
 
     def Reload(self) -> None:
         self.config.load()
