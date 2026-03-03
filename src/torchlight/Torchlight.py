@@ -5,7 +5,7 @@ import logging
 import textwrap
 import traceback
 from collections.abc import Callable
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from torchlight.AsyncClient import AsyncClient
 from torchlight.Config import Config
