@@ -101,6 +101,7 @@ class Torchlight:
         else:
             player.chat_cooldown = self.loop.time() + cooldown
 
+<<<<<<< main-dolly13
     def CreateMenu(self, player: Player, title: str, options: dict[str, str]) -> None:
         if player.index == 0:
             return
@@ -115,5 +116,7 @@ class Torchlight:
             )
         )
 
+=======
+>>>>>>> master
     def __del__(self) -> None:
         self.logger.debug("~Torchlight()")
