@@ -22,7 +22,8 @@ dependencies = [
     "geoip2",
     "lxml",
     "python-magic",
-    "yt-dlp @ git+https://github.com/yt-dlp/yt-dlp@master#egg=yt-dlp"
+    "yt-dlp @ git+https://github.com/yt-dlp/yt-dlp@master#egg=yt-dlp",
+    "translatepy"
 ]
 
 [project.scripts]
