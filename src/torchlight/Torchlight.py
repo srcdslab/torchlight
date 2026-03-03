@@ -20,6 +20,7 @@ class Torchlight:
         config: Config,
         loop: asyncio.AbstractEventLoop,
         async_client: AsyncClient,
+        command_handler: "CommandHandler" | None = None,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
