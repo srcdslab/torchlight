@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 import textwrap
 import traceback
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from torchlight.AsyncClient import AsyncClient
 from torchlight.Config import Config
 from torchlight.Player import Player
 from torchlight.SourceModAPI import SourceModAPI
 from torchlight.Subscribe import Forwards, GameEvents
+
+if TYPE_CHECKING:
+    from .CommandHandler import CommandHandler
 
 
 class Torchlight:
@@ -20,6 +25,7 @@ class Torchlight:
         config: Config,
         loop: asyncio.AbstractEventLoop,
         async_client: AsyncClient,
+        command_handler: CommandHandler | None = None,
     ):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.config = config
@@ -35,6 +41,8 @@ class Torchlight:
         self.disabled = 0
 
         self.callbacks: list[tuple[str, Callable]] = []
+
+        self.command_handler = command_handler
 
     def Reload(self) -> None:
         self.config.load()
@@ -72,14 +80,7 @@ class Torchlight:
             asyncio.ensure_future(self.sourcemod_api.CPrintToChatAll(line))
 
         if player:
-            level = player.admin.level
-
-            if level < self.config["AntiSpam"]["ImmunityLevel"]:
-                cooldown = len(lines) * self.config["AntiSpam"]["ChatCooldown"]
-                if player.chat_cooldown > self.loop.time():
-                    player.chat_cooldown += cooldown
-                else:
-                    player.chat_cooldown = self.loop.time() + cooldown
+            self.SetPlayerCooldown(player, len(lines) * self.config["AntiSpam"]["ChatCooldown"])
 
     # @profile
     def SayPrivate(self, player: Player, message: str) -> None:
@@ -92,6 +93,27 @@ class Torchlight:
         lines = textwrap.wrap(message, 244, break_long_words=True)
         for line in lines:
             asyncio.ensure_future(self.sourcemod_api.CPrintToChat(player.index, line))
+
+    def SetPlayerCooldown(self, player: Player, cooldown: Any) -> None:
+        if player.index == 0:
+            return
+
+        level = player.admin.level
+        if level >= self.config["AntiSpam"]["ImmunityLevel"]:
+            return
+
+        if player.chat_cooldown > self.loop.time():
+            player.chat_cooldown += cooldown
+        else:
+            player.chat_cooldown = self.loop.time() + cooldown
+
+    def CreateMenu(self, player: Player, title: str, options: dict[str, str]) -> None:
+        if player.index == 0:
+            return
+
+        asyncio.ensure_future(
+            self.sourcemod_api.CreateMenu(player.index, {"title": title, "options": list(options.items())})
+        )
 
     def __del__(self) -> None:
         self.logger.debug("~Torchlight()")

@@ -34,6 +34,7 @@ class PlayerManager:
         self.torchlight.game_events.HookEx("player_info", self.Event_PlayerInfo)
         self.torchlight.game_events.HookEx("player_disconnect", self.Event_PlayerDisconnect)
         self.torchlight.game_events.HookEx("server_spawn", self.Event_ServerSpawn)
+        self.torchlight.forwards.HookEx("OnMenuSelect", self.OnMenuSelect)
 
     def Event_PlayerConnect(
         self,
@@ -158,6 +159,18 @@ class PlayerManager:
                     player.admin = admin_override
                 player.OnConnect()
                 self.audio_storage[player.unique_id] = player.storage
+
+    def OnMenuSelect(self, type: str, client: int, option: str) -> None:
+        if type != "trigger":
+            return
+
+        player = self.players[client]
+        if player is None:
+            return
+
+        self.logger.info(f"OnMenuSelect(type={type}, client={client}, option={option})")
+        if self.torchlight.command_handler is not None:
+            asyncio.ensure_future(self.torchlight.command_handler.HandleCommand(option, player, from_menu=True))
 
     def FindUniqueID(self, uniqueid: str) -> Player | None:
         for player in self.players:
