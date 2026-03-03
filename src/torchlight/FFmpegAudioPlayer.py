@@ -134,6 +134,8 @@ class FFmpegAudioPlayer:
         if not self.playing:
             return False
 
+        self.playing = False
+
         if self.ffmpeg_process:
             try:
                 self.ffmpeg_process.terminate()
@@ -181,7 +183,6 @@ class FFmpegAudioPlayer:
 
         self.logger.info("Stopped %s", self.uri)
 
-        self.playing = False
         self.uri = ""
 
         self.Callback("Stop")

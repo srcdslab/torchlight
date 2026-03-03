@@ -278,6 +278,9 @@
 		},
 		"Search": {
 			"level": 0,
+			"parameters":{
+				"max_results": 30
+			},
 			"triggers": [
 				{
 					"command": "!search"
