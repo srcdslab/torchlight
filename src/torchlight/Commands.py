@@ -788,7 +788,7 @@ class Search(BaseCommand):
                     sounds = self.trigger_manager.voice_triggers[key]["sounds"]
                     if len(sounds) > 1:
                         for i in enumerate(sounds):
-                            res[f"{key} {i[0]+1}"] = f"{key} {i[0]+1}"
+                            res[f"{key} {i[0] + 1}"] = f"{key} {i[0] + 1}"
                     else:
                         res[key] = key
                 elif isinstance(self.trigger_manager.voice_triggers[key]["sounds"], str):

@@ -106,13 +106,7 @@ class Torchlight:
             return
 
         asyncio.ensure_future(
-            self.sourcemod_api.CreateMenu(
-                player.index,
-                {
-                    "title": title,
-                    "options": list(options.items())
-                }
-            )
+            self.sourcemod_api.CreateMenu(player.index, {"title": title, "options": list(options.items())})
         )
 
     def __del__(self) -> None:

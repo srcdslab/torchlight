@@ -73,7 +73,7 @@ class CommandHandler:
     # @profile
     async def HandleCommand(self, line: str, player: Player, from_menu: bool = False) -> int | None:
         if from_menu:
-            message = line.split(sep=" ", maxsplit=2) # 2 because the !search command requires another arg for page
+            message = line.split(sep=" ", maxsplit=2)  # 2 because the !search command requires another arg for page
         else:
             message = line.split(sep=" ", maxsplit=1)
 
