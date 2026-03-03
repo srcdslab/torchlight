@@ -169,7 +169,8 @@ class PlayerManager:
             return
 
         self.logger.info(f"OnMenuSelect(type={type}, client={client}, option={option})")
-        asyncio.ensure_future(self.torchlight.command_handler.HandleCommand(option, player, from_menu=True))
+        if hasattr(self.torchlight.command_handler, "HandleCommand"):
+            asyncio.ensure_future(self.torchlight.command_handler.HandleCommand(option, player, from_menu=True))
 
     def FindUniqueID(self, uniqueid: str) -> Player | None:
         for player in self.players:
