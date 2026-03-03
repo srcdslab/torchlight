@@ -10,7 +10,7 @@ import tempfile
 import traceback
 from pathlib import Path
 from re import Match, Pattern
-from typing import Any
+from typing import Any, cast
 
 import aiohttp
 import defusedxml.ElementTree as etree
@@ -635,9 +635,15 @@ class VoiceTrigger(BaseCommand):
 
         if self.random_trigger_name:
             self.torchlight.SayChat(f"Now playing {{olive}}{self.random_trigger_name}")
+            voice_trigger = self.random_trigger_name
+
+        params = cast(dict, self.trigger_manager.voice_triggers[voice_trigger]["parameters"])
+        volume = float(params["Volume"])
+        speed = float(params["Speed"])
+        pitch = float(params["Pitch"])
 
         self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
-        return audio_clip.Play()
+        return audio_clip.Play(volume=volume, speed=speed, pitch=pitch)
 
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
         level = player.admin.level
@@ -647,7 +653,7 @@ class VoiceTrigger(BaseCommand):
 
         sound = None
 
-        sounds = self.trigger_manager.voice_triggers[voice_trigger]
+        sounds = self.trigger_manager.voice_triggers[voice_trigger]["sounds"]
 
         try:
             num = int(trigger_number)
@@ -707,7 +713,7 @@ class VoiceTrigger(BaseCommand):
             else:
                 sound = secrets.choice(sounds)
         else:
-            sound = sounds
+            sound = cast(str, sounds)
 
         return sound
 
@@ -721,22 +727,111 @@ class Random(VoiceTrigger):
 
         self.random_trigger_name = trigger_name
 
-        if isinstance(trigger, list):
-            return secrets.choice(trigger)
-        return trigger
+        if isinstance(trigger["sounds"], list):
+            return secrets.choice(trigger["sounds"])
+        return cast(str, trigger["sounds"])
 
 
 class Search(BaseCommand):
+    def get_menu_page_content(
+        self,
+        cmd: str,
+        search: str,
+        res: dict[str, str],
+        page: int,
+        max_items: int,
+        max_pages: int,
+    ) -> dict[str, str]:
+        start = (page - 1) * max_items
+        end = start + max_items
+        soundsItems = dict(list(res.items())[start:end])
+
+        if search == "":
+            line = cmd
+        else:
+            line = f"{cmd} {search}"
+
+        items: dict[str, str] = {}
+        last_item_info: str = ""
+        last_item_display: str = ""
+        if page > 1:
+            last_item_info = f"{line} {page - 1}"
+            last_item_display = "> Previous Page"
+            items[last_item_info] = last_item_display
+        if page < max_pages:
+            last_item_info = f"{line} {page + 1}"
+            last_item_display = "> Next Page"
+            items[last_item_info] = last_item_display
+
+        if last_item_info and last_item_display:
+            items[last_item_info] = last_item_display + "\n "
+
+        return {**items, **soundsItems}
+
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         voice_trigger = message[1].lower()
 
-        res = []
+        page = 1
+        if voice_trigger.isdigit():
+            page = int(voice_trigger)
+            voice_trigger = ""
+        if len(message) > 2 and message[2].isdigit():
+            page = int(message[2])
+
+        res: dict[str, str] = {}
+
         for key in self.trigger_manager.voice_triggers.keys():
             if voice_trigger in key.lower():
-                res.append(key)
-        self.torchlight.SayPrivate(player, "{} results: {}".format(len(res), ", ".join(res)))
+                if isinstance(self.trigger_manager.voice_triggers[key]["sounds"], list):
+                    sounds = self.trigger_manager.voice_triggers[key]["sounds"]
+                    if len(sounds) > 1:
+                        for i in enumerate(sounds):
+                            res[f"{key} {i[0] + 1}"] = f"{key} {i[0] + 1}"
+                    else:
+                        res[key] = key
+                elif isinstance(self.trigger_manager.voice_triggers[key]["sounds"], str):
+                    res[key] = key
+
+        if not res:
+            self.torchlight.SayPrivate(player, "No triggers found with that name.")
+            return 1
+
+        self.torchlight.SayPrivate(player, "{} results: {}".format(len(res), ", ".join(res.keys())))
+
+        actual_count = len(res)
+        max = self.get_config().get("parameters", {}).get("max_results", 30)
+
+        start = (page - 1) * max if page else 0
+        end = actual_count
+
+        if actual_count > max:
+            end = start + max
+            max_pages = (actual_count + max - 1) // max
+
+            res = self.get_menu_page_content(
+                cmd=message[0],
+                search=voice_trigger,
+                res=res,
+                page=page,
+                max_items=max,
+                max_pages=max_pages,
+            )
+
+        title: str | None = None
+        if voice_trigger:
+            title = f"[Torchlight] Search results for: {voice_trigger} (Click to play)"
+        else:
+            title = f"[Torchlight] All triggers [{len(res)} results found] (Click to play)"
+
+        title += f"\nDisplaying {start + 1}-{min(end, actual_count)} of {actual_count} results."
+
+        self.torchlight.CreateMenu(
+            player,
+            title=title,
+            options=res,
+        )
         return 0
 
 
@@ -939,6 +1034,7 @@ class Say(BaseCommand):
         if len(language) <= 0 or language not in self.VALID_LANGUAGES:
             return 1
 
+        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         asyncio.ensure_future(self.Say(player, language, tld, message[1]))
         self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return 0
@@ -990,6 +1086,7 @@ class DECTalk(BaseCommand):
         if not message[1]:
             return 1
 
+        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         asyncio.ensure_future(self.Say(player, message[1]))
         self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return 0
