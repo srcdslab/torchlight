@@ -1038,7 +1038,7 @@ class Say(BaseCommand):
         language = message[0][len(thisTrigger):]
 
         self.logger.debug(f"{language}: {self.VALID_LANGUAGES}")
-        if len(language) <= 0 or language not in self.VALID_LANGUAGES:
+        if language not in self.VALID_LANGUAGES:
             return None
 
         return language, tld
