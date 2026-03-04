@@ -131,6 +131,7 @@ class FFmpegAudioPlayer:
 
     # @profile
     def Stop(self, force: bool = True) -> bool:
+        self.logger.info(f"FFmpegAudioPlayer.Stop called for {self.uri}")
         if not self.playing:
             return False
 
@@ -250,7 +251,10 @@ class FFmpegAudioPlayer:
 
                 if writer is not None:
                     writer.write(data)
-                    await writer.drain()
+                    try:
+                        await writer.drain()
+                    except (ConnectionResetError, BrokenPipeError):
+                        return
 
                 bytes_len = len(data)
                 samples = bytes_len / SAMPLEBYTES
@@ -319,7 +323,10 @@ class FFmpegAudioPlayer:
 
                 if writer:
                     writer.write(chunk)
-                    await writer.drain()
+                    try:
+                        await writer.drain()
+                    except (ConnectionResetError, BrokenPipeError):
+                        return
             if writer:
                 writer.close()
         except Exception as exc:

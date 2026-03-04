@@ -647,76 +647,141 @@ class VoiceTrigger(BaseCommand):
         return audio_clip.Play(volume=volume, speed=speed, pitch=pitch)
 
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
-        level = player.admin.level
+        """
+        Get sound path for a voice trigger with proper access level checks.
 
-        if voice_trigger[0] != "!" and level < self.torchlight.config["Command"]["VoiceTriggerReserved"]["level"]:
+        Args:
+            player: Player making the request
+            voice_trigger: The trigger command (e.g., "_legend", "!test", "#tempest")
+            trigger_number: Optional number or search term for lists
+
+        Returns:
+            Sound file path or None if not allowed/not found
+        """
+        if voice_trigger not in self.trigger_manager.voice_triggers:
             return None
 
-        sound = None
+        player_level = player.admin.level
+        reserved_level = self.torchlight.config["Command"]["VoiceTriggerReserved"]["level"]
+        prefix = voice_trigger[0]
+        reserved_prefixes = ["_", "#"]
+        if prefix in reserved_prefixes:
+            if player_level < reserved_level:
+                self.torchlight.SayPrivate(
+                    player,
+                    f"Trigger '{voice_trigger}' requires level {reserved_level} or higher. "
+                    f"Your current level is {player_level}.",
+                )
+                return None
+        voice_trigger_level = self.torchlight.config["Command"]["VoiceTrigger"]["level"]
+        if player_level < voice_trigger_level:
+            self.torchlight.SayPrivate(
+                player,
+                f"Voice triggers require level {voice_trigger_level} or higher. Your current level is {player_level}.",
+            )
+            return None
 
         sounds = self.trigger_manager.voice_triggers[voice_trigger]["sounds"]
 
         try:
-            num = int(trigger_number)
+            num = int(trigger_number) if trigger_number else None
         except ValueError:
             num = None
 
         if isinstance(sounds, list):
-            if num and num > 0 and num <= len(sounds):
-                sound = sounds[num - 1]
+            return self._handle_sound_list(player, voice_trigger, sounds, trigger_number, num)
+        elif isinstance(sounds, str):
+            return sounds
+        else:
+            return None
 
-            elif trigger_number:
-                searching = trigger_number.startswith("?")
-                search = trigger_number[1:] if searching else trigger_number
-                sound = None
-                names = []
-                matches = []
-                for sound in sounds:
-                    name = os.path.splitext(os.path.basename(sound))[0]
-                    names.append(name)
+    def _handle_sound_list(
+        self, player: Player, voice_trigger: str, sounds: list[str], trigger_input: str, num: int | None
+    ) -> str | None:
+        """
+        Handle selection from a list of sounds.
 
-                    if search and search in name.lower():
-                        matches.append((name, sound))
+        Args:
+            player: Player making the request
+            voice_trigger: The trigger command
+            sounds: List of sound file paths
+            trigger_input: User input (number or search term)
+            num: Parsed number if input was numeric
 
-                if matches:
-                    matches.sort(key=lambda t: len(t[0]))
-                    mlist = [t[0] for t in matches]
-                    if searching:
-                        self.torchlight.SayPrivate(
-                            player,
-                            "{} results: {}".format(len(mlist), ", ".join(mlist)),
-                        )
-                        return None
-
-                    sound = matches[0][1]
-                    if len(matches) > 1:
-                        self.torchlight.SayPrivate(
-                            player,
-                            "Multiple matches: {}".format(", ".join(mlist)),
-                        )
-
-                if not sound and not num:
-                    if not searching:
-                        self.torchlight.SayPrivate(
-                            player,
-                            f"Couldn't find {trigger_number} in list of sounds.",
-                        )
-                    self.torchlight.SayPrivate(player, ", ".join(names))
-                    return None
-
-            elif num:
+        Returns:
+            Selected sound file path or None
+        """
+        if num is not None:
+            if 1 <= num <= len(sounds):
+                return sounds[num - 1]
+            else:
                 self.torchlight.SayPrivate(
-                    player,
-                    f"Number {num} is out of bounds, max {len(sounds)}.",
+                    player, f"Number {num} is out of range. Choose 1-{len(sounds)} for '{voice_trigger}'."
                 )
                 return None
 
-            else:
-                sound = secrets.choice(sounds)
-        else:
-            sound = cast(str, sounds)
+        if trigger_input:
+            return self._search_sound_list(player, voice_trigger, sounds, trigger_input)
 
-        return sound
+        return secrets.choice(sounds)
+
+    def _search_sound_list(self, player: Player, voice_trigger: str, sounds: list[str], search_term: str) -> str | None:
+        """
+        Search through sound list by filename.
+
+        Args:
+            player: Player making the request
+            voice_trigger: The trigger command
+            sounds: List of sound file paths
+            search_term: Search term (with optional ? prefix for search-only)
+
+        Returns:
+            Matching sound file path or None
+        """
+        is_search_only = search_term.startswith("?")
+        actual_search = search_term[1:] if is_search_only else search_term
+
+        sound_names = []
+        matches = []
+
+        for sound_path in sounds:
+            sound_name = os.path.splitext(os.path.basename(sound_path))[0]
+            sound_names.append(sound_name)
+
+            if actual_search and actual_search.lower() in sound_name.lower():
+                matches.append((sound_name, sound_path))
+
+        if matches:
+            matches.sort(key=lambda t: len(t[0]))
+            match_names = [name for name, _ in matches]
+            if is_search_only:
+                self.torchlight.SayPrivate(
+                    player,
+                    f"Found {len(matches)} matches for '{actual_search}' in '{voice_trigger}': "
+                    f"{', '.join(match_names[:10])}",
+                )
+                return None
+
+            best_match = matches[0][1]
+            if len(matches) > 1:
+                self.torchlight.SayPrivate(
+                    player,
+                    f"Multiple matches found for '{actual_search}': {', '.join(match_names[:5])}. "
+                    f"Using '{match_names[0]}'.",
+                )
+
+            return best_match
+
+        if not is_search_only:
+            self.torchlight.SayPrivate(player, f"No matches found for '{actual_search}' in '{voice_trigger}'.")
+
+        self.torchlight.SayPrivate(
+            player,
+            f"Available sounds for '{voice_trigger}': {', '.join(sound_names[:15])}"
+            + ("..." if len(sound_names) > 15 else ""),
+        )
+
+        return None
 
 
 class Random(VoiceTrigger):
@@ -1242,8 +1307,34 @@ class Stop(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
-        self.audio_manager.Stop(player, message[1])
-        return True
+        extra = ""
+        if len(message) > 1:
+            extra = message[1].strip()
+
+        self.logger.info(f"Stop command called by {player.name}, extra='{extra}'")
+        self.audio_manager.Stop(player, extra)
+        return 0
+
+
+class StopAll(BaseCommand):
+    async def _func(self, message: list[str], player: Player) -> int:
+        self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
+        required_level = self.get_config()["level"]
+        player_level = player.admin.level
+        if player_level < required_level:
+            self.torchlight.SayPrivate(
+                player,
+                f"{{darkred}}[Torchlight]{{default}} This command requires level "
+                f"{required_level} or higher. Your level is {player_level}.",
+            )
+            return 1
+
+        count = len(self.audio_manager.audio_clips)
+        self.audio_manager.StopAll()
+        self.torchlight.SayChat(
+            f"{{darkred}}[Torchlight]{{default}} All audio ({count} clips) stopped by {player.name}."
+        )
+        return 0
 
 
 class Enable(BaseCommand):
