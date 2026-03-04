@@ -1019,10 +1019,16 @@ class Say(BaseCommand):
 
         thisTrigger: str = ""
         for trigger in self.triggers:
-            if message[0].lower().startswith(trigger):
-                thisTrigger = trigger
-                break
-        
+            if isinstance(trigger, tuple):
+                command_trigger, command_len = trigger
+                if message[0].lower().startswith(command_trigger):
+                    thisTrigger = command_trigger
+                    break
+            else:
+                if message[0].lower().startswith(trigger):
+                    thisTrigger = trigger
+                    break
+
         if not thisTrigger:
             return None
 
