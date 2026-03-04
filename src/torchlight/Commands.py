@@ -1033,6 +1033,10 @@ class Say(BaseCommand):
             return None
 
         if message[0].lower() == "!say" or message[0].lower() == "!tsay":
+            self.torchlight.SayPrivate(
+                player,
+                f"Usage: {message[0]}[language] [message], Example: !sayfr Hello World!",
+            )
             return None
 
         _language = message[0][len(thisTrigger):]
