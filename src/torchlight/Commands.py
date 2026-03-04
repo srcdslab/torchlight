@@ -1021,8 +1021,7 @@ class Say(BaseCommand):
         for trigger in self.triggers:
             if isinstance(trigger, tuple):
                 command_trigger, command_len = trigger
-                command_trigger = cast(str, command_trigger)
-                if message[0].lower().startswith(command_trigger):
+                if isinstance(command_trigger, str) and message[0].lower().startswith(command_trigger):
                     thisTrigger = command_trigger
                     break
             else:
