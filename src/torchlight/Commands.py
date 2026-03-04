@@ -1035,10 +1035,14 @@ class Say(BaseCommand):
         if message[0].lower() == "!say" or message[0].lower() == "!tsay":
             return None
 
-        language = message[0][len(thisTrigger):]
+        _language = message[0][len(thisTrigger):]
+        if not _language:
+            language = language if language else "en"
+        else:
+            language = _language.lower()
 
         self.logger.debug(f"{language}: {self.VALID_LANGUAGES}")
-        if language not in self.VALID_LANGUAGES:
+        if language and language not in self.VALID_LANGUAGES:
             return None
 
         return language, tld
