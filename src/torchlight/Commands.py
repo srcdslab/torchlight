@@ -1024,10 +1024,9 @@ class Say(BaseCommand):
                 if isinstance(command_trigger, str) and message[0].lower().startswith(command_trigger):
                     thisTrigger = command_trigger
                     break
-            else:
-                if message[0].lower().startswith(trigger):
-                    thisTrigger = trigger
-                    break
+            elif isinstance(trigger, str) and message[0].lower().startswith(trigger):
+                thisTrigger = trigger
+                break
 
         if not thisTrigger:
             return None
