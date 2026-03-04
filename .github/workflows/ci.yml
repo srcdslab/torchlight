@@ -16,6 +16,7 @@ on:
     branches:
       - 'main'
       - 'master'
+      - 'my-master'
   pull_request:
     branches:
       - master

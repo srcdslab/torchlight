@@ -7,7 +7,7 @@ from typing import Any
 
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
-from torchlight.Commands import BaseCommand, VoiceTrigger
+from torchlight.Commands import BaseCommand, Say, VoiceTrigger
 from torchlight.PlayerManager import Player, PlayerManager
 from torchlight.Torchlight import Torchlight
 from torchlight.TriggerManager import TriggerManager
@@ -41,6 +41,7 @@ class CommandHandler:
         subklasses: list[type[Any]] = []
         subklasses.extend(BaseCommand.__subclasses__())
         subklasses.extend(VoiceTrigger.__subclasses__())
+        subklasses.extend(Say.__subclasses__())
         for subklass in sorted(subklasses, key=lambda x: x.order, reverse=True):
             try:
                 command = subklass(
