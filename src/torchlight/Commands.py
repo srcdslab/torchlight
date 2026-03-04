@@ -1039,7 +1039,7 @@ class Say(BaseCommand):
             )
             return None
 
-        _language = message[0][len(thisTrigger):]
+        _language = message[0][len(thisTrigger) :]
         if not _language:
             language = language if language else "en"
         else:
