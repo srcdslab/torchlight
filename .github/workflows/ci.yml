@@ -18,6 +18,7 @@ on:
       - 'master'
       - 'my-master'
       - 'main-dolly8'
+      - 'main-dolly15'
   pull_request:
     branches:
       - master
