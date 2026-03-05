@@ -1021,13 +1021,12 @@ class Say(BaseCommand):
         for trigger in self.triggers:
             if isinstance(trigger, tuple):
                 command_trigger, command_len = trigger
-                if message[0].lower().startswith(command_trigger):
+                if isinstance(command_trigger, str) and message[0].lower().startswith(command_trigger):
                     thisTrigger = command_trigger
                     break
-            else:
-                if message[0].lower().startswith(trigger):
-                    thisTrigger = trigger
-                    break
+            elif isinstance(trigger, str) and message[0].lower().startswith(trigger):
+                thisTrigger = trigger
+                break
 
         if not thisTrigger:
             return None
@@ -1035,18 +1034,26 @@ class Say(BaseCommand):
         if message[0].lower() == "!say" or message[0].lower() == "!tsay":
             self.torchlight.SayPrivate(
                 player,
-                f"Usage: {message[0]}[language] [message], Example: !sayfr Hello World!",
+                f"Usage: {message[0]}[language] [message], Example: {message[0]}fr Hello World!",
             )
             return None
 
-        _language = message[0][len(thisTrigger):]
+        _language = message[0][len(thisTrigger) :]
         if not _language:
             language = language if language else "en"
         else:
-            language = _language.lower()
+            if "-" not in _language:
+                language = _language.lower()
+            else:
+                language = _language
 
         self.logger.debug(f"{language}: {self.VALID_LANGUAGES}")
         if language and language not in self.VALID_LANGUAGES:
+            self.torchlight.SayPrivate(
+                player,
+                f"Language '{language}' is not supported. Usage: {thisTrigger}[language] [message], "
+                f"Example: {thisTrigger}fr Hello World!",
+            )
             return None
 
         return language, tld
