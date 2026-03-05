@@ -22,6 +22,7 @@ on:
     branches:
       - master
       - main
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
