@@ -1042,7 +1042,10 @@ class Say(BaseCommand):
         if not _language:
             language = language if language else "en"
         else:
-            language = _language.lower()
+            if "-" not in _language:
+                language = _language.lower()
+            else:
+                language = _language
 
         self.logger.debug(f"{language}: {self.VALID_LANGUAGES}")
         if language and language not in self.VALID_LANGUAGES:
