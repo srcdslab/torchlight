@@ -1046,6 +1046,11 @@ class Say(BaseCommand):
 
         self.logger.debug(f"{language}: {self.VALID_LANGUAGES}")
         if language and language not in self.VALID_LANGUAGES:
+            self.torchlight.SayPrivate(
+                player,
+                f"Language '{language}' is not supported. Usage: {thisTrigger}[language] [message], "
+                f"Example: {thisTrigger}fr Hello World!",
+            )
             return None
 
         return language, tld
