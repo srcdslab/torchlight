@@ -1036,7 +1036,7 @@ class Say(BaseCommand):
             myTrigger = trigger.get("command", "")
             if not myTrigger:
                 continue
-            
+
             if thisTrigger == myTrigger:
                 force_default = trigger.get("force_default", True)
                 break
@@ -1046,7 +1046,6 @@ class Say(BaseCommand):
             if force_default:
                 language = language if language else "en"
             else:
-                message[0].lower() == "!say" or message[0].lower() == "!tsay":
                 self.torchlight.SayPrivate(
                     player,
                     f"Usage: {message[0]}[language] [message], Example: {message[0]}fr Hello World!",
