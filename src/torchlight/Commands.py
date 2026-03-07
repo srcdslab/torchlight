@@ -1034,6 +1034,9 @@ class Say(BaseCommand):
         force_default: bool = True
         for trigger in command_config.get("triggers", {}):
             myTrigger = trigger.get("command", "")
+            if not isinstance(trigger, dict):
+                continue
+
             if not myTrigger:
                 continue
 
