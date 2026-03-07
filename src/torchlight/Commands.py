@@ -1031,16 +1031,27 @@ class Say(BaseCommand):
         if not thisTrigger:
             return None
 
-        if message[0].lower() == "!say" or message[0].lower() == "!tsay":
-            self.torchlight.SayPrivate(
-                player,
-                f"Usage: {message[0]}[language] [message], Example: {message[0]}fr Hello World!",
-            )
-            return None
+        force_default: bool = True
+        for trigger in command_config.get("triggers", []):
+            myTrigger = trigger.get("command", "")
+            if not myTrigger:
+                continue
+            
+            if thisTrigger == myTrigger:
+                force_default = trigger.get("force_default", True)
+                break
 
         _language = message[0][len(thisTrigger) :]
         if not _language:
-            language = language if language else "en"
+            if force_default:
+                language = language if language else "en"
+            else:
+                message[0].lower() == "!say" or message[0].lower() == "!tsay":
+                self.torchlight.SayPrivate(
+                    player,
+                    f"Usage: {message[0]}[language] [message], Example: {message[0]}fr Hello World!",
+                )
+                return None
         else:
             if "-" not in _language:
                 language = _language.lower()
