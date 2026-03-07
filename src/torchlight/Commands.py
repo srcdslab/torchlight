@@ -1029,6 +1029,7 @@ class Say(BaseCommand):
                 break
 
         if not thisTrigger:
+            self.logger.info("It's being caused from not thisTrigger")
             return None
 
         force_default: bool = True
