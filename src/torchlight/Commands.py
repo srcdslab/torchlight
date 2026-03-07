@@ -1032,7 +1032,7 @@ class Say(BaseCommand):
             return None
 
         force_default: bool = True
-        for trigger in command_config.get("triggers", []):
+        for trigger in command_config.get("triggers", {}):
             myTrigger = trigger.get("command", "")
             if not myTrigger:
                 continue
