@@ -50,9 +50,7 @@
 				"Default": 1.0,
 				"Min": 0.5,
 				"Max": 2.0
-			},
-
-			"Backwards": true
+			}
 		}
 	},
 
@@ -217,11 +215,13 @@
 			"triggers": [
 				{
 					"command": "!say",
-					"starts_with": true
+					"starts_with": true,
+					"force_default": true
 				},
 				{
 					"command": "!speak",
-					"starts_with": true
+					"starts_with": true,
+					"force_default": true
 				}
 			],
 			"parameters": {
@@ -237,11 +237,13 @@
 			"triggers": [
 				{
 					"command": "!tsay",
-					"starts_with": true
+					"starts_with": true,
+					"force_default": true
 				},
 				{
 					"command": "!translate",
-					"starts_with": true
+					"starts_with": true,
+					"force_default": true
 				}
 			],
 			"parameters": {

@@ -26,7 +26,7 @@ class AudioManager:
         if not thisConfig:
             return triggerParams
 
-        params: dict[str, float | bool] = {}
+        params: dict[str, float] = {}
         for param in thisConfig:
             if param in triggerParams and triggerParams[param]:
                 params[param] = float(triggerParams[param])
@@ -35,7 +35,6 @@ class AudioManager:
                     params[param] = float(thisConfig[param]["Default"])
 
         msg_args = msg.split()
-        is_backwards: bool = False
         for arg in msg_args:
             if "=" in arg:
                 key, value = arg.split("=", 1)
