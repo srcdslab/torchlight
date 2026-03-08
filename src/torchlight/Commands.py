@@ -647,6 +647,7 @@ class VoiceTrigger(BaseCommand):
         params = cast(dict, self.trigger_manager.voice_triggers[voice_trigger]["parameters"])
         modifiers = self.audio_manager.parse_params(params, message[1])
         
+        self.logger.info(modifiers)
         volume = modifiers["Volume"]
         speed = modifiers["Speed"]
         pitch = modifiers["Pitch"]
