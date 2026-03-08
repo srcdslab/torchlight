@@ -25,11 +25,12 @@ class TriggerManager:
     def Load(self) -> None:
         self.logger.info(f"Loading triggers from {self.config_filepath}")
 
+        voice_server_params = self.config.config.get("VoiceServer", {}).get("AudioParams", {})
         with open(self.config_filepath) as fp:
             default_parameters = {
-                "Volume": float(self.config.config.get("VoiceServer", {}).get("Volume", 1.0)),
-                "Speed": float(self.config.config.get("VoiceServer", {}).get("Speed", 1.0)),
-                "Pitch": float(self.config.config.get("VoiceServer", {}).get("Pitch", 1.0)),
+                "Volume": float(voice_server_params.get("Volume", {}).get("Default", 1.0)),
+                "Speed": float(voice_server_params.get("Speed", {}).get("Default", 1.0)),
+                "Pitch": float(voice_server_params.get("Pitch", {}).get("Default", 1.0)),
             }
 
             self.triggers_dict = json.load(fp, object_pairs_hook=OrderedDict)
