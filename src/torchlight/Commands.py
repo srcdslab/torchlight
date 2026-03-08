@@ -613,11 +613,11 @@ class VoiceTrigger(BaseCommand):
             return -1
 
         voice_trigger = message[0].lower()
-        trigger_number: int | None = None
+        trigger_number: str = ""
         if message[1]:
             firstPart = message[1].split()[0]
-            if firstPart.isdigit():
-                trigger_number = int(firstPart)
+            if firstPart.isdigit() or firstPart.startswith("?"):
+                trigger_number = firstPart
 
         sound = self.get_sound_path(
             player=player,
@@ -663,9 +663,14 @@ class VoiceTrigger(BaseCommand):
 
         sounds = self.trigger_manager.voice_triggers[voice_trigger]["sounds"]
 
+        try:
+            num = int(trigger_number)
+        except ValueError:
+            num = None
+
         if isinstance(sounds, list):
-            if trigger_number and trigger_number > 0 and trigger_number <= len(sounds):
-                sound = sounds[trigger_number - 1]
+            if num and num > 0 and num <= len(sounds):
+                sound = sounds[num - 1]
 
             elif trigger_number:
                 searching = trigger_number.startswith("?")
@@ -697,7 +702,7 @@ class VoiceTrigger(BaseCommand):
                             "Multiple matches: {}".format(", ".join(mlist)),
                         )
 
-                if not sound and not trigger_number:
+                if not sound and not num:
                     if not searching:
                         self.torchlight.SayPrivate(
                             player,
@@ -706,10 +711,10 @@ class VoiceTrigger(BaseCommand):
                     self.torchlight.SayPrivate(player, ", ".join(names))
                     return None
 
-            elif trigger_number:
+            elif num:
                 self.torchlight.SayPrivate(
                     player,
-                    f"Number {trigger_number} is out of bounds, max {len(sounds)}.",
+                    f"Number {num} is out of bounds, max {len(sounds)}.",
                 )
                 return None
 
@@ -725,7 +730,7 @@ class Random(VoiceTrigger):
     def _setup(self) -> None:
         self.logger.debug(sys._getframe().f_code.co_name)
 
-    def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: int | None) -> str | None:
+    def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
         trigger_name, trigger = secrets.choice(list(self.trigger_manager.voice_triggers.items()))
 
         self.random_trigger_name = trigger_name
