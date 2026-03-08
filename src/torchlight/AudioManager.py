@@ -37,6 +37,7 @@ class AudioManager:
                     params[param] = bool(thisConfig[param])
 
         msg_args = msg.split()
+        is_backwards: bool = False
         for arg in msg_args:
             if "=" in arg:
                 key, value = arg.split("=", 1)
@@ -61,11 +62,14 @@ class AudioManager:
                     if key == "Backwards":
                         if params[key]:
                             params[key] = bool(value)
+                            is_backwards = params[key]
 
         if "Backwards" in thisConfig:
             if isinstance(thisConfig["Backwards"], bool):
-                if thisConfig["Backwards"] == False and "Backwards" in params and params["Backwards"] == True:
+                if thisConfig["Backwards"] == False:
                     params["Backwards"] = False
+                elif is_backwards == True:
+                    params["Backwards"] = True
 
         return params
 
