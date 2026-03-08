@@ -22,7 +22,7 @@ class AudioManager:
         self.logger.info("~AudioManager()")
 
     def parse_params(self, triggerParams: dict, msg: str) -> dict[str, float | bool]:
-        thisConfig = self.torchlight.config.config.get("AudioParams", {})
+        thisConfig = self.torchlight.config.config.get("VoiceServer", {}).get("AudioParams", {})
         if not thisConfig:
             return triggerParams
 
