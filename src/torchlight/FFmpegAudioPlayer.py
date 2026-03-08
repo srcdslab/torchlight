@@ -295,33 +295,48 @@ class FFmpegAudioPlayer:
             raise exc
 
     # @profile
-    async def _stream_subprocess(self, curl_command: list[str], ffmpeg_command: list[str]) -> None:
+    async def _stream_subprocess(
+        self,
+        curl_command: list[str] | None,
+        ffmpeg_command: list[str],
+    ) -> None:
         if not self.playing:
             return
 
         try:
             _, self.writer = await asyncio.open_connection(self.host, self.port)
 
-            self.curl_process = await asyncio.create_subprocess_exec(
-                *curl_command,
-                stdout=asyncio.subprocess.PIPE,
+            if curl_command is not None:
+                self.curl_process = await asyncio.create_subprocess_exec(
+                    *curl_command,
+                    stdout=asyncio.subprocess.PIPE,
+                )
+
+                self.ffmpeg_process = await asyncio.create_subprocess_exec(
+                    *ffmpeg_command,
+                    stdin=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.DEVNULL,
+                )
+
+                asyncio.create_task(self._wait_for_process_exit(self.curl_process))
+                asyncio.create_task(
+                    self._write_stream(self.curl_process.stdout, self.ffmpeg_process.stdin)
+                )
+            else:
+                self.curl_process = None
+
+                self.ffmpeg_process = await asyncio.create_subprocess_exec(
+                    *ffmpeg_command,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.DEVNULL,
+                )
+
+            asyncio.create_task(
+                self._read_stream(self.ffmpeg_process.stdout, self.writer)
             )
 
-            self.ffmpeg_process = await asyncio.create_subprocess_exec(
-                *ffmpeg_command,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.DEVNULL,
-            )
-
-            asyncio.create_task(self._wait_for_process_exit(self.curl_process))
-
-            asyncio.create_task(self._write_stream(self.curl_process.stdout, self.ffmpeg_process.stdin))
-
-            asyncio.create_task(self._read_stream(self.ffmpeg_process.stdout, self.writer))
-
-            if self.ffmpeg_process is not None:
-                await self.ffmpeg_process.wait()
+            await self.ffmpeg_process.wait()
 
             if self.seconds == 0.0:
                 self.Stop()
