@@ -1006,6 +1006,71 @@ class Say(BaseCommand):
             os.unlink(temp_file.name)
             return 1
 
+    def HandleSay(self, message: list[str], player: Player) -> tuple[str, str] | None:
+        language: str = ""
+        tld: str = "com"
+
+        command_config = self.get_config()
+        if "parameters" in command_config and "default" in command_config["parameters"]:
+            if "language" in command_config["parameters"]["default"]:
+                language = command_config["parameters"]["default"]["language"]
+            if "tld" in command_config["parameters"]["default"]:
+                tld = command_config["parameters"]["default"]["tld"]
+
+        thisTrigger: str = ""
+        for trigger in self.triggers:
+            if isinstance(trigger, tuple):
+                command_trigger, command_len = trigger
+                if isinstance(command_trigger, str) and message[0].lower().startswith(command_trigger):
+                    thisTrigger = command_trigger
+                    break
+            elif isinstance(trigger, str) and message[0].lower().startswith(trigger):
+                thisTrigger = trigger
+                break
+
+        if not thisTrigger:
+            return None
+
+        force_default: bool = True
+        for trigger in command_config.get("triggers", {}):
+            if not isinstance(trigger, dict):
+                continue
+
+            myTrigger = trigger.get("command", "")
+            if not myTrigger:
+                continue
+
+            if thisTrigger == myTrigger:
+                force_default = trigger.get("force_default", True)
+                break
+
+        _language = message[0][len(thisTrigger) :]
+        if not _language:
+            if force_default:
+                language = language if language else "en"
+            else:
+                self.torchlight.SayPrivate(
+                    player,
+                    f"Usage: {message[0]}[language] [message], Example: {message[0]}fr Hello World!",
+                )
+                return None
+        else:
+            if "-" not in _language:
+                language = _language.lower()
+            else:
+                language = _language
+
+        self.logger.debug(f"{language}: {self.VALID_LANGUAGES}")
+        if language and language not in self.VALID_LANGUAGES:
+            self.torchlight.SayPrivate(
+                player,
+                f"Language '{language}' is not supported. Usage: {thisTrigger}[language] [message], "
+                f"Example: {thisTrigger}fr Hello World!",
+            )
+            return None
+
+        return language, tld
+
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
@@ -1018,119 +1083,29 @@ class Say(BaseCommand):
         if not message[1]:
             return 1
 
-        language: str = ""
-        tld: str = "com"
-
-        command_config = self.get_config()
-        if "parameters" in command_config and "default" in command_config["parameters"]:
-            if "language" in command_config["parameters"]["default"]:
-                language = command_config["parameters"]["default"]["language"]
-            if "tld" in command_config["parameters"]["default"]:
-                tld = command_config["parameters"]["default"]["tld"]
-
-        if len(message[0]) > 4:
-            language = message[0][4:]
-
-        self.logger.debug(f"{language}: {self.VALID_LANGUAGES}")
-        if len(language) <= 0 or language not in self.VALID_LANGUAGES:
+        res = self.HandleSay(message, player)
+        if not res:
             return 1
 
-        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
+        language, tld = res
+
         asyncio.ensure_future(self.Say(player, language, tld, message[1]))
         self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return 0
 
 
-class TranslateSay(BaseCommand):
-    try:
-        VALID_LANGUAGES = list(gtts.lang.tts_langs().keys())
-    except Exception:
-        VALID_LANGUAGES = [
-            "af",
-            "ar",
-            "bn",
-            "bs",
-            "ca",
-            "cs",
-            "cy",
-            "da",
-            "de",
-            "el",
-            "en",
-            "eo",
-            "es",
-            "et",
-            "fi",
-            "fr",
-            "gu",
-            "hi",
-            "hr",
-            "hu",
-            "hy",
-            "id",
-            "is",
-            "it",
-            "ja",
-            "jw",
-            "km",
-            "kn",
-            "ko",
-            "la",
-            "lv",
-            "mk",
-            "ml",
-            "mr",
-            "my",
-            "ne",
-            "nl",
-            "no",
-            "pl",
-            "pt",
-            "ro",
-            "ru",
-            "si",
-            "sk",
-            "sq",
-            "sr",
-            "su",
-            "sv",
-            "sw",
-            "ta",
-            "te",
-            "th",
-            "tl",
-            "tr",
-            "uk",
-            "ur",
-            "vi",
-            "zh-CN",
-            "zh-TW",
-            "zh",
-        ]
-
-    def __init__(
-        self,
-        torchlight: Torchlight,
-        access_manager: AccessManager,
-        player_manager: PlayerManager,
-        audio_manager: AudioManager,
-        trigger_manager: TriggerManager,
-    ) -> None:
-        super().__init__(torchlight, access_manager, player_manager, audio_manager, trigger_manager)
-
+class TranslateSay(Say):
+    def _setup(self) -> None:
         self.translator = Translator()
-        self.triggers = [f"!tsay{lang}" for lang in self.VALID_LANGUAGES]
 
-    async def TranslateAndSay(self, player: Player, target_lang: str, tld: str, message: str) -> int:
-        supported_langs = gtts.lang.tts_langs()
-
-        if target_lang not in supported_langs:
-            self.torchlight.SayPrivate(player, f"Sorry, TTS for '{target_lang}' is not supported.")
+    async def Say(self, player: Player, language: str, tld: str, message: str) -> int:
+        if language not in self.VALID_LANGUAGES:
+            self.torchlight.SayPrivate(player, f"Sorry, TTS for '{language}' is not supported.")
             return 1
 
         try:
             translated = await asyncio.get_event_loop().run_in_executor(
-                None, lambda: self.translator.translate(message, target_lang)
+                None, lambda: self.translator.translate(message, language)
             )
             translated_text = translated.result
         except Exception as e:
@@ -1138,7 +1113,7 @@ class TranslateSay(BaseCommand):
             return 1
 
         try:
-            tts = gtts.gTTS(text=translated_text, lang=target_lang, tld=tld, lang_check=False)
+            tts = gtts.gTTS(text=translated_text, lang=language, tld=tld, lang_check=False)
             temp_file = tempfile.NamedTemporaryFile(delete=False)
             tts.write_to_fp(temp_file)
             temp_file.close()
@@ -1158,32 +1133,6 @@ class TranslateSay(BaseCommand):
 
         os.unlink(temp_file.name)
         return 1
-
-    async def _func(self, message: list[str], player: Player) -> int:
-        self.logger.debug("_func " + str(message))
-
-        if self.check_disabled(player):
-            return -1
-
-        if not message[1]:
-            return 1
-
-        command = message[0]
-
-        if not command.startswith("!tsay"):
-            return 1
-
-        target_lang = command[5:]
-        tld = "com"
-
-        if target_lang not in self.VALID_LANGUAGES:
-            self.torchlight.SayPrivate(
-                player, f"{{darkred}}[TranslateSay]{{default}} Language '{target_lang}' not supported."
-            )
-            return 1
-
-        asyncio.ensure_future(self.TranslateAndSay(player, target_lang, tld, message[1]))
-        return 0
 
 
 class DECTalk(BaseCommand):
