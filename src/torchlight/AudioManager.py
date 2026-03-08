@@ -29,7 +29,7 @@ class AudioManager:
         params: dict[str, float | bool] = {}
         for param in thisConfig:
             if param in triggerParams and triggerParams[param]:
-                params[param] = float(triggerParams)
+                params[param] = float(triggerParams[param])
             else:
                 if isinstance(thisConfig[param], dict) and "Default" in thisConfig[param]:
                     params[param] = float(thisConfig[param]["Default"])
