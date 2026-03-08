@@ -651,8 +651,7 @@ class VoiceTrigger(BaseCommand):
         volume = modifiers["Volume"]
         speed = modifiers["Speed"]
         pitch = modifiers["Pitch"]
-        backwards = modifiers["backwards"] if "backwards" in modifiers else False
-        return audio_clip.Play(volume=volume, speed=speed, pitch=pitch, backwards=backwards)
+        return audio_clip.Play(volume=volume, speed=speed, pitch=pitch)
 
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
         level = player.admin.level

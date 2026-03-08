@@ -21,7 +21,7 @@ class AudioManager:
     def __del__(self) -> None:
         self.logger.info("~AudioManager()")
 
-    def parse_params(self, triggerParams: dict, msg: str) -> dict[str, float | bool]:
+    def parse_params(self, triggerParams: dict, msg: str) -> dict[str, float]:
         thisConfig = self.torchlight.config.config.get("VoiceServer", {}).get("AudioParams", {})
         if not thisConfig:
             return triggerParams
@@ -33,8 +33,6 @@ class AudioManager:
             else:
                 if isinstance(thisConfig[param], dict) and "Default" in thisConfig[param]:
                     params[param] = float(thisConfig[param]["Default"])
-                elif isinstance(thisConfig[param], bool):
-                    params[param] = bool(thisConfig[param])
 
         msg_args = msg.split()
         is_backwards: bool = False
@@ -57,19 +55,6 @@ class AudioManager:
 
                     val = max(thisConfig[key]["Min"], min(val, thisConfig[key]["Max"]))
                     params[key] = val
-
-                elif isinstance(thisConfig[key], bool):
-                    if key == "Backwards":
-                        if params[key]:
-                            params[key] = bool(value)
-                            is_backwards = params[key]
-
-        if "Backwards" in thisConfig:
-            if isinstance(thisConfig["Backwards"], bool):
-                if thisConfig["Backwards"] == False:
-                    params["Backwards"] = False
-                else:
-                    params["Backwards"] = is_backwards
 
         return params
 

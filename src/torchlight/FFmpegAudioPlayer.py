@@ -57,7 +57,6 @@ class FFmpegAudioPlayer:
         volume: float | None = None,
         speed: float | None = None,
         pitch: float | None = None,
-        backwards: bool = False,
     ) -> bool:
         if volume is None:
             volume = self.volume
@@ -68,70 +67,32 @@ class FFmpegAudioPlayer:
         if pitch is None:
             pitch = self.pitch
 
-        modifiers = []
-        modifiers = []
-
-        if backwards:
-            modifiers.append("areverse")
-
-        modifiers.extend([
-            f"rubberband=tempo={float(speed)}:pitch={float(pitch)}",
-            f"volume={float(volume)}",
-        ])
-
-        modifiers_string = ",".join(modifiers)
-
-        #ٌ Refactoring how curl and ffmpeg work together so it accepts reversed sounds (from local)
-        is_remote = uri.startswith(("http://", "https://"))
-
-        if backwards and is_remote:
-            self.logger.error("Backwards playback is only supported for local files: %s", uri)
-            return False
-
-        ffmpeg_command: list[str] = ["/usr/bin/ffmpeg", "-v", "error"]
-
-        if position is not None:
-            pos_str = str(datetime.timedelta(seconds=position))
-            ffmpeg_command.extend(["-ss", pos_str])
-            self.position = position
-
-        curl_command: list[str] | None = None
-
-        # If the playback uri is not a local file and is a VALID URL, then use curl + ffmpeg together
-        if is_remote and not backwards:
-            curl_command = [
-                "/usr/bin/curl",
-                "--silent",
-                "--show-error",
-                "--connect-timeout",
-                "1",
-                "--retry",
-                "2",
-                "--retry-delay",
-                "1",
-                "--output",
-                "-",
-                "-L",
-                uri,
-            ]
-
-            if self.proxy:
-                curl_command.extend(["-x", self.proxy])
-
-            ffmpeg_command.extend([
-                "-i",
-                "pipe:0",
-            ])
-        # If the uri is a local file, then play it with ffmpeg only (let it access the URI)
-        else:
-            local_path = uri[7:] if uri.startswith("file://") else uri
-
-            ffmpeg_command.extend([
-                "-i",
-                local_path,
-            ])
-
-        ffmpeg_command.extend([
+        curl_command = [
+            "/usr/bin/curl",
+            "--silent",
+            "--show-error",
+            "--connect-timeout",
+            "1",
+            "--retry",
+            "2",
+            "--retry-delay",
+            "1",
+            "--output",
+            "-",
+            "-L",
+            uri,
+        ]
+        if self.proxy:
+            curl_command.extend(
+                [
+                    "-x",
+                    self.proxy,
+                ]
+            )
+        ffmpeg_command = [
+            "/usr/bin/ffmpeg",
+            "-i",
+            "pipe:0",
             "-acodec",
             "pcm_s16le",
             "-ac",
@@ -139,13 +100,26 @@ class FFmpegAudioPlayer:
             "-ar",
             str(int(self.sample_rate)),
             "-filter:a",
-            modifiers_string,
+            f"volume={volume},rubberband=tempo={speed}:pitch={pitch}",
             "-f",
             "s16le",
             "-vn",
             *args,
             "-",
-        ])
+        ]
+
+        if position is not None:
+            pos_str = str(datetime.timedelta(seconds=position))
+            ffmpeg_command.extend(
+                [
+                    "-ss",
+                    pos_str,
+                ]
+            )
+            self.position = position
+
+        self.logger.debug(curl_command)
+        self.logger.debug(ffmpeg_command)
 
         self.playing = True
         self.uri = uri
@@ -298,48 +272,33 @@ class FFmpegAudioPlayer:
             raise exc
 
     # @profile
-    async def _stream_subprocess(
-        self,
-        curl_command: list[str] | None,
-        ffmpeg_command: list[str],
-    ) -> None:
+    async def _stream_subprocess(self, curl_command: list[str], ffmpeg_command: list[str]) -> None:
         if not self.playing:
             return
 
         try:
             _, self.writer = await asyncio.open_connection(self.host, self.port)
 
-            if curl_command is not None:
-                self.curl_process = await asyncio.create_subprocess_exec(
-                    *curl_command,
-                    stdout=asyncio.subprocess.PIPE,
-                )
-
-                self.ffmpeg_process = await asyncio.create_subprocess_exec(
-                    *ffmpeg_command,
-                    stdin=asyncio.subprocess.PIPE,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.DEVNULL,
-                )
-
-                asyncio.create_task(self._wait_for_process_exit(self.curl_process))
-                asyncio.create_task(
-                    self._write_stream(self.curl_process.stdout, self.ffmpeg_process.stdin)
-                )
-            else:
-                self.curl_process = None
-
-                self.ffmpeg_process = await asyncio.create_subprocess_exec(
-                    *ffmpeg_command,
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.DEVNULL,
-                )
-
-            asyncio.create_task(
-                self._read_stream(self.ffmpeg_process.stdout, self.writer)
+            self.curl_process = await asyncio.create_subprocess_exec(
+                *curl_command,
+                stdout=asyncio.subprocess.PIPE,
             )
 
-            await self.ffmpeg_process.wait()
+            self.ffmpeg_process = await asyncio.create_subprocess_exec(
+                *ffmpeg_command,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+
+            asyncio.create_task(self._wait_for_process_exit(self.curl_process))
+
+            asyncio.create_task(self._write_stream(self.curl_process.stdout, self.ffmpeg_process.stdin))
+
+            asyncio.create_task(self._read_stream(self.ffmpeg_process.stdout, self.writer))
+
+            if self.ffmpeg_process is not None:
+                await self.ffmpeg_process.wait()
 
             if self.seconds == 0.0:
                 self.Stop()
