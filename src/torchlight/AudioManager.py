@@ -21,7 +21,7 @@ class AudioManager:
     def __del__(self) -> None:
         self.logger.info("~AudioManager()")
 
-    def parse_params(self, trigger_params: dict, msg: str) -> dict[str, float]:
+    def ParseParams(self, trigger_params: dict, msg: str) -> dict[str, float]:
         this_config = self.torchlight.config.config.get("VoiceServer", {}).get("AudioParams", {})
         if not this_config:
             return trigger_params
@@ -50,6 +50,9 @@ class AudioManager:
                     try:
                         val = float(value)
                     except ValueError:
+                        continue
+
+                    if "Min" not in this_config[key] or "Max" not in this_config[key]:
                         continue
 
                     val = max(this_config[key]["Min"], min(val, this_config[key]["Max"]))

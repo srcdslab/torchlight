@@ -615,9 +615,15 @@ class VoiceTrigger(BaseCommand):
         voice_trigger = message[0].lower()
         trigger_number: str = ""
         if message[1]:
-            first_part = message[1].split()[0]
-            if first_part.isdigit() or first_part.startswith("?"):
-                trigger_number = first_part
+            parts = message[1].split()
+            trigger_parts = []
+            for part in parts:
+                if "=" in part:
+                    break
+                trigger_parts.append(part)
+
+            if trigger_parts:
+                trigger_number = " ".join(trigger_parts)
 
         sound = self.get_sound_path(
             player=player,
@@ -645,7 +651,7 @@ class VoiceTrigger(BaseCommand):
         self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
 
         params = cast(dict, self.trigger_manager.voice_triggers[voice_trigger]["parameters"])
-        modifiers = self.audio_manager.parse_params(params, message[1])
+        modifiers = self.audio_manager.ParseParams(params, message[1])
 
         volume = modifiers["Volume"]
         speed = modifiers["Speed"]
