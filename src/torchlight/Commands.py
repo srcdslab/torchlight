@@ -1482,7 +1482,12 @@ class MyInstantsSearch(BaseCommand):
                     )
                     return 1
 
-        url = myinstants_get_random_sound(search)
+        proxy = None
+        if self.torchlight.config["VoiceServer"]["Proxy"]:
+            proxy = self.torchlight.config["VoiceServer"]["Proxy"]
+
+        url = myinstants_get_random_sound(search, proxy)
+
         if url is None:
             if search:
                 self.torchlight.SayPrivate(player, f"{{darkred}}[MyInstants]{{default}} No sound found for {search}")
