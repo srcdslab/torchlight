@@ -24,17 +24,17 @@ class AudioManager:
     def parse_params(self, triggerParams: dict, msg: str) -> dict[str, float | bool]:
         thisConfig = self.torchlight.config.config.get("AudioParams", {})
         if not thisConfig:
-            return params
+            return triggerParams
 
         params: dict[str, float | bool] = {}
         for param in thisConfig:
-            if isinstance(thisConfig[param], dict) and "Default" in thisConfig[param]:
-                if param in triggerParams and triggerParams[param]:
-                    params[param] = float(triggerParams)
-                else:
+            if param in triggerParams and triggerParams[param]:
+                params[param] = float(triggerParams)
+            else:
+                if isinstance(thisConfig[param], dict) and "Default" in thisConfig[param]:
                     params[param] = float(thisConfig[param]["Default"])
-            elif isinstance(thisConfig[param], bool):
-                params[param] = bool(thisConfig[param])
+                elif isinstance(thisConfig[param], bool):
+                    params[param] = bool(thisConfig[param])
 
         msg_args = msg.split()
         for arg in msg_args:
