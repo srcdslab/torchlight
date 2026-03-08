@@ -29,9 +29,9 @@ class FFmpegAudioPlayer:
         self.host = self.config["Host"]
         self.port = self.config["Port"]
         self.sample_rate = float(self.config["SampleRate"])
-        self.volume = float(self.config["Volume"])
-        self.speed = float(self.config["Speed"])
-        self.pitch = float(self.config["Pitch"])
+        self.volume = float(self.config.get("AudioParams", {}).get("Volume", {}).get("Default", 1.0))
+        self.speed = float(self.config.get("AudioParams", {}).get("Speed", {}).get("Default", 1.0))
+        self.pitch = float(self.config.get("AudioParams", {}).get("Pitch", {}).get("Default", 1.0))
         self.proxy = self.config.get("Proxy", "")
 
         self.started_playing: float | None = None
@@ -57,6 +57,7 @@ class FFmpegAudioPlayer:
         volume: float | None = None,
         speed: float | None = None,
         pitch: float | None = None,
+        backwards: bool = False,
     ) -> bool:
         if volume is None:
             volume = self.volume
@@ -89,6 +90,17 @@ class FFmpegAudioPlayer:
                     self.proxy,
                 ]
             )
+
+        modifiers = [
+            f"volume={float(volume)}",
+            f"rubberband=tempo={speed}:pitch={pitch}",
+        ]
+
+        if backwards:
+            modifiers.append("areverse")
+
+        modifiers_string = ",".join(modifiers)
+
         ffmpeg_command = [
             "/usr/bin/ffmpeg",
             "-i",
@@ -100,7 +112,7 @@ class FFmpegAudioPlayer:
             "-ar",
             str(int(self.sample_rate)),
             "-filter:a",
-            f"volume={float(volume)},rubberband=tempo={speed}:pitch={pitch}",
+            modifiers_string,
             "-f",
             "s16le",
             "-vn",

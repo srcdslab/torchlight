@@ -613,7 +613,11 @@ class VoiceTrigger(BaseCommand):
             return -1
 
         voice_trigger = message[0].lower()
-        trigger_number = message[1].lower()
+        trigger_number = 1
+        if message[1]:
+            firstPart = message[1].split()[0]
+            if firstPart.isdigit():
+                trigger_number = int(firstPart)
 
         sound = self.get_sound_path(
             player=player,
@@ -638,13 +642,16 @@ class VoiceTrigger(BaseCommand):
             self.torchlight.SayChat(f"Now playing {{olive}}{self.random_trigger_name}")
             voice_trigger = self.random_trigger_name
 
-        params = cast(dict, self.trigger_manager.voice_triggers[voice_trigger]["parameters"])
-        volume = float(params["Volume"])
-        speed = float(params["Speed"])
-        pitch = float(params["Pitch"])
-
         self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
-        return audio_clip.Play(volume=volume, speed=speed, pitch=pitch)
+
+        params = cast(dict, self.trigger_manager.voice_triggers[voice_trigger]["parameters"])
+        modifiers = self.audio_manager.parse_params(params, message[1])
+        
+        volume = modifiers["Volume"]
+        speed = modifiers["Speed"]
+        pitch = modifiers["Pitch"]
+        backwards = modifiers["backwards"] if "backwards" in modifiers else False
+        return audio_clip.Play(volume=volume, speed=speed, pitch=pitch, backwards=backwards)
 
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
         level = player.admin.level

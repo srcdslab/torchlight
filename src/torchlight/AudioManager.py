@@ -21,6 +21,46 @@ class AudioManager:
     def __del__(self) -> None:
         self.logger.info("~AudioManager()")
 
+    def parse_params(self, triggerParams: dict, msg: str) -> dict[str, float | bool]:
+        thisConfig = self.torchlight.config.get("AudioParams", {})
+        if not thisConfig:
+            return params
+
+        params: dict[str, float | bool] = {}
+        for param in thisConfig:
+            if isinstance(thisConfig[param], dict) and "Default" in thisConfig[param]:
+                if param in triggerParams and triggerParams[param]:
+                    params[param] = float(triggerParams)
+                else:
+                    params[param] = float(thisConfig[param]["Default"])
+            elif isinstance(thisConfig[param], bool):
+                params[param] = bool(thisConfig[param])
+
+        msg_args = msg.split()
+        for arg in msg_args:
+            if "=" in arg:
+                key, value = arg.split("=", 1)
+                if not key or not value:
+                    continue
+
+                key = key.capitalize()
+                if key not in thisConfig:
+                    continue
+
+                if isinstance(thisConfig[key], dict):
+                    val: float = params[key]
+                    try:
+                        val = float(value)
+                    except ValueError:
+                        continue
+
+                    val = max(thisConfig[key]["Min"], min(val, thisConfig[key]["Max"]))
+                    params[key] = val
+
+                elif isinstance(thisConfig[key], bool):
+                    params[key] = bool(value)
+        return params
+
     def CheckLimits(self, player: Player) -> bool:
         level = player.admin.level
 
