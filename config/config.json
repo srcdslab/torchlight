@@ -35,24 +35,24 @@
 		{
 			"Volume":
 			{
-\				"Default": 1.0,
+				"Default": 1.0,
 				"Min": 0.0,
 				"Max": 1.0
 			},
 			"Speed":
 			{
-\				"Default": 1.0,
+				"Default": 1.0,
 				"Min": 0.5,
 				"Max": 2.0
 			},
 			"Pitch":
 			{
-\				"Default": 1.0,
+				"Default": 1.0,
 				"Min": 0.5,
 				"Max": 2.0
 			},
 
-			"backwards": true
+			"Backwards": true
 		}
 	},
 

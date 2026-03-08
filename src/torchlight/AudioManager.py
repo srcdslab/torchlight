@@ -22,7 +22,7 @@ class AudioManager:
         self.logger.info("~AudioManager()")
 
     def parse_params(self, triggerParams: dict, msg: str) -> dict[str, float | bool]:
-        thisConfig = self.torchlight.config.get("AudioParams", {})
+        thisConfig = self.torchlight.config.config.get("AudioParams", {})
         if not thisConfig:
             return params
 
@@ -58,7 +58,15 @@ class AudioManager:
                     params[key] = val
 
                 elif isinstance(thisConfig[key], bool):
-                    params[key] = bool(value)
+                    if key == "Backwards":
+                        if params[key]:
+                            params[key] = bool(value)
+
+        if "Backwards" in thisConfig:
+            if isinstance(thisConfig["Backwards"], bool):
+                if thisConfig["Backwards"] == False and "Backwards" in params and params["Backwards"] == True:
+                    params["Backwards"] = False
+
         return params
 
     def CheckLimits(self, player: Player) -> bool:
