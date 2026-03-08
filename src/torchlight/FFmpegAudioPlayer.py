@@ -29,9 +29,9 @@ class FFmpegAudioPlayer:
         self.host = self.config["Host"]
         self.port = self.config["Port"]
         self.sample_rate = float(self.config["SampleRate"])
-        self.volume = float(self.config.get("AudioParams", {}).get("Volume", {}).get("Default", 1.0))
-        self.speed = float(self.config.get("AudioParams", {}).get("Speed", {}).get("Default", 1.0))
-        self.pitch = float(self.config.get("AudioParams", {}).get("Pitch", {}).get("Default", 1.0))
+        self.volume = float(self.config["Volume"])
+        self.speed = float(self.config["Speed"])
+        self.pitch = float(self.config["Pitch"])
         self.proxy = self.config.get("Proxy", "")
 
         self.started_playing: float | None = None
@@ -100,7 +100,7 @@ class FFmpegAudioPlayer:
             "-ar",
             str(int(self.sample_rate)),
             "-filter:a",
-            f"volume={volume},rubberband=tempo={speed}:pitch={pitch}",
+            f"volume={float(volume)},rubberband=tempo={speed}:pitch={pitch}",
             "-f",
             "s16le",
             "-vn",
