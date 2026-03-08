@@ -615,9 +615,9 @@ class VoiceTrigger(BaseCommand):
         voice_trigger = message[0].lower()
         trigger_number: str = ""
         if message[1]:
-            firstPart = message[1].split()[0]
-            if firstPart.isdigit() or firstPart.startswith("?"):
-                trigger_number = firstPart
+            first_part = message[1].split()[0]
+            if first_part.isdigit() or first_part.startswith("?"):
+                trigger_number = first_part
 
         sound = self.get_sound_path(
             player=player,
@@ -650,6 +650,7 @@ class VoiceTrigger(BaseCommand):
         volume = modifiers["Volume"]
         speed = modifiers["Speed"]
         pitch = modifiers["Pitch"]
+
         return audio_clip.Play(volume=volume, speed=speed, pitch=pitch)
 
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:

@@ -21,18 +21,18 @@ class AudioManager:
     def __del__(self) -> None:
         self.logger.info("~AudioManager()")
 
-    def parse_params(self, triggerParams: dict, msg: str) -> dict[str, float]:
-        thisConfig = self.torchlight.config.config.get("VoiceServer", {}).get("AudioParams", {})
-        if not thisConfig:
-            return triggerParams
+    def parse_params(self, trigger_params: dict, msg: str) -> dict[str, float]:
+        this_config = self.torchlight.config.config.get("VoiceServer", {}).get("AudioParams", {})
+        if not this_config:
+            return trigger_params
 
         params: dict[str, float] = {}
-        for param in thisConfig:
-            if param in triggerParams and triggerParams[param]:
-                params[param] = float(triggerParams[param])
+        for param in this_config:
+            if param in trigger_params and trigger_params[param] is not None:
+                params[param] = float(trigger_params[param])
             else:
-                if isinstance(thisConfig[param], dict) and "Default" in thisConfig[param]:
-                    params[param] = float(thisConfig[param]["Default"])
+                if isinstance(this_config[param], dict) and "Default" in this_config[param]:
+                    params[param] = float(this_config[param]["Default"])
 
         msg_args = msg.split()
         for arg in msg_args:
@@ -42,17 +42,17 @@ class AudioManager:
                     continue
 
                 key = key.capitalize()
-                if key not in thisConfig:
+                if key not in this_config:
                     continue
 
-                if isinstance(thisConfig[key], dict):
-                    val: float = params[key]
+                if isinstance(this_config[key], dict):
+                    val: float = 1.0
                     try:
                         val = float(value)
                     except ValueError:
                         continue
 
-                    val = max(thisConfig[key]["Min"], min(val, thisConfig[key]["Max"]))
+                    val = max(this_config[key]["Min"], min(val, this_config[key]["Max"]))
                     params[key] = val
 
         return params
