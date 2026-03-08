@@ -68,32 +68,9 @@ class FFmpegAudioPlayer:
         if pitch is None:
             pitch = self.pitch
 
-        curl_command = [
-            "/usr/bin/curl",
-            "--silent",
-            "--show-error",
-            "--connect-timeout",
-            "1",
-            "--retry",
-            "2",
-            "--retry-delay",
-            "1",
-            "--output",
-            "-",
-            "-L",
-            uri,
-        ]
-        if self.proxy:
-            curl_command.extend(
-                [
-                    "-x",
-                    self.proxy,
-                ]
-            )
-
         modifiers = [
             f"volume={float(volume)}",
-            f"rubberband=tempo={speed}:pitch={pitch}",
+            f"rubberband=tempo={float(speed)}:pitch={float(pitch)}",
         ]
 
         if backwards:
@@ -101,10 +78,57 @@ class FFmpegAudioPlayer:
 
         modifiers_string = ",".join(modifiers)
 
-        ffmpeg_command = [
-            "/usr/bin/ffmpeg",
-            "-i",
-            "pipe:0",
+        #ٌ Refactoring how curl and ffmpeg work together so it accepts reversed sounds (from local)
+        is_remote = uri.startswith(("http://", "https://"))
+
+        if backwards and is_remote:
+            self.logger.error("Backwards playback is only supported for local files: %s", uri)
+            return False
+
+        ffmpeg_command: list[str] = ["/usr/bin/ffmpeg", "-v", "error"]
+
+        if position is not None:
+            pos_str = str(datetime.timedelta(seconds=position))
+            ffmpeg_command.extend(["-ss", pos_str])
+            self.position = position
+
+        curl_command: list[str] | None = None
+
+        # If the playback uri is not a local file and is a VALID URL, then use curl + ffmpeg together
+        if is_remote and not backwards:
+            curl_command = [
+                "/usr/bin/curl",
+                "--silent",
+                "--show-error",
+                "--connect-timeout",
+                "1",
+                "--retry",
+                "2",
+                "--retry-delay",
+                "1",
+                "--output",
+                "-",
+                "-L",
+                uri,
+            ]
+
+            if self.proxy:
+                curl_command.extend(["-x", self.proxy])
+
+            ffmpeg_command.extend([
+                "-i",
+                "pipe:0",
+            ])
+        # If the uri is a local file, then play it with ffmpeg only (let it access the URI)
+        else:
+            local_path = uri[7:] if uri.startswith("file://") else uri
+
+            ffmpeg_command.extend([
+                "-i",
+                local_path,
+            ])
+
+        ffmpeg_command.extend([
             "-acodec",
             "pcm_s16le",
             "-ac",
@@ -118,20 +142,7 @@ class FFmpegAudioPlayer:
             "-vn",
             *args,
             "-",
-        ]
-
-        if position is not None:
-            pos_str = str(datetime.timedelta(seconds=position))
-            ffmpeg_command.extend(
-                [
-                    "-ss",
-                    pos_str,
-                ]
-            )
-            self.position = position
-
-        self.logger.debug(curl_command)
-        self.logger.debug(ffmpeg_command)
+        ])
 
         self.playing = True
         self.uri = uri
