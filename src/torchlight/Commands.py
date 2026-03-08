@@ -653,7 +653,7 @@ class VoiceTrigger(BaseCommand):
         pitch = modifiers["Pitch"]
         return audio_clip.Play(volume=volume, speed=speed, pitch=pitch)
 
-    def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: int | None) -> str | None:
+    def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
         level = player.admin.level
 
         if voice_trigger[0] != "!" and level < self.torchlight.config["Command"]["VoiceTriggerReserved"]["level"]:
