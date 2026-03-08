@@ -16,10 +16,14 @@ on:
     branches:
       - 'main'
       - 'master'
+      - 'my-master'
+      - 'main-dolly8'
+      - 'main-dolly15'
   pull_request:
     branches:
       - master
       - main
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
