@@ -26,7 +26,7 @@ class AudioManager:
         if not thisConfig:
             return triggerParams
 
-        params: dict[str, float | bool] = {}
+        params: dict[str, float] = {}
         for param in thisConfig:
             if param in triggerParams and triggerParams[param]:
                 params[param] = float(triggerParams[param])
