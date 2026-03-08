@@ -68,8 +68,8 @@ class AudioManager:
             if isinstance(thisConfig["Backwards"], bool):
                 if thisConfig["Backwards"] == False:
                     params["Backwards"] = False
-                elif is_backwards == True:
-                    params["Backwards"] = True
+                else:
+                    params["Backwards"] = is_backwards
 
         return params
 

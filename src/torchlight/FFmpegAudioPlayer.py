@@ -68,13 +68,16 @@ class FFmpegAudioPlayer:
         if pitch is None:
             pitch = self.pitch
 
-        modifiers = [
-            f"volume={float(volume)}",
-            f"rubberband=tempo={float(speed)}:pitch={float(pitch)}",
-        ]
+        modifiers = []
+        modifiers = []
 
         if backwards:
             modifiers.append("areverse")
+
+        modifiers.extend([
+            f"rubberband=tempo={float(speed)}:pitch={float(pitch)}",
+            f"volume={float(volume)}",
+        ])
 
         modifiers_string = ",".join(modifiers)
 
