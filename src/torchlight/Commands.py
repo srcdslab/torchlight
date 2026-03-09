@@ -821,12 +821,17 @@ class Search(BaseCommand):
         actual_count = len(res)
         max = self.get_config().get("parameters", {}).get("max_results", 30)
 
+        max_pages = (actual_count + max - 1) // max
+        if page > max_pages:
+            page = max_pages
+        if page < 1:
+            page = 1
+
         start = (page - 1) * max if page else 0
         end = actual_count
 
         if actual_count > max:
             end = start + max
-            max_pages = (actual_count + max - 1) // max
 
             res = self.get_menu_page_content(
                 cmd=message[0],
@@ -1540,7 +1545,7 @@ class Help(BaseCommand):
             items.append((command.level, first_trigger, description))
 
         if not items:
-            self.torchlight.SayPrivate(player, "Sorry, No commands found that match your level.")
+            self.torchlight.SayPrivate(player, "Sorry, no commands found that match your level.")
             return 1
 
         items.sort(key=lambda x: (-x[0], x[1]))
@@ -1559,13 +1564,17 @@ class Help(BaseCommand):
             max = command_config["parameters"]["max_results"]
 
         actual_count = len(res)
+        max_pages = (actual_count + max - 1) // max
+        if page > max_pages:
+            page = max_pages
+        if page < 1:
+            page = 1
+
         start = (page - 1) * max if page else 0
         end = actual_count
 
         if actual_count > max:
             end = start + max
-            max_pages = (actual_count + max - 1) // max
-
             res = self.get_menu_page_content(
                 cmd=message[0],
                 res=res,

@@ -178,7 +178,7 @@
 					"command": "!access"
 				}
 			],
-			"description": "Change Players' levels."
+			"description": "Change players' levels."
 		},
 		"Enable": {
 			"level": 3,
