@@ -43,6 +43,7 @@ version = {file = "VERSION"}
 [project.optional-dependencies]
 dev = [
     "memory_profiler",
+    "types-requests",
     "mypy",
     "ruff",
 ]

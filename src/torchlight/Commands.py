@@ -1473,20 +1473,21 @@ class MyInstantsSearch(BaseCommand):
         if search and "parameters" in command_config and "keywords_banned" in command_config["parameters"]:
             keywords_banned = command_config["parameters"]["keywords_banned"]
 
+        normalized_search = search.lower() if search else ""
         for keyword_banned in keywords_banned:
-            for word in search.split():
-                if keyword_banned.lower() in word.lower():
-                    self.torchlight.SayPrivate(
-                        player,
-                        f"{{darkred}}[MyInstants] {{default}}Cannot play sounds for {search}",
-                    )
-                    return 1
+            pattern = re.compile(rf"\b{re.escape(keyword_banned.lower())}\b")
+            if pattern.search(normalized_search):
+                self.torchlight.SayPrivate(
+                    player,
+                    f"{{darkred}}[MyInstants] {{default}}Cannot play sounds for {search}",
+                )
+                return 1
 
         proxy = None
         if self.torchlight.config["VoiceServer"]["Proxy"]:
             proxy = self.torchlight.config["VoiceServer"]["Proxy"]
 
-        url = myinstants_get_random_sound(search, proxy)
+        url = await asyncio.to_thread(myinstants_get_random_sound, search, proxy)
 
         if url is None:
             if search:

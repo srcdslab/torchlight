@@ -14,7 +14,7 @@ def myinstants_get_random_sound(query: str | None, proxy: str | None) -> str | N
     if not query:
         search_url = f"{MYINSTANTS_URL}/en/index/us/"
     else:
-        search_url = f"{MYINSTANTS_URL}/en/search/?name={query}"
+        search_url = f"{MYINSTANTS_URL}/en/search/"
 
     proxies = None
     if proxy:
@@ -23,7 +23,16 @@ def myinstants_get_random_sound(query: str | None, proxy: str | None) -> str | N
             "https": proxy,
         }
 
-    r = requests.get(search_url, headers=HEADERS, timeout=10, proxies=proxies)
+    try:
+        r = requests.get(
+            search_url,
+            headers=HEADERS,
+            params={"name": query} if query else None,
+            timeout=10,
+            proxies=proxies
+        )
+    except requests.RequestException:
+        return None
 
     if r.status_code != 200:
         return None
