@@ -60,3 +60,7 @@ yarl==1.9.4
     # via aiohttp
 yt-dlp @ git+https://github.com/yt-dlp/yt-dlp@5ff7a43623e3a92270f66a7e37b5fc53d7a57fdf#egg=yt-dlp
     # via torchlight (pyproject.toml)
+translatepy==2.3
+    # via torchlight (pyproject.toml)
+langdetect==1.0.9
+    # via translatepy

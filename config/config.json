@@ -29,8 +29,29 @@
 		"Host": "127.0.0.1",
 		"Port": 27019,
 		"SampleRate": 22050,
-		"Volume": 1.0,
-		"Proxy": ""
+		"Proxy": "",
+
+		"AudioParams":
+		{
+			"Volume":
+			{
+				"Default": 1.0,
+				"Min": 0.0,
+				"Max": 1.0
+			},
+			"Speed":
+			{
+				"Default": 1.0,
+				"Min": 0.5,
+				"Max": 2.0
+			},
+			"Pitch":
+			{
+				"Default": 1.0,
+				"Min": 0.5,
+				"Max": 2.0
+			}
+		}
 	},
 
 	"GeoIP":
@@ -194,7 +215,35 @@
 			"triggers": [
 				{
 					"command": "!say",
-					"starts_with": true
+					"starts_with": true,
+					"force_default": true
+				},
+				{
+					"command": "!speak",
+					"starts_with": true,
+					"force_default": true
+				}
+			],
+			"parameters": {
+				"default": {
+					"language": "en",
+					"tld": "com"
+				}
+			}
+		},
+		"TranslateSay":
+		{
+			"level": 2,
+			"triggers": [
+				{
+					"command": "!tsay",
+					"starts_with": true,
+					"force_default": true
+				},
+				{
+					"command": "!translate",
+					"starts_with": true,
+					"force_default": true
 				}
 			],
 			"parameters": {
@@ -276,6 +325,9 @@
 		},
 		"Search": {
 			"level": 0,
+			"parameters":{
+				"max_results": 30
+			},
 			"triggers": [
 				{
 					"command": "!search"
@@ -325,6 +377,27 @@
 		},
 		"URLFilter": {
 			"level": 0
+		},
+		"MyInstantsSearch": {
+			"level": 2,
+			"Cooldown": 10,
+			"triggers": [
+				{
+					"command": "!mi"
+				},
+				{
+					"command": "!mis"
+				}
+			],
+			"parameters": {
+				"keywords_banned": [
+					"earrape",
+					"rape",
+					"porn",
+					"algorithm",
+					"loud"
+				]
+			}
 		}
 	}
 }

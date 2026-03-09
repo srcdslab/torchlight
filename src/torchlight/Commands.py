@@ -10,16 +10,18 @@ import tempfile
 import traceback
 from pathlib import Path
 from re import Match, Pattern
-from typing import Any
+from typing import Any, cast
 
 import aiohttp
 import defusedxml.ElementTree as etree
 import geoip2.database
 import gtts
+from translatepy import Translate as Translator
 
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
 from torchlight.Config import Config
+from torchlight.MyInstants import myinstants_get_random_sound
 from torchlight.Player import Player
 from torchlight.PlayerManager import PlayerManager
 from torchlight.Torchlight import Torchlight
@@ -608,8 +610,21 @@ class VoiceTrigger(BaseCommand):
         if self.check_disabled(player):
             return -1
 
+        if self.check_chat_cooldown(player):
+            return -1
+
         voice_trigger = message[0].lower()
-        trigger_number = message[1].lower()
+        trigger_number: str = ""
+        if message[1]:
+            parts = message[1].split()
+            trigger_parts = []
+            for part in parts:
+                if "=" in part:
+                    break
+                trigger_parts.append(part)
+
+            if trigger_parts:
+                trigger_number = " ".join(trigger_parts)
 
         sound = self.get_sound_path(
             player=player,
@@ -632,8 +647,18 @@ class VoiceTrigger(BaseCommand):
 
         if self.random_trigger_name:
             self.torchlight.SayChat(f"Now playing {{olive}}{self.random_trigger_name}")
+            voice_trigger = self.random_trigger_name
 
-        return audio_clip.Play()
+        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
+
+        params = cast(dict, self.trigger_manager.voice_triggers[voice_trigger]["parameters"])
+        modifiers = self.audio_manager.ParseParams(params, message[1])
+
+        volume = modifiers["Volume"]
+        speed = modifiers["Speed"]
+        pitch = modifiers["Pitch"]
+
+        return audio_clip.Play(volume=volume, speed=speed, pitch=pitch)
 
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
         level = player.admin.level
@@ -643,7 +668,7 @@ class VoiceTrigger(BaseCommand):
 
         sound = None
 
-        sounds = self.trigger_manager.voice_triggers[voice_trigger]
+        sounds = self.trigger_manager.voice_triggers[voice_trigger]["sounds"]
 
         try:
             num = int(trigger_number)
@@ -703,33 +728,125 @@ class VoiceTrigger(BaseCommand):
             else:
                 sound = secrets.choice(sounds)
         else:
-            sound = sounds
+            sound = cast(str, sounds)
 
         return sound
 
 
 class Random(VoiceTrigger):
+    def _setup(self) -> None:
+        self.logger.debug(sys._getframe().f_code.co_name)
+
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
         trigger_name, trigger = secrets.choice(list(self.trigger_manager.voice_triggers.items()))
 
         self.random_trigger_name = trigger_name
 
-        if isinstance(trigger, list):
-            return secrets.choice(trigger)
-        return trigger
+        if isinstance(trigger["sounds"], list):
+            return secrets.choice(trigger["sounds"])
+        return cast(str, trigger["sounds"])
 
 
 class Search(BaseCommand):
+    def get_menu_page_content(
+        self,
+        cmd: str,
+        search: str,
+        res: dict[str, str],
+        page: int,
+        max_items: int,
+        max_pages: int,
+    ) -> dict[str, str]:
+        start = (page - 1) * max_items
+        end = start + max_items
+        soundsItems = dict(list(res.items())[start:end])
+
+        if search == "":
+            line = cmd
+        else:
+            line = f"{cmd} {search}"
+
+        items: dict[str, str] = {}
+        last_item_info: str = ""
+        last_item_display: str = ""
+        if page > 1:
+            last_item_info = f"{line} {page - 1}"
+            last_item_display = "> Previous Page"
+            items[last_item_info] = last_item_display
+        if page < max_pages:
+            last_item_info = f"{line} {page + 1}"
+            last_item_display = "> Next Page"
+            items[last_item_info] = last_item_display
+
+        if last_item_info and last_item_display:
+            items[last_item_info] = last_item_display + "\n "
+
+        return {**items, **soundsItems}
+
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         voice_trigger = message[1].lower()
 
-        res = []
+        page = 1
+        if voice_trigger.isdigit():
+            page = int(voice_trigger)
+            voice_trigger = ""
+        if len(message) > 2 and message[2].isdigit():
+            page = int(message[2])
+
+        res: dict[str, str] = {}
+
         for key in self.trigger_manager.voice_triggers.keys():
             if voice_trigger in key.lower():
-                res.append(key)
-        self.torchlight.SayPrivate(player, "{} results: {}".format(len(res), ", ".join(res)))
+                if isinstance(self.trigger_manager.voice_triggers[key]["sounds"], list):
+                    sounds = self.trigger_manager.voice_triggers[key]["sounds"]
+                    if len(sounds) > 1:
+                        for i in enumerate(sounds):
+                            res[f"{key} {i[0] + 1}"] = f"{key} {i[0] + 1}"
+                    else:
+                        res[key] = key
+                elif isinstance(self.trigger_manager.voice_triggers[key]["sounds"], str):
+                    res[key] = key
+
+        if not res:
+            self.torchlight.SayPrivate(player, "No triggers found with that name.")
+            return 1
+
+        self.torchlight.SayPrivate(player, "{} results: {}".format(len(res), ", ".join(res.keys())))
+
+        actual_count = len(res)
+        max = self.get_config().get("parameters", {}).get("max_results", 30)
+
+        start = (page - 1) * max if page else 0
+        end = actual_count
+
+        if actual_count > max:
+            end = start + max
+            max_pages = (actual_count + max - 1) // max
+
+            res = self.get_menu_page_content(
+                cmd=message[0],
+                search=voice_trigger,
+                res=res,
+                page=page,
+                max_items=max,
+                max_pages=max_pages,
+            )
+
+        title: str | None = None
+        if voice_trigger:
+            title = f"[Torchlight] Search results for: {voice_trigger} (Click to play)"
+        else:
+            title = f"[Torchlight] All triggers [{len(res)} results found] (Click to play)"
+
+        title += f"\nDisplaying {start + 1}-{min(end, actual_count)} of {actual_count} results."
+
+        self.torchlight.CreateMenu(
+            player,
+            title=title,
+            options=res,
+        )
         return 0
 
 
@@ -903,15 +1020,7 @@ class Say(BaseCommand):
             os.unlink(temp_file.name)
             return 1
 
-    async def _func(self, message: list[str], player: Player) -> int:
-        self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
-
-        if self.check_disabled(player):
-            return -1
-
-        if not message[1]:
-            return 1
-
+    def HandleSay(self, message: list[str], player: Player) -> tuple[str, str] | None:
         language: str = ""
         tld: str = "com"
 
@@ -922,15 +1031,122 @@ class Say(BaseCommand):
             if "tld" in command_config["parameters"]["default"]:
                 tld = command_config["parameters"]["default"]["tld"]
 
-        if len(message[0]) > 4:
-            language = message[0][4:]
+        thisTrigger: str = ""
+        for trigger in self.triggers:
+            if isinstance(trigger, tuple):
+                command_trigger, command_len = trigger
+                if isinstance(command_trigger, str) and message[0].lower().startswith(command_trigger):
+                    thisTrigger = command_trigger
+                    break
+            elif isinstance(trigger, str) and message[0].lower().startswith(trigger):
+                thisTrigger = trigger
+                break
+
+        if not thisTrigger:
+            return None
+
+        force_default: bool = True
+        for trigger in command_config.get("triggers", {}):
+            if not isinstance(trigger, dict):
+                continue
+
+            myTrigger = trigger.get("command", "")
+            if not myTrigger:
+                continue
+
+            if thisTrigger == myTrigger:
+                force_default = trigger.get("force_default", True)
+                break
+
+        _language = message[0][len(thisTrigger) :]
+        if not _language:
+            if force_default:
+                language = language if language else "en"
+            else:
+                self.torchlight.SayPrivate(
+                    player,
+                    f"Usage: {message[0]}[language] [message], Example: {message[0]}fr Hello World!",
+                )
+                return None
+        else:
+            if "-" not in _language:
+                language = _language.lower()
+            else:
+                language = _language
 
         self.logger.debug(f"{language}: {self.VALID_LANGUAGES}")
-        if len(language) <= 0 or language not in self.VALID_LANGUAGES:
+        if language and language not in self.VALID_LANGUAGES:
+            self.torchlight.SayPrivate(
+                player,
+                f"Language '{language}' is not supported. Usage: {thisTrigger}[language] [message], "
+                f"Example: {thisTrigger}fr Hello World!",
+            )
+            return None
+
+        return language, tld
+
+    async def _func(self, message: list[str], player: Player) -> int:
+        self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
+
+        if self.check_disabled(player):
+            return -1
+
+        if self.check_chat_cooldown(player):
+            return -1
+
+        if not message[1]:
             return 1
 
+        res = self.HandleSay(message, player)
+        if not res:
+            return 1
+
+        language, tld = res
+
         asyncio.ensure_future(self.Say(player, language, tld, message[1]))
+        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return 0
+
+
+class TranslateSay(Say):
+    def _setup(self) -> None:
+        self.translator = Translator()
+
+    async def Say(self, player: Player, language: str, tld: str, message: str) -> int:
+        if language not in self.VALID_LANGUAGES:
+            self.torchlight.SayPrivate(player, f"Sorry, TTS for '{language}' is not supported.")
+            return 1
+
+        try:
+            translated = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: self.translator.translate(message, language)
+            )
+            translated_text = translated.result
+        except Exception as e:
+            self.torchlight.SayPrivate(player, f"Translation failed: {e}")
+            return 1
+
+        try:
+            tts = gtts.gTTS(text=translated_text, lang=language, tld=tld, lang_check=False)
+            temp_file = tempfile.NamedTemporaryFile(delete=False)
+            tts.write_to_fp(temp_file)
+            temp_file.close()
+        except Exception as e:
+            self.torchlight.SayPrivate(player, f"TTS failed: {e}")
+            return 1
+
+        audio_clip = self.audio_manager.AudioClip(player, Path(temp_file.name).absolute().as_uri())
+
+        if not audio_clip:
+            os.unlink(temp_file.name)
+            return 1
+
+        if audio_clip.Play():
+            audio_clip.audio_player.AddCallback("Stop", lambda: os.unlink(temp_file.name))
+            return 0
+
+        os.unlink(temp_file.name)
+        return 1
 
 
 class DECTalk(BaseCommand):
@@ -973,10 +1189,15 @@ class DECTalk(BaseCommand):
         if self.check_disabled(player):
             return -1
 
+        if self.check_chat_cooldown(player):
+            return -1
+
         if not message[1]:
             return 1
 
+        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         asyncio.ensure_future(self.Say(player, message[1]))
+        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return 0
 
 
@@ -1160,8 +1381,18 @@ class AdminAccess(BaseCommand):
 class Reload(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
+        required_level = self.get_config()["level"]
+        player_level = player.admin.level
+        if player_level < required_level:
+            self.torchlight.SayPrivate(
+                player, f"This command requires level {required_level} or higher. Your level is {player_level}."
+            )
+            return 1
+        self.logger.info(f"Reloading configuration by {player.name}")
         self.torchlight.Reload()
-        self.torchlight.SayPrivate(message="Torchlight has been reloaded", player=player)
+        self.torchlight.SayPrivate(
+            player, "Torchlight configuration has been reloaded (config, triggers, access list)."
+        )
         return 0
 
 
@@ -1175,3 +1406,69 @@ class Exec(BaseCommand):
             return 1
         self.torchlight.SayChat(str(resp))
         return 0
+
+
+class MyInstantsSearch(BaseCommand):
+    async def _func(self, message: list[str], player: Player) -> int:
+        self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
+
+        if self.check_disabled(player):
+            return -1
+
+        current_time = self.torchlight.loop.time()
+        if player.myinstants_cooldown > current_time:
+            left = player.myinstants_cooldown - current_time
+            self.torchlight.SayPrivate(
+                player,
+                f"{{darkred}}[MyInstants] {{default}}You are currently on cooldown for the next {left:.1f} seconds",
+            )
+            return 1
+
+        search = message[1]
+        if search:
+            search = search.lower()
+
+        command_config = self.get_config()
+
+        keywords_banned: list[str] = []
+
+        if search and "parameters" in command_config and "keywords_banned" in command_config["parameters"]:
+            keywords_banned = command_config["parameters"]["keywords_banned"]
+
+        normalized_search = search.lower() if search else ""
+        for keyword_banned in keywords_banned:
+            pattern = re.compile(rf"\b{re.escape(keyword_banned.lower())}\b")
+            if pattern.search(normalized_search):
+                self.torchlight.SayPrivate(
+                    player,
+                    f"{{darkred}}[MyInstants] {{default}}Cannot play sounds for {search}",
+                )
+                return 1
+
+        # Default cooldown
+        cooldown = 10.0
+
+        if "Cooldown" in command_config:
+            cooldown = command_config["Cooldown"] * 1.0
+
+        player.myinstants_cooldown = current_time + cooldown
+
+        proxy = None
+        if self.torchlight.config["VoiceServer"]["Proxy"]:
+            proxy = self.torchlight.config["VoiceServer"]["Proxy"]
+
+        url = await asyncio.to_thread(myinstants_get_random_sound, search, proxy)
+
+        if url is None:
+            if search:
+                self.torchlight.SayPrivate(player, f"{{darkred}}[MyInstants]{{default}} No sound found for {search}")
+            else:
+                self.torchlight.SayPrivate(player, "{{darkred}}[MyInstants]{{default}} No sounds found")
+            return 1
+
+        audio_clip = self.audio_manager.AudioClip(player, url)
+        if not audio_clip:
+            return 1
+
+        self.torchlight.last_url = url
+        return audio_clip.Play()
