@@ -56,6 +56,7 @@ class BaseCommand:
         self.triggers: list[tuple[str, int] | str | Pattern] = []
         self.level = 0
         self.random_trigger_name: str | None = None
+        self.description = ""
 
         self.init_command()
 
@@ -64,7 +65,7 @@ class BaseCommand:
 
     def init_command(self) -> None:
         command_config = self.get_config()
-        self.level = command_config["level"]
+        self.level = command_config["level"] if "level" in command_config else 0
         if "triggers" in command_config:
             for trigger in command_config["triggers"]:
                 command = trigger["command"]
@@ -72,6 +73,8 @@ class BaseCommand:
                     self.triggers.append((command, len(command)))
                 else:
                     self.triggers.append(command)
+        if "description" in command_config:
+            self.description = command_config["description"]
 
     def command_name(self) -> str:
         return self.__class__.__name__
@@ -769,13 +772,13 @@ class Search(BaseCommand):
         items: dict[str, str] = {}
         last_item_info: str = ""
         last_item_display: str = ""
-        if page > 1:
-            last_item_info = f"{line} {page - 1}"
-            last_item_display = "> Previous Page"
-            items[last_item_info] = last_item_display
         if page < max_pages:
             last_item_info = f"{line} {page + 1}"
             last_item_display = "> Next Page"
+            items[last_item_info] = last_item_display
+        if page > 1:
+            last_item_info = f"{line} {page - 1}"
+            last_item_display = "> Previous Page"
             items[last_item_info] = last_item_display
 
         if last_item_info and last_item_display:
@@ -1472,3 +1475,109 @@ class MyInstantsSearch(BaseCommand):
 
         self.torchlight.last_url = url
         return audio_clip.Play()
+
+
+class Help(BaseCommand):
+    def get_menu_page_content(
+        self,
+        cmd: str,
+        res: dict[str, str],
+        page: int,
+        max_items: int,
+        max_pages: int,
+    ) -> dict[str, str]:
+        start = (page - 1) * max_items
+        end = start + max_items
+        command_items = dict(list(res.items())[start:end])
+
+        line = cmd
+
+        items: dict[str, str] = {}
+        last_item_info: str = ""
+        last_item_display: str = ""
+        if page < max_pages:
+            last_item_info = f"{line} {page + 1}"
+            last_item_display = "> Next Page"
+            items[last_item_info] = last_item_display
+        if page > 1:
+            last_item_info = f"{line} {page - 1}"
+            last_item_display = "> Previous Page"
+            items[last_item_info] = last_item_display
+
+        if last_item_info and last_item_display:
+            items[last_item_info] = last_item_display + "\n "
+
+        return {**items, **command_items}
+
+    async def _func(self, message: list[str], player: Player) -> int:
+        self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
+
+        items: list[tuple[int, str, str]] = []
+        for command in self.torchlight.command_handler.commands:
+            command_name = command.command_name()
+            if command_name in ("VoiceTrigger", "VoiceTriggerReserved", "Help"):
+                continue
+
+            if command.level > player.admin.level:
+                continue
+
+            if not command.triggers:
+                continue
+
+            first_trigger = command.triggers[0]
+
+            if isinstance(first_trigger, Pattern):
+                continue
+
+            if isinstance(first_trigger, tuple):
+                first_trigger = first_trigger[0]
+
+            description = command.description or "No description found for this command."
+
+            items.append((command.level, first_trigger, description))
+        
+        if not items:
+            self.torchlight.SayPrivate(player, "Sorry, No commands found that match your level.")
+            return 1
+
+        items.sort(key=lambda x: (-x[0], x[1]))
+
+        res: dict[str, str] = {}
+        for _, trigger, description in items:
+            res[trigger] = f"{trigger}\n- {description}"
+
+        page = 1
+        if message[1] and message[1].isdigit():
+            page = int(message[1])
+
+        max = 5
+        command_config = self.get_config()
+        if "parameters" in command_config and "max_results" in command_config["parameters"]:
+            max = command_config["parameters"]["max_results"]
+
+        actual_count = len(res)
+        start = (page - 1) * max if page else 0
+        end = actual_count
+
+        if actual_count > max:
+            end = start + max
+            max_pages = (actual_count + max - 1) // max
+
+            res = self.get_menu_page_content(
+                cmd=message[0],
+                res=res,
+                page=page,
+                max_items=max,
+                max_pages=max_pages,
+            )
+
+        title = f"[Torchlight] Commands List"
+
+        title += f"\nDisplaying {start + 1}-{min(end, actual_count)} of {actual_count} results."
+
+        self.torchlight.CreateMenu(
+            player,
+            title=title,
+            options=res,
+        )
+        return 0

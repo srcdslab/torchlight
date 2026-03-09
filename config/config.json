@@ -159,7 +159,8 @@
 				{
 					"command": "!exec"
 				}
-			]
+			],
+			"description": "Evaluate a Python literal."
 		},
 		"DECTalk": {
 			"level": 100,
@@ -167,7 +168,8 @@
 				{
 					"command": "!dec"
 				}
-			]
+			],
+			"description": "Speak text using DECTalk voice synthesis (e.g. !dec Hello world)."
 		},
 		"AdminAccess": {
 			"level": 6,
@@ -175,7 +177,8 @@
 				{
 					"command": "!access"
 				}
-			]
+			],
+			"description": "Change Players' levels."
 		},
 		"Enable": {
 			"level": 3,
@@ -183,7 +186,8 @@
 				{
 					"command": "!enable"
 				}
-			]
+			],
+			"description": "Enable Torchlight."
 		},
 		"Disable": {
 			"level": 3,
@@ -191,7 +195,8 @@
 				{
 					"command": "!disable"
 				}
-			]
+			],
+			"description": "Disable Torchlight."
 		},
 		"Reload": {
 			"level": 3,
@@ -199,7 +204,8 @@
 				{
 					"command": "!reload"
 				}
-			]
+			],
+			"description": "Reload Torchlight config and sounds."
 		},
 		"Stop": {
 			"level": 3,
@@ -207,7 +213,8 @@
 				{
 					"command": "!stop"
 				}
-			]
+			],
+			"description": "Stop your current audio playback."
 		},
 		"Say":
 		{
@@ -229,7 +236,8 @@
 					"language": "en",
 					"tld": "com"
 				}
-			}
+			},
+			"description": "Convert text to speech in a chosen language (e.g. !sayen Hello World)."
 		},
 		"TranslateSay":
 		{
@@ -251,7 +259,8 @@
 					"language": "en",
 					"tld": "com"
 				}
-			}
+			},
+			"description": "Translate text and speak it in a chosen language (e.g. !tsayfr Hello world)."
 		},
 		"PlayMusic": {
 			"level": 2,
@@ -259,7 +268,8 @@
 				{
 					"command": "!tplay"
 				}
-			]
+			],
+			"description": "Play audio from a URL or replay the last URL with !last (e.g. !tplay https://example.com/test.mp3)."
 		},
 		"YouTubeSearch": {
 			"level": 2,
@@ -280,7 +290,8 @@
 					"algorithm",
 					"loud"
 				]
-			}
+			},
+			"description": "Search YouTube or play a YouTube link (e.g. !yt never gonna give you up)."
 		},
 		"Random": {
 			"level": 2,
@@ -288,7 +299,8 @@
 				{
 					"command": "!random"
 				}
-			]
+			],
+			"description": "Play a random voice trigger sound."
 		},
 		"VoiceTrigger": {
 			"level": 2
@@ -305,7 +317,8 @@
 				{
 					"command": "!whois"
 				}
-			]
+			],
+			"description": "Show matching online players and their access level (e.g. !who nide)."
 		},
 		"WolframAlpha": {
 			"level": 2,
@@ -313,7 +326,8 @@
 				{
 					"command": "!cc"
 				}
-			]
+			],
+			"description": "Ask WolframAlpha a question and show the best answer (e.g. !cc integral x^2)."
 		},
 		"Access": {
 			"level": 0,
@@ -321,7 +335,8 @@
 				{
 					"command": "!access"
 				}
-			]
+			],
+			"description": "Show your current access level."
 		},
 		"Search": {
 			"level": 0,
@@ -332,7 +347,8 @@
 				{
 					"command": "!search"
 				}
-			]
+			],
+			"description": "Search available voice triggers and show matching results (e.g. !search cf)."
 		},
 		"UrbanDictionary": {
 			"level": 0,
@@ -343,7 +359,8 @@
 				{
 					"command": "!ud"
 				}
-			]
+			],
+			"description": "Look up a term on Urban Dictionary and show the top definition (e.g. !define based)."
 		},
 		"OpenWeather": {
 			"level": 0,
@@ -354,7 +371,8 @@
 				{
 					"command": "!vv"
 				}
-			]
+			],
+			"description": "Show current weather from OpenWeather for a city or your location (e.g. !w London)."
 		},
 		"WUnderground": {
 			"level": 0,
@@ -362,7 +380,8 @@
 				{
 					"command": "!wunder"
 				}
-			]
+			],
+			"description": "Show current weather from Weather Underground for a city or your IP (e.g. !wunder London)."
 		},
 		"VoteDisable": {
 			"level": 0,
@@ -373,7 +392,8 @@
 				{
 					"command": "!disablevote"
 				}
-			]
+			],
+			"description": "Vote to disable Torchlight for the rest of the map."
 		},
 		"URLFilter": {
 			"level": 0
@@ -397,6 +417,20 @@
 					"algorithm",
 					"loud"
 				]
+			},
+			"description": "Search MyInstants.com and play a random sound (e.g. !mi faah)."
+		},
+		"Help": {
+			"triggers": [
+				{
+					"command": "#help"
+				},
+				{
+					"command": "-help"
+				}
+			],
+			"parameters": {
+				"max_results": 5
 			}
 		}
 	}

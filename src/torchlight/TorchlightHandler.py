@@ -80,6 +80,8 @@ class TorchlightHandler:
 
         self.command_handler.Setup()
 
+        self.torchlight.command_handler = self.command_handler
+
         self.torchlight.game_events.HookEx("server_spawn", self.Event_ServerSpawn)
         self.torchlight.game_events.HookEx("player_say", self.Event_PlayerSay)
 
