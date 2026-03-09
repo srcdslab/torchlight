@@ -29,10 +29,29 @@
 		"Host": "127.0.0.1",
 		"Port": 27019,
 		"SampleRate": 22050,
-		"Volume": 1.0,
-		"Speed": 1.0,
-		"Pitch": 1.0,
-		"Proxy": ""
+		"Proxy": "",
+
+		"AudioParams":
+		{
+			"Volume":
+			{
+				"Default": 1.0,
+				"Min": 0.0,
+				"Max": 1.0
+			},
+			"Speed":
+			{
+				"Default": 1.0,
+				"Min": 0.5,
+				"Max": 2.0
+			},
+			"Pitch":
+			{
+				"Default": 1.0,
+				"Min": 0.5,
+				"Max": 2.0
+			}
+		}
 	},
 
 	"GeoIP":
@@ -196,7 +215,13 @@
 			"triggers": [
 				{
 					"command": "!say",
-					"starts_with": true
+					"starts_with": true,
+					"force_default": true
+				},
+				{
+					"command": "!speak",
+					"starts_with": true,
+					"force_default": true
 				}
 			],
 			"parameters": {
@@ -212,7 +237,13 @@
 			"triggers": [
 				{
 					"command": "!tsay",
-					"starts_with": true
+					"starts_with": true,
+					"force_default": true
+				},
+				{
+					"command": "!translate",
+					"starts_with": true,
+					"force_default": true
 				}
 			],
 			"parameters": {
