@@ -1513,6 +1513,9 @@ class Help(BaseCommand):
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
         items: list[tuple[int, str, str]] = []
+        if self.torchlight.command_handler is None:
+            return 0
+
         for command in self.torchlight.command_handler.commands:
             command_name = command.command_name()
             if command_name in ("VoiceTrigger", "VoiceTriggerReserved", "Help"):
