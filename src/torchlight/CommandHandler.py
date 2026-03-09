@@ -89,7 +89,7 @@ class CommandHandler:
 
         level = player.admin.level
 
-        if not message[0].startswith(("!", "#", "_", "$", "@", "%", "^", "&", "*")):
+        if not message[0].startswith(("!", "#", "_", "$", "@", "%", "^", "&", "*", "-")):
             return None
 
         ret_message: str | None = None
