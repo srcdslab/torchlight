@@ -1535,7 +1535,7 @@ class Help(BaseCommand):
             description = command.description or "No description found for this command."
 
             items.append((command.level, first_trigger, description))
-        
+
         if not items:
             self.torchlight.SayPrivate(player, "Sorry, No commands found that match your level.")
             return 1
@@ -1571,7 +1571,7 @@ class Help(BaseCommand):
                 max_pages=max_pages,
             )
 
-        title = f"[Torchlight] Commands List"
+        title = "[Torchlight] Commands List"
 
         title += f"\nDisplaying {start + 1}-{min(end, actual_count)} of {actual_count} results."
 
