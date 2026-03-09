@@ -20,7 +20,7 @@ class TorchlightHandler:
 
         self.Init()
 
-        asyncio.ensure_future(self._Connect(), loop=self.loop)
+        asyncio.ensure_future(self._Connect())
 
     async def _Connect(self) -> None:
         # Connect to API
@@ -137,7 +137,7 @@ class TorchlightHandler:
 
         self.Init()
 
-        asyncio.ensure_future(self._Connect(), loop=self.loop)
+        asyncio.ensure_future(self._Connect())
 
     def __del__(self) -> None:
         self.logger.debug("~TorchlightHandler()")
