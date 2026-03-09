@@ -377,6 +377,27 @@
 		},
 		"URLFilter": {
 			"level": 0
+		},
+		"MyInstantsSearch": {
+			"level": 2,
+			"Cooldown": 10,
+			"triggers": [
+				{
+					"command": "!mi"
+				},
+				{
+					"command": "!mis"
+				}
+			],
+			"parameters": {
+				"keywords_banned": [
+					"earrape",
+					"rape",
+					"porn",
+					"algorithm",
+					"loud"
+				]
+			}
 		}
 	}
 }

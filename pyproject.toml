@@ -23,7 +23,8 @@ dependencies = [
     "lxml",
     "python-magic",
     "yt-dlp @ git+https://github.com/yt-dlp/yt-dlp@master#egg=yt-dlp",
-    "translatepy"
+    "translatepy",
+    "requests"
 ]
 
 [project.scripts]
@@ -43,6 +44,7 @@ version = {file = "VERSION"}
 [project.optional-dependencies]
 dev = [
     "memory_profiler",
+    "types-requests",
     "mypy",
     "ruff",
 ]
