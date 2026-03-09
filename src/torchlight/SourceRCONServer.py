@@ -26,6 +26,9 @@ class SourceRCONServer:
         self.logger.info(sys._getframe().f_code.co_name + f" Peer {peer.name} disconnected!")
         self.peers.remove(peer)
 
+    def Close(self) -> None:
+        self._serv_sock.close()
+
     async def _server(self) -> None:
         while True:
             peer_socket: socket.socket
@@ -39,7 +42,7 @@ class SourceRCONServer:
                 self.password,
                 self.torchlight_handler.command_handler,
             )
-            asyncio.Task(self._peer_handler(peer))
+            asyncio.ensure_future(self._peer_handler(peer))
             self.peers.append(peer)
             self.logger.info(sys._getframe().f_code.co_name + f" Peer {peer.name} connected!")
 

@@ -189,7 +189,7 @@ class FFmpegAudioPlayer:
         self.uri = ""
 
         self.Callback("Stop")
-        del self.callbacks
+        self.callbacks = []
 
         return True
 

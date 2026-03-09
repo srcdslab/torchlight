@@ -51,7 +51,7 @@ def cli(config_folder: str) -> None:
         config["TorchRCON"],
         torchlight_handler,
     )
-    asyncio.Task(rcon_server._server())
+    asyncio.ensure_future(rcon_server._server())
 
     # Run!
     event_loop.run_forever()

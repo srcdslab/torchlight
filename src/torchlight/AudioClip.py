@@ -78,8 +78,6 @@ class AudioClip:
                         ),
                     )
 
-        del self.audio_player
-
     def OnUpdate(self, old_position: int, new_position: int) -> None:
         delta = new_position - old_position
         self.last_position = new_position

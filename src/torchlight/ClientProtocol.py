@@ -22,7 +22,7 @@ class ClientProtocol(Protocol):
         self.buffer += data
 
         chunks = self.buffer.split(b"\0")
-        if data[-1] == b"\0":
+        if data[-1] == 0:
             chunks = chunks[:-1]
             self.buffer = bytearray()
         else:
