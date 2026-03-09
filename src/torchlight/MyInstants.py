@@ -24,13 +24,7 @@ def myinstants_get_random_sound(query: str | None, proxy: str | None) -> str | N
         }
 
     try:
-        r = requests.get(
-            search_url,
-            headers=HEADERS,
-            params={"name": query} if query else None,
-            timeout=10,
-            proxies=proxies
-        )
+        r = requests.get(search_url, headers=HEADERS, params={"name": query} if query else None, timeout=10, proxies=proxies)
     except requests.RequestException:
         return None
 
