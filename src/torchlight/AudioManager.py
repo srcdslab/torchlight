@@ -115,11 +115,17 @@ class AudioManager:
                 self.torchlight.SayPrivate(player, f"Stopped {stopped_count} audio clip.")
             else:
                 self.torchlight.SayPrivate(player, f"Stopped {stopped_count} audio clips.")
-        elif not extra:
-            self.torchlight.SayPrivate(
-                player,
-                "No audio clips matched your request. Use '!stop playername' to target specific player.",
-            )
+        else:
+            if extra:
+                self.torchlight.SayPrivate(
+                    player,
+                    f"No audio clips matched '{extra}'.",
+                )
+            else:
+                self.torchlight.SayPrivate(
+                    player,
+                    "No audio clips matched your request. Use '!stop playername' to target specific player.",
+                )
 
     def StopAll(self) -> None:
         self.logger.info("Force stopping all audio clips from all users.")
