@@ -254,6 +254,7 @@ class FFmpegAudioPlayer:
                     try:
                         await writer.drain()
                     except (ConnectionResetError, BrokenPipeError):
+                        self.Stop()
                         return
 
                 bytes_len = len(data)
