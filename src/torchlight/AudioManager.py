@@ -99,35 +99,82 @@ class AudioManager:
 
     def Stop(self, player: Player, extra: str) -> None:
         level = player.admin.level
+        stop_level = self.anti_spam.config.get("StopLevel", 3)
+        self.logger.info(f"Stop called by {player.name} (level {level}), extra='{extra}'")
+        self.logger.info(f"Currently playing {len(self.audio_clips)} audio clip(s).")
+
+        if not self.audio_clips:
+            self.torchlight.SayPrivate(player, "No audio is currently playing.")
+            return
+
+        stopped_count = 0
 
         for audio_clip in self.audio_clips[:]:
+            clip_player = audio_clip.player
+            clip_level = audio_clip.level
+            self.logger.info(f"Checking clip: {clip_player.name} (level {clip_level}) playing {audio_clip.uri}")
+
             if extra and extra.lower() not in audio_clip.player.name.lower():
                 continue
 
-            if not level or (level < audio_clip.level and level < self.anti_spam.config["StopLevel"]):
+            can_stop = False
+            reason = ""
+            if player.user_id == clip_player.user_id:
+                can_stop = True
+                reason = "stopped own sound"
+            elif level >= stop_level:
+                can_stop = True
+                reason = f"admin (level {level} >= {stop_level})"
+            elif level > clip_level:
+                can_stop = True
+                reason = f"higher level (level {level} > {clip_level})"
+            else:
                 audio_clip.stops.add(player.user_id)
-
-                if len(audio_clip.stops) >= 3:
-                    audio_clip.Stop()
-                    self.torchlight.SayPrivate(audio_clip.player, "Your audio clip was stopped.")
-                    if player != audio_clip.player:
-                        self.torchlight.SayPrivate(
-                            player,
-                            f'Stopped "{audio_clip.player.name}"({audio_clip.player.user_id}) audio clip.',
-                        )
+                votes_needed = 3 - len(audio_clip.stops)
+                if votes_needed <= 0:
+                    can_stop = True
+                    reason = "vote passed"
                 else:
                     self.torchlight.SayPrivate(
                         player,
-                        f"This audio clip needs {3 - len(audio_clip.stops)} more !stop's.",
+                        f"Need {votes_needed} more !stop(s) to stop {clip_player.name}'s sound.",
                     )
+                    continue
+            if can_stop:
+                self.logger.info(f"Stopping clip: {reason}")
+                if audio_clip.Stop():
+                    stopped_count += 1
+                    if player.user_id != clip_player.user_id:
+                        self.torchlight.SayPrivate(
+                            clip_player,
+                            f"Your audio was stopped by {player.name}.",
+                        )
+        if stopped_count > 0:
+            if stopped_count == 1:
+                self.torchlight.SayPrivate(player, f"Stopped {stopped_count} audio clip.")
             else:
+                self.torchlight.SayPrivate(player, f"Stopped {stopped_count} audio clips.")
+        else:
+            if extra:
+                self.torchlight.SayPrivate(
+                    player,
+                    f"No audio clips matched '{extra}'.",
+                )
+            else:
+                self.torchlight.SayPrivate(
+                    player,
+                    "No audio clips matched your request. Use '!stop playername' to target specific player.",
+                )
+
+    def StopAll(self) -> None:
+        self.logger.info("Force stopping all audio clips from all users.")
+        for audio_clip in self.audio_clips[:]:
+            try:
                 audio_clip.Stop()
-                self.torchlight.SayPrivate(audio_clip.player, "Your audio clip was stopped.")
-                if player != audio_clip.player:
-                    self.torchlight.SayPrivate(
-                        player,
-                        f'Stopped "{audio_clip.player.name}"({audio_clip.player.user_id}) audio clip.',
-                    )
+            except Exception as e:
+                self.logger.error(f"Error stopping audio clip: {e}")
+            self.torchlight.SayPrivate(audio_clip.player, "All audio has been force-stopped by admin.")
+        self.audio_clips.clear()
 
     def AudioClip(
         self,

@@ -216,6 +216,18 @@
 			],
 			"description": "Stop your current audio playback."
 		},
+		"StopAll": {
+			"level": 10,
+			"triggers": [
+				{
+					"command": "!stopall",
+					"starts_with": false
+				},
+				{
+					"command": "!forcestopall"
+				}
+			]
+		},
 		"Say":
 		{
 			"level": 2,
