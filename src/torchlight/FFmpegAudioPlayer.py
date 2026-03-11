@@ -327,7 +327,7 @@ class FFmpegAudioPlayer:
                     try:
                         await writer.drain()
                     except (ConnectionResetError, BrokenPipeError):
-                        return
+                        break
             if writer:
                 writer.close()
         except Exception as exc:
