@@ -131,10 +131,11 @@ class FFmpegAudioPlayer:
 
     # @profile
     def Stop(self, force: bool = True) -> bool:
-        self.logger.info(f"FFmpegAudioPlayer.Stop called for {self.uri}")
         if not self.playing:
+            self.logger.debug("FFmpegAudioPlayer.Stop called but nothing is playing")
             return False
 
+        self.logger.info(f"FFmpegAudioPlayer.Stop called for {self.uri}")
         self.playing = False
 
         if self.ffmpeg_process:
