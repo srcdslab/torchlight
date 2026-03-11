@@ -664,8 +664,7 @@ class VoiceTrigger(BaseCommand):
         player_level = player.admin.level
         reserved_level = self.torchlight.config["Command"]["VoiceTriggerReserved"]["level"]
         prefix = voice_trigger[0]
-        reserved_prefixes = ["_", "#"]
-        if prefix in reserved_prefixes:
+        if prefix != "!":
             if player_level < reserved_level:
                 self.torchlight.SayPrivate(
                     player,
