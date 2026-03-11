@@ -1318,15 +1318,6 @@ class Stop(BaseCommand):
 class StopAll(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
-        required_level = self.get_config()["level"]
-        player_level = player.admin.level
-        if player_level < required_level:
-            self.torchlight.SayPrivate(
-                player,
-                f"{{darkred}}[Torchlight]{{default}} This command requires level "
-                f"{required_level} or higher. Your level is {player_level}.",
-            )
-            return 1
 
         count = len(self.audio_manager.audio_clips)
         self.audio_manager.StopAll()
