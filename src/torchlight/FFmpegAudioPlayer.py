@@ -109,27 +109,23 @@ class FFmpegAudioPlayer:
             "s16le",
             "-vn",
             *args,
-            "-",
         ]
 
         if position is not None:
             pos_str = str(datetime.timedelta(seconds=position))
-            ffmpeg_command.extend(
-                [
-                    "-ss",
-                    pos_str,
-                ]
-            )
+            ffmpeg_command.extend([
+                "-ss",
+                pos_str,
+            ])
             self.position = position
 
         if duration is not None:
-            duration_str = str(duration)
-            ffmpeg_command.extend(
-                [
-                    "-t",
-                    duration_str,
-                ]
-            )
+            ffmpeg_command.extend([
+                "-t",
+                str(duration),
+            ])
+
+        ffmpeg_command.append("-")
 
         self.logger.debug(curl_command)
         self.logger.debug(ffmpeg_command)
