@@ -17,17 +17,17 @@ class AudioManager:
         self.advertiser = Advertiser(self.torchlight)
         self.audio_player_factory = AudioPlayerFactory()
         self.audio_clips: list[AudioClip] = []
-        self.params_config = self.torchlight.config.config.get("VoiceServer", {}).get("AudioParams", {})
 
     def __del__(self) -> None:
         self.logger.info("~AudioManager()")
 
     def ParseParams(self, trigger_params: dict, msg: str) -> dict[str, float]:
-        if not self.params_config:
+        this_config = self.torchlight.config.config.get("VoiceServer", {}).get("AudioParams", {})
+        if not this_config:
             return trigger_params
 
         params: dict[str, float] = {}
-        for param, config in self.params_config.items():
+        for param, config in this_config.items():
             if param in trigger_params and trigger_params[param] is not None:
                 params[param] = float(trigger_params[param])
             else:
@@ -43,17 +43,17 @@ class AudioManager:
 
                 key = key.capitalize()
 
-                if (key in self.params_config and isinstance(self.params_config[key], dict)) or key in ("Start", "End"):
+                if (key in this_config and isinstance(this_config[key], dict)) or key in ("Start", "End"):
                     try:
                         val = float(value)
                     except ValueError:
                         continue
 
-                    if key in self.params_config:
-                        if "Min" not in self.params_config[key] or "Max" not in self.params_config[key]:
+                    if key in this_config:
+                        if "Min" not in this_config[key] or "Max" not in this_config[key]:
                             continue
 
-                        val = max(self.params_config[key]["Min"], min(val, self.params_config[key]["Max"]))
+                        val = max(this_config[key]["Min"], min(val, this_config[key]["Max"]))
                         params[key] = val
                     else:
                         # Key here is either Start or End
