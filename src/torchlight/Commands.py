@@ -669,9 +669,7 @@ class VoiceTrigger(BaseCommand):
             start = start if start >= 0 else None
         if "End" in modifiers:
             end = int(modifiers["End"])
-            if end <= 0:
-                end = None
-            elif start is not None and end > start:
+            if end > 0 and start is not None and end > start:
                 duration = end - start
 
         return audio_clip.Play(seconds=start, duration=duration, volume=volume, speed=speed, pitch=pitch)
