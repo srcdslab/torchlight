@@ -661,7 +661,18 @@ class VoiceTrigger(BaseCommand):
         speed = modifiers["Speed"]
         pitch = modifiers["Pitch"]
 
-        return audio_clip.Play(volume=volume, speed=speed, pitch=pitch)
+        start: int | None = None
+        duration: int | None = None
+
+        if "Start" in modifiers:
+            start = int(modifiers["Start"])
+            start = start if start >= 0 else None
+        if "End" in modifiers:
+            end = int(modifiers["End"])
+            if end > 0 and start is not None and end > start:
+                duration = end - start
+
+        return audio_clip.Play(seconds=start, duration=duration, volume=volume, speed=speed, pitch=pitch)
 
     def get_sound_path(self, player: Player, voice_trigger: str, trigger_number: str) -> str | None:
         level = player.admin.level
@@ -1184,7 +1195,7 @@ class DECTalk(BaseCommand):
             os.unlink(temp_file.name)
             return 1
 
-        if audio_clip.Play(None, "-af", "volume=10dB"):
+        if audio_clip.Play(None, None, "-af", "volume=10dB"):
             audio_clip.audio_player.AddCallback("Stop", lambda: os.unlink(temp_file.name))
             return 0
 
