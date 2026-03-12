@@ -17,22 +17,22 @@ class AudioManager:
         self.advertiser = Advertiser(self.torchlight)
         self.audio_player_factory = AudioPlayerFactory()
         self.audio_clips: list[AudioClip] = []
+        self.params_config = self.torchlight.config.config.get("VoiceServer", {}).get("AudioParams", {})
 
     def __del__(self) -> None:
         self.logger.info("~AudioManager()")
 
     def ParseParams(self, trigger_params: dict, msg: str) -> dict[str, float]:
-        this_config = self.torchlight.config.config.get("VoiceServer", {}).get("AudioParams", {})
-        if not this_config:
+        if not self.params_config:
             return trigger_params
 
         params: dict[str, float] = {}
-        for param in this_config:
+        for param, config in self.params_config.items():
             if param in trigger_params and trigger_params[param] is not None:
                 params[param] = float(trigger_params[param])
             else:
-                if isinstance(this_config[param], dict) and "Default" in this_config[param]:
-                    params[param] = float(this_config[param]["Default"])
+                if isinstance(config, dict) and "Default" in config:
+                    params[param] = float(config["Default"])
 
         msg_args = msg.split()
         for arg in msg_args:
@@ -42,21 +42,25 @@ class AudioManager:
                     continue
 
                 key = key.capitalize()
-                if key not in this_config:
-                    continue
 
-                if isinstance(this_config[key], dict):
-                    val: float = 1.0
+                if (
+                    (key in self.params_config and isinstance(self.params_config[key], dict)) or
+                    key in ("Start", "End")
+                ):
                     try:
                         val = float(value)
                     except ValueError:
                         continue
 
-                    if "Min" not in this_config[key] or "Max" not in this_config[key]:
-                        continue
+                    if key in self.params_config:
+                        if "Min" not in self.params_config[key] or "Max" not in self.params_config[key]:
+                            continue
 
-                    val = max(this_config[key]["Min"], min(val, this_config[key]["Max"]))
-                    params[key] = val
+                        val = max(self.params_config[key]["Min"], min(val, self.params_config[key]["Max"]))
+                        params[key] = val
+                    else:
+                        # Key here is either Start or End
+                        params[key] = val
 
         return params
 

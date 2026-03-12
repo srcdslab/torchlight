@@ -16,6 +16,7 @@ on:
     branches:
       - 'main'
       - 'master'
+      - 'main-dolly1'
   pull_request:
     branches:
       - master

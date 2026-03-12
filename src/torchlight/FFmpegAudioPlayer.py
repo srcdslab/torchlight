@@ -56,6 +56,7 @@ class FFmpegAudioPlayer:
         self,
         uri: str,
         position: int | None,
+        duration: int | None,
         *args: Any,
         volume: float | None = None,
         speed: float | None = None,
@@ -120,6 +121,15 @@ class FFmpegAudioPlayer:
                 ]
             )
             self.position = position
+
+        if duration is not None:
+            duration_str = str(duration)
+            ffmpeg_command.extend(
+                [
+                    "-t",
+                    duration_str,
+                ]
+            )
 
         self.logger.debug(curl_command)
         self.logger.debug(ffmpeg_command)
