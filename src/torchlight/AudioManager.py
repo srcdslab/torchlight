@@ -43,10 +43,7 @@ class AudioManager:
 
                 key = key.capitalize()
 
-                if (
-                    (key in self.params_config and isinstance(self.params_config[key], dict)) or
-                    key in ("Start", "End")
-                ):
+                if (key in self.params_config and isinstance(self.params_config[key], dict)) or key in ("Start", "End"):
                     try:
                         val = float(value)
                     except ValueError:
