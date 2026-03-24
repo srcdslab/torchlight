@@ -417,7 +417,8 @@
 					"algorithm",
 					"loud"
 				],
-				"search_cmd": "!mis"
+				"search_cmd": "!mis",
+				"max_results": 10
 			},
 			"description": "Search MyInstants.com and play a random sound (e.g. !mi faah)."
 		},

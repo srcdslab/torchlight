@@ -1506,7 +1506,7 @@ class MyInstantsSearch(BaseCommand):
                 return 0
 
             urls = {f"{play_cmd} {k}": v for k, v in urls.items()}
-            max = 5
+            max = 10
             if "parameters" in command_config and "max_results" in command_config["parameters"]:
                 max = command_config["parameters"]["max_results"]
 
@@ -1544,6 +1544,7 @@ class MyInstantsSearch(BaseCommand):
 
             title = "[Torchlight] [MyInstants] Search results" + (f" for {search}" if search else "")
             title += f"\nDisplaying {start + 1}-{min(end, actual_count)} of {actual_count} results."
+            title += f"Please wait {int(cooldown)}s before you click on any item."
             self.torchlight.CreateMenu(
                 player=player,
                 title=title,
