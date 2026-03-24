@@ -1510,7 +1510,7 @@ class MyInstantsSearch(BaseCommand):
             for cmd in self.triggers:
                 if cmd == message[0]:
                     continue
-                play_cmd = cmd
+                play_cmd = cast(str, cmd)
                 break
 
             if not play_cmd:

@@ -40,10 +40,11 @@ def myinstants_get_random_sound(
     soup = BeautifulSoup(r.text, "html.parser")
 
     buttons = soup.find_all("button", onclick=True)
+    mp3_paths: dict[str, str] | list[str]
     if search_only:
-        mp3_paths: dict[str, str] = {}
+        mp3_paths = {}
     else:
-        mp3_paths: list[str] = []
+        mp3_paths = []
 
     for btn in buttons:
         onclick_value = btn["onclick"]
@@ -65,9 +66,10 @@ def myinstants_get_random_sound(
     if not mp3_paths:
         return None
 
+    mp3_urls: str | dict[str, str]
     if isinstance(mp3_paths, list):
-        mp3_urls: str = urljoin(MYINSTANTS_URL, secrets.choice(mp3_paths))
+        mp3_urls = urljoin(MYINSTANTS_URL, secrets.choice(mp3_paths))
     elif isinstance(mp3_paths, dict):
-        mp3_urls: dict[str, str] = mp3_paths
+        mp3_urls = mp3_paths
 
     return mp3_urls
