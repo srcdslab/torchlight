@@ -1442,9 +1442,22 @@ class MyInstantsSearch(BaseCommand):
         if "search_cmd" in command_config["parameters"] and message[0] == command_config["parameters"]["search_cmd"]:
             search_only = True
 
-        search = message[1]
-        if search:
-            search = search.lower()
+        # we need to specify the actual page and result if there is any.
+        page: int = 1
+        search_parts: list[str] = []
+        if message[1]:
+            parts = message[1].split(" ")
+            for part in parts:
+                if part.isdigit():
+                    page = int(part)
+                    break
+
+                search_parts.append(part)
+
+        search: str | None = None
+
+        if search_parts:
+            search = " ".join(search_parts)
 
         keywords_banned: list[str] = []
 
@@ -1507,21 +1520,6 @@ class MyInstantsSearch(BaseCommand):
             max = 10
             if "parameters" in command_config and "max_results" in command_config["parameters"]:
                 max = command_config["parameters"]["max_results"]
-
-            # we need to specify the actual page and result if there is any.
-            page: int = 1
-            search_parts: list[str] = []
-            if message[1]:
-                parts = message[1].split(" ")
-                for part in parts:
-                    if part.isdigit():
-                        page = int(part)
-                        break
-
-                    search_parts.append(part)
-
-            if search_parts:
-                search = " ".join(search_parts)
 
             actual_count = len(urls)
             max_pages = (actual_count + max - 1) // max
