@@ -804,7 +804,8 @@ class Search(BaseCommand):
 
             if part.isdigit():
                 page = int(part)
-  
+                break
+
             voice_trigger_parts.append(part)
 
         if voice_trigger_parts:
@@ -1439,7 +1440,6 @@ class MyInstantsSearch(BaseCommand):
             return 1
 
         search_only: bool = False
-
         command_config = self.get_config()
         if "search_cmd" in command_config["parameters"] and message[0] == command_config["parameters"]["search_cmd"]:
             search_only = True
@@ -1494,7 +1494,18 @@ class MyInstantsSearch(BaseCommand):
             self.torchlight.last_url = urls
             return audio_clip.Play()
         elif isinstance(urls, dict):
-            urls = {f"{message[0]} {k}": v for k, v in urls.items()}
+            # get the play cmd
+            play_cmd: str = ""
+            for cmd in self.triggers:
+                if cmd == message[0]:
+                    continue
+                cmd = play_cmd
+                break
+
+            if not play_cmd:
+                return 0
+
+            urls = {f"{play_cmd} {k}": v for k, v in urls.items()}
             max = 5
             if "parameters" in command_config and "max_results" in command_config["parameters"]:
                 max = command_config["parameters"]["max_results"]
@@ -1508,6 +1519,7 @@ class MyInstantsSearch(BaseCommand):
 
                 if part.isdigit():
                     page = int(part)
+                    break
 
                 search_parts.append(part)
 
