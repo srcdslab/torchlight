@@ -798,20 +798,16 @@ class Search(BaseCommand):
         page: int = 1
         voice_trigger: str = ""
         voice_trigger_parts: list[str] = []
-        for part in message:
-            if part == message[0]:
-                continue
-
-            if part.isdigit():
-                page = int(part)
-                break
-
-            voice_trigger_parts.append(part)
+        if message[1]:
+            parts = message[1].split(" ")
+            for part in parts:
+                if part.isdigit():
+                    page = int(part)
+                    break
+                voice_trigger_parts.append(part)
 
         if voice_trigger_parts:
             voice_trigger = " ".join(voice_trigger_parts)
-
-        self.logger.info(f"Voice trigger parts: {voice_trigger_parts}")
 
         res: dict[str, str] = {}
 
@@ -1515,15 +1511,14 @@ class MyInstantsSearch(BaseCommand):
             # we need to specify the actual page and result if there is any.
             page: int = 1
             search_parts: list[str] = []
-            for part in message:
-                if part == message[0]:
-                    continue
+            if message[1]:
+                parts = message[1].split(" ")
+                for part in parts:
+                    if part.isdigit():
+                        page = int(part)
+                        break
 
-                if part.isdigit():
-                    page = int(part)
-                    break
-
-                search_parts.append(part)
+                    search_parts.append(part)
 
             if search_parts:
                 search = " ".join(search_parts)

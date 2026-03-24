@@ -52,6 +52,10 @@ def myinstants_get_random_sound(query: str | None, proxy: str | None, search_onl
                     name = btn["title"]
                     name = name.removeprefix("Play ")
                     name = name.removesuffix(" sound")
+                    # for secuirty purpose...
+                    if len(name) > 20:
+                        continue
+
                     mp3_paths[name] = name
 
     if not mp3_paths:
