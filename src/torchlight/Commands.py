@@ -811,6 +811,8 @@ class Search(BaseCommand):
         if voice_trigger_parts:
             voice_trigger = " ".join(voice_trigger_parts)
 
+        self.logger.info(f"Voice trigger parts: {voice_trigger_parts}")
+
         res: dict[str, str] = {}
 
         for key in self.trigger_manager.voice_triggers.keys():
@@ -1542,9 +1544,9 @@ class MyInstantsSearch(BaseCommand):
                 max_pages=max_pages,
             )
 
-            title = "[Torchlight] [MyInstants] Search results" + (f" for {search}" if search else "")
+            title = "[Torchlight] [MyInstants] Search results" + (f" for {search}." if search else ".")
             title += f"\nDisplaying {start + 1}-{min(end, actual_count)} of {actual_count} results."
-            title += f"Please wait {int(cooldown)}s before you click on any item."
+            title += f"\nPlease wait {int(cooldown)}s before you click on any item."
             self.torchlight.CreateMenu(
                 player=player,
                 title=title,
