@@ -10,7 +10,11 @@ MYINSTANTS_URL = "https://www.myinstants.com"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 
-def myinstants_get_random_sound(query: str | None, proxy: str | None, search_only: bool = False) -> dict[str, str] | str | None:
+def myinstants_get_random_sound(
+        query: str | None,
+        proxy: str | None,
+        search_only: bool = False,
+    ) -> dict[str, str] | str | None:
     if not query:
         search_url = f"{MYINSTANTS_URL}/en/index/us/"
     else:
