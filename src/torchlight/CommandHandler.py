@@ -78,7 +78,7 @@ class CommandHandler:
         if not message[0].startswith(("!", "#", "_", "$", "@", "%", "^", "&", "*", "-")):
             return None
 
-        if not message[1]:
+        if len(message) == 1 or not message[1]:
             message.append("")
 
         message[1] = message[1].strip()

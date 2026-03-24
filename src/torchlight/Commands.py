@@ -111,7 +111,7 @@ class BaseCommand:
     ) -> tuple[dict[str, str], int, int]:
         start = (page - 1) * max_items if page else 0
         end = len(res)
-        if end > max:
+        if end > max_items:
             end = start + max_items
 
         start = (page - 1) * max_items
@@ -1524,7 +1524,7 @@ class MyInstantsSearch(BaseCommand):
             res, start, end = self.get_menu_page_content(
                 cmd=message[0],
                 search=search,
-                res=res,
+                res=urls,
                 page=page,
                 max_items=max,
                 max_pages=max_pages,
