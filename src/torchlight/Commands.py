@@ -100,6 +100,46 @@ class BaseCommand:
             return True
         return False
 
+    def get_menu_page_content(
+        self,
+        cmd: str,
+        search: str | None,
+        res: dict[str, str],
+        page: int,
+        max_items: int,
+        max_pages: int,
+    ) -> tuple[dict[str, str], int, int]:
+        start = (page - 1) * max_items if page else 0
+        end = len(res)
+        if end > max_items:
+            end = start + max_items
+
+        start = (page - 1) * max_items
+        end = start + max_items
+        command_items = dict(list(res.items())[start:end])
+
+        if not search:
+            line = cmd
+        else:
+            line = f"{cmd} {search}"
+
+        items: dict[str, str] = {}
+        last_item_info: str = ""
+        last_item_display: str = ""
+        if page < max_pages:
+            last_item_info = f"{line} {page + 1}"
+            last_item_display = "> Next Page"
+            items[last_item_info] = last_item_display
+        if page > 1:
+            last_item_info = f"{line} {page - 1}"
+            last_item_display = "> Previous Page"
+            items[last_item_info] = last_item_display
+
+        if last_item_info and last_item_display:
+            items[last_item_info] = last_item_display + "\n "
+
+        return {**items, **command_items}, start, end
+
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name)
         return 0
@@ -751,52 +791,23 @@ class Random(VoiceTrigger):
 
 
 class Search(BaseCommand):
-    def get_menu_page_content(
-        self,
-        cmd: str,
-        search: str,
-        res: dict[str, str],
-        page: int,
-        max_items: int,
-        max_pages: int,
-    ) -> dict[str, str]:
-        start = (page - 1) * max_items
-        end = start + max_items
-        soundsItems = dict(list(res.items())[start:end])
-
-        if search == "":
-            line = cmd
-        else:
-            line = f"{cmd} {search}"
-
-        items: dict[str, str] = {}
-        last_item_info: str = ""
-        last_item_display: str = ""
-        if page < max_pages:
-            last_item_info = f"{line} {page + 1}"
-            last_item_display = "> Next Page"
-            items[last_item_info] = last_item_display
-        if page > 1:
-            last_item_info = f"{line} {page - 1}"
-            last_item_display = "> Previous Page"
-            items[last_item_info] = last_item_display
-
-        if last_item_info and last_item_display:
-            items[last_item_info] = last_item_display + "\n "
-
-        return {**items, **soundsItems}
-
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
-        voice_trigger = message[1].lower()
+        # we need to specify the actual page and result if there is any.
+        page: int = 1
+        voice_trigger: str = ""
+        voice_trigger_parts: list[str] = []
+        if message[1]:
+            parts = message[1].split(" ")
+            for part in parts:
+                if part.isdigit():
+                    page = int(part)
+                    break
+                voice_trigger_parts.append(part)
 
-        page = 1
-        if voice_trigger.isdigit():
-            page = int(voice_trigger)
-            voice_trigger = ""
-        if len(message) > 2 and message[2].isdigit():
-            page = int(message[2])
+        if voice_trigger_parts:
+            voice_trigger = " ".join(voice_trigger_parts)
 
         res: dict[str, str] = {}
 
@@ -827,20 +838,14 @@ class Search(BaseCommand):
         if page < 1:
             page = 1
 
-        start = (page - 1) * max if page else 0
-        end = actual_count
-
-        if actual_count > max:
-            end = start + max
-
-            res = self.get_menu_page_content(
-                cmd=message[0],
-                search=voice_trigger,
-                res=res,
-                page=page,
-                max_items=max,
-                max_pages=max_pages,
-            )
+        res, start, end = self.get_menu_page_content(
+            cmd=message[0],
+            search=voice_trigger,
+            res=res,
+            page=page,
+            max_items=max,
+            max_pages=max_pages,
+        )
 
         title: str | None = None
         if voice_trigger:
@@ -1432,11 +1437,27 @@ class MyInstantsSearch(BaseCommand):
             )
             return 1
 
-        search = message[1]
-        if search:
-            search = search.lower()
-
+        search_only: bool = False
         command_config = self.get_config()
+        if "search_cmd" in command_config["parameters"] and message[0] == command_config["parameters"]["search_cmd"]:
+            search_only = True
+
+        # we need to specify the actual page and result if there is any.
+        page: int = 1
+        search_parts: list[str] = []
+        if message[1]:
+            parts = message[1].split(" ")
+            for part in parts:
+                if part.isdigit():
+                    page = int(part)
+                    break
+
+                search_parts.append(part)
+
+        search: str | None = None
+
+        if search_parts:
+            search = " ".join(search_parts)
 
         keywords_banned: list[str] = []
 
@@ -1465,55 +1486,69 @@ class MyInstantsSearch(BaseCommand):
         if self.torchlight.config["VoiceServer"]["Proxy"]:
             proxy = self.torchlight.config["VoiceServer"]["Proxy"]
 
-        url = await asyncio.to_thread(myinstants_get_random_sound, search, proxy)
+        urls: dict[str, str] | str | None = None
 
-        if url is None:
+        urls = await asyncio.to_thread(myinstants_get_random_sound, search, proxy, search_only)
+
+        if urls is None:
             if search:
                 self.torchlight.SayPrivate(player, f"{{darkred}}[MyInstants]{{default}} No sound found for {search}")
             else:
                 self.torchlight.SayPrivate(player, "{{darkred}}[MyInstants]{{default}} No sounds found")
             return 1
 
-        audio_clip = self.audio_manager.AudioClip(player, url)
-        if not audio_clip:
-            return 1
+        if isinstance(urls, str):
+            audio_clip = self.audio_manager.AudioClip(player, urls)
+            if not audio_clip:
+                return 1
 
-        self.torchlight.last_url = url
-        return audio_clip.Play()
+            self.torchlight.last_url = urls
+            return audio_clip.Play()
+        elif isinstance(urls, dict):
+            # get the play cmd
+            play_cmd: str = ""
+            for cmd in self.triggers:
+                if cmd == message[0]:
+                    continue
+                play_cmd = cast(str, cmd)
+                break
+
+            if not play_cmd:
+                return 0
+
+            urls = {f"{play_cmd} {k}": v for k, v in urls.items()}
+            max = 10
+            if "parameters" in command_config and "max_results" in command_config["parameters"]:
+                max = command_config["parameters"]["max_results"]
+
+            actual_count = len(urls)
+            max_pages = (actual_count + max - 1) // max
+            if page > max_pages:
+                page = max_pages
+            if page < 1:
+                page = 1
+
+            res, start, end = self.get_menu_page_content(
+                cmd=message[0],
+                search=search,
+                res=urls,
+                page=page,
+                max_items=max,
+                max_pages=max_pages,
+            )
+
+            title = "[Torchlight] [MyInstants] Search results" + (f" for {search}." if search else ".")
+            title += f"\nDisplaying {start + 1}-{min(end, actual_count)} of {actual_count} results."
+            title += f"\nPlease wait {int(cooldown)}s before you click on any item."
+            self.torchlight.CreateMenu(
+                player=player,
+                title=title,
+                options=res,
+            )
+            return 0
 
 
 class Help(BaseCommand):
-    def get_menu_page_content(
-        self,
-        cmd: str,
-        res: dict[str, str],
-        page: int,
-        max_items: int,
-        max_pages: int,
-    ) -> dict[str, str]:
-        start = (page - 1) * max_items
-        end = start + max_items
-        command_items = dict(list(res.items())[start:end])
-
-        line = cmd
-
-        items: dict[str, str] = {}
-        last_item_info: str = ""
-        last_item_display: str = ""
-        if page < max_pages:
-            last_item_info = f"{line} {page + 1}"
-            last_item_display = "> Next Page"
-            items[last_item_info] = last_item_display
-        if page > 1:
-            last_item_info = f"{line} {page - 1}"
-            last_item_display = "> Previous Page"
-            items[last_item_info] = last_item_display
-
-        if last_item_info and last_item_display:
-            items[last_item_info] = last_item_display + "\n "
-
-        return {**items, **command_items}
-
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
@@ -1570,18 +1605,14 @@ class Help(BaseCommand):
         if page < 1:
             page = 1
 
-        start = (page - 1) * max if page else 0
-        end = actual_count
-
-        if actual_count > max:
-            end = start + max
-            res = self.get_menu_page_content(
-                cmd=message[0],
-                res=res,
-                page=page,
-                max_items=max,
-                max_pages=max_pages,
-            )
+        res, start, end = self.get_menu_page_content(
+            cmd=message[0],
+            search=None,
+            res=res,
+            page=page,
+            max_items=max,
+            max_pages=max_pages,
+        )
 
         title = "[Torchlight] Commands List"
 
