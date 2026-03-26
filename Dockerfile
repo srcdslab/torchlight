@@ -64,7 +64,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && update-ca-certificates
 
 RUN mkdir -p /usr/share/GeoIP/ \
-    && curl -L https://github.com/P3TERX/GeoLite.mmdb/releases/download/2024.07.16/GeoLite2-City.mmdb -o /usr/share/GeoIP/GeoLite2-City.mmdb
+    && curl -L https://github.com/P3TERX/GeoLite.mmdb/releases/download/2026.03.25/GeoLite2-City.mmdb -o /usr/share/GeoIP/GeoLite2-City.mmdb
 
 RUN curl -L https://github.com/dectalk/dectalk/releases/download/2023-10-30/ubuntu-latest.tar.gz -o /tmp/dectalk.tar.gz \
     && mkdir -p /tmp/dectalk /opt/dectalk \
