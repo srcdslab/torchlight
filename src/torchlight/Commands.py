@@ -916,9 +916,13 @@ class YouTubeSearch(BaseCommand):
         if not cookies:
             self.logger.warning("Parameters/Cookies is empty, please consider adding your own cookies file")
 
-        if cookies and not os.path.isfile(cookies):
-            self.logger.warning(f"Cookies file not found: {cookies}, ignoring")
-            cookies = ""
+        if cookies:
+            if not os.path.isfile(cookies):
+                self.logger.warning(f"Cookies file not found: {cookies}, ignoring")
+                cookies = ""
+            elif os.path.getsize(cookies) == 0:
+                self.logger.warning(f"Cookies file is empty: {cookies}, ignoring")
+                cookies = ""
 
         try:
             info = get_url_youtube_info(url=input_url, proxy=proxy, cookies=cookies)
