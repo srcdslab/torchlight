@@ -118,7 +118,7 @@ inside your JSON configuration.
 
 7. Restart the container after updating the configuration.
 
-8. It's prefered to use **Cloudflare WARP** (recommended for VPS environments), you can run it using:  
+8. It's preferred to use **Cloudflare WARP** (recommended for VPS environments), you can run it using:  
    https://github.com/cmj2002/warp-docker  
 
    Then configure Torchlight to use the WARP container's socks5 proxy:
