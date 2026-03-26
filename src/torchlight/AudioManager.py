@@ -27,12 +27,12 @@ class AudioManager:
             return trigger_params
 
         params: dict[str, float] = {}
-        for param in this_config:
+        for param, config in this_config.items():
             if param in trigger_params and trigger_params[param] is not None:
                 params[param] = float(trigger_params[param])
             else:
-                if isinstance(this_config[param], dict) and "Default" in this_config[param]:
-                    params[param] = float(this_config[param]["Default"])
+                if isinstance(config, dict) and "Default" in config:
+                    params[param] = float(config["Default"])
 
         msg_args = msg.split()
         for arg in msg_args:
@@ -42,21 +42,22 @@ class AudioManager:
                     continue
 
                 key = key.capitalize()
-                if key not in this_config:
-                    continue
 
-                if isinstance(this_config[key], dict):
-                    val: float = 1.0
+                if (key in this_config and isinstance(this_config[key], dict)) or key in ("Start", "End"):
                     try:
                         val = float(value)
                     except ValueError:
                         continue
 
-                    if "Min" not in this_config[key] or "Max" not in this_config[key]:
-                        continue
+                    if key in this_config:
+                        if "Min" not in this_config[key] or "Max" not in this_config[key]:
+                            continue
 
-                    val = max(this_config[key]["Min"], min(val, this_config[key]["Max"]))
-                    params[key] = val
+                        val = max(this_config[key]["Min"], min(val, this_config[key]["Max"]))
+                        params[key] = val
+                    else:
+                        # Key here is either Start or End
+                        params[key] = val
 
         return params
 

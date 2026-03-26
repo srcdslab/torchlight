@@ -56,6 +56,7 @@ class FFmpegAudioPlayer:
         self,
         uri: str,
         position: int | None,
+        duration: int | None,
         *args: Any,
         volume: float | None = None,
         speed: float | None = None,
@@ -108,7 +109,6 @@ class FFmpegAudioPlayer:
             "s16le",
             "-vn",
             *args,
-            "-",
         ]
 
         if position is not None:
@@ -120,6 +120,16 @@ class FFmpegAudioPlayer:
                 ]
             )
             self.position = position
+
+        if duration is not None:
+            ffmpeg_command.extend(
+                [
+                    "-t",
+                    str(duration),
+                ]
+            )
+
+        ffmpeg_command.append("-")
 
         self.logger.debug(curl_command)
         self.logger.debug(ffmpeg_command)
