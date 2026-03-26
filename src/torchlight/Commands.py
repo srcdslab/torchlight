@@ -911,10 +911,13 @@ class YouTubeSearch(BaseCommand):
 
         real_time = get_url_real_time(url=input_url)
 
-        proxy = command_config.get("parameters", {}).get("proxy", "")
+        proxy: str = command_config.get("parameters", {}).get("proxy", "")
+        cookies: str = command_config.get("parameters", {}).get("cookies", "")
+        if cookies and not os.path.isfile(cookies):
+            cookies = ""
 
         try:
-            info = get_url_youtube_info(url=input_url, proxy=proxy)
+            info = get_url_youtube_info(url=input_url, proxy=proxy, cookies=cookies)
         except Exception as exc:
             self.logger.error(f"Failed to extract youtube info from: {input_url}")
             self.logger.error(exc)
@@ -925,9 +928,9 @@ class YouTubeSearch(BaseCommand):
             return 1
 
         if "title" not in info and "url" in info:
-            info = get_url_youtube_info(url=info["url"], proxy=proxy)
+            info = get_url_youtube_info(url=info["url"], proxy=proxy, cookies=cookies)
         if info["extractor_key"] == "YoutubeSearch":
-            info = get_first_valid_entry(entries=info["entries"], proxy=proxy)
+            info = get_first_valid_entry(entries=info["entries"], proxy=proxy, cookies=cookies)
 
         title = info["title"]
         url = get_audio_format(info=info)
