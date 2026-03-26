@@ -914,7 +914,7 @@ class YouTubeSearch(BaseCommand):
         proxy: str = command_config.get("parameters", {}).get("proxy", "")
         cookies: str = command_config.get("parameters", {}).get("cookies", "")
         if not cookies:
-            self.logger.warning(f"Parameters/Cookies is empty, please consider adding your own cookies file")
+            self.logger.warning("Parameters/Cookies is empty, please consider adding your own cookies file")
 
         if cookies and not os.path.isfile(cookies):
             self.logger.warning(f"Cookies file not found: {cookies}, ignoring")
