@@ -135,15 +135,18 @@ class FFmpegAudioPlayer:
                                 break
 
                             bytes_downloaded += len(chunk)
-                            
+
                             if self.ffmpeg_process.stdin:
                                 self.ffmpeg_process.stdin.write(chunk)
                                 await self.ffmpeg_process.stdin.drain()
 
-                        break  # Success
+                        break
 
                 except (asyncio.TimeoutError, aiohttp.ClientError) as err:
-                    self.logger.warning("Stream network drop/timeout (%s). Retrying (%d/%d)...", err, attempt, max_network_retries)
+                    self.logger.warning(
+                        "Stream network drop/timeout (%s). Retrying (%d/%d)...",
+                        err, attempt, max_network_retries
+                    )
                     await asyncio.sleep(0.5)
 
         except Exception as e:
@@ -153,8 +156,8 @@ class FFmpegAudioPlayer:
                 try:
                     self.ffmpeg_process.stdin.close()
                     await self.ffmpeg_process.stdin.wait_closed()
-                except Exception:
-                    pass
+                except Exception as e:
+                    self.logger.debug("Failed to cleanly close FFmpeg stdin: %s", e)
 
     def SetDuration(self, duration: float) -> None:
         self.seconds = duration
@@ -309,7 +312,7 @@ class FFmpegAudioPlayer:
                 self.Callback("Update", last_seconds_elapsed, seconds_elapsed)
 
                 is_ffmpeg_done = (
-                    self.ffmpeg_process is None 
+                    self.ffmpeg_process is None
                     or self.ffmpeg_process.returncode is not None
                 )
 
