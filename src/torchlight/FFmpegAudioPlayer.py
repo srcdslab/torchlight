@@ -81,10 +81,7 @@ class FFmpegAudioPlayer:
 
         try:
             self.ffmpeg_process = await asyncio.create_subprocess_exec(
-                *ffmpeg_command,
-                stdin=stdin_mode,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.DEVNULL
+                *ffmpeg_command, stdin=stdin_mode, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL
             )
         except Exception as e:
             self.logger.error("Failed to spawn FFmpeg process: %s", e)
@@ -123,9 +120,7 @@ class FFmpegAudioPlayer:
                     req_headers["Range"] = f"bytes={bytes_downloaded}-"
 
                 try:
-                    async with self.session.get(
-                        uri, headers=req_headers, timeout=timeout, proxy=proxy_url
-                    ) as resp:
+                    async with self.session.get(uri, headers=req_headers, timeout=timeout, proxy=proxy_url) as resp:
                         if resp.status not in (200, 206):
                             self.logger.error("HTTP stream failed with status %d", resp.status)
                             break
@@ -144,8 +139,7 @@ class FFmpegAudioPlayer:
 
                 except (asyncio.TimeoutError, aiohttp.ClientError) as err:
                     self.logger.warning(
-                        "Stream network drop/timeout (%s). Retrying (%d/%d)...",
-                        err, attempt, max_network_retries
+                        "Stream network drop/timeout (%s). Retrying (%d/%d)...", err, attempt, max_network_retries
                     )
                     await asyncio.sleep(0.5)
 
@@ -222,9 +216,7 @@ class FFmpegAudioPlayer:
 
         self.logger.info("Playing %s", self.uri)
 
-        self.stream_task = asyncio.ensure_future(
-            self._stream_url_to_ffmpeg(uri, ffmpeg_command)
-        )
+        self.stream_task = asyncio.ensure_future(self._stream_url_to_ffmpeg(uri, ffmpeg_command))
         return True
 
     def Stop(self, force: bool = True) -> bool:
@@ -311,10 +303,7 @@ class FFmpegAudioPlayer:
 
                 self.Callback("Update", last_seconds_elapsed, seconds_elapsed)
 
-                is_ffmpeg_done = (
-                    self.ffmpeg_process is None
-                    or self.ffmpeg_process.returncode is not None
-                )
+                is_ffmpeg_done = self.ffmpeg_process is None or self.ffmpeg_process.returncode is not None
 
                 if self.duration_set and self.seconds > 0 and seconds_elapsed >= self.seconds:
                     if is_ffmpeg_done:
