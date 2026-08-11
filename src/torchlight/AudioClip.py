@@ -33,6 +33,9 @@ class AudioClip:
     def __del__(self) -> None:
         self.logger.debug("~AudioClip()")
 
+    def SetDuration(self, duration: float) -> None:
+        self.audio_player.SetDuration(duration)
+
     def Play(
         self,
         seconds: int | None = None,
