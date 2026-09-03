@@ -128,9 +128,8 @@ class FFmpegAudioPlayer:
         if needs_cf_bypass:
             queue: asyncio.Queue[bytes | None] = asyncio.Queue(maxsize=10)
 
-            def sync_fetch_curl_cffi():
-                """Runs in a background thread to fetch audio chunks with Chrome TLS signature."""
-                proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+            def sync_fetch_curl_cffi() -> None:
+                proxies: dict[str, str] | None = {"http": proxy_url, "https": proxy_url} if proxy_url else None
                 try:
                     resp = cffi_requests.get(
                         uri,
