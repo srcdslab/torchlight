@@ -91,8 +91,8 @@ class FFmpegAudioPlayer:
         ]
 
         if is_from_mi:
-            fs_session = get_flaresolverr_session(uri)
-            if isinstance(fs_session, tuple):
+            fs_session = get_flaresolverr_session(uri, MYINSTANTS_URL, self.logger)
+            if fs_session is not None:
                 cookie_str, user_agent = fs_session
                 curl_command.extend([
                     "-H", f"Cookie: {cookie_str}",
@@ -100,7 +100,7 @@ class FFmpegAudioPlayer:
                     "-e", MYINSTANTS_URL,
                 ])
             else:
-                self.logger.error(f"Failed to get FlareSolverr session: {fs_session if isinstance(fs_session, str) else 'Unknown error'}")
+                self.logger.error(f"Unknown error occurred while trying to get FlareSolverr session for {uri}")
                 return False
             
         else:
