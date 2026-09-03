@@ -121,3 +121,5 @@ langdetect==1.0.9
     # via 
     #   -c requirements.txt
     #   translatepy
+aiohttp-socks==0.8.0
+    # via torchlight (pyproject.toml)
