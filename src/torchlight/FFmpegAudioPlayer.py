@@ -129,9 +129,7 @@ class FFmpegAudioPlayer:
             queue: asyncio.Queue[bytes | None] = asyncio.Queue(maxsize=10)
 
             def sync_fetch_curl_cffi() -> None:
-                proxies: cffi_requests.ProxySpec | None = (
-                    {"http": proxy_url, "https": proxy_url} if proxy_url else None
-                )
+                proxies: cffi_requests.ProxySpec | None = {"http": proxy_url, "https": proxy_url} if proxy_url else None
                 try:
                     resp = cffi_requests.get(
                         uri,
@@ -351,9 +349,7 @@ class FFmpegAudioPlayer:
                 self.writer.close()
                 try:
                     if self.torchlight.loop.is_running():
-                        asyncio.run_coroutine_threadsafe(
-                            self.writer.wait_closed(), self.torchlight.loop
-                        )
+                        asyncio.run_coroutine_threadsafe(self.writer.wait_closed(), self.torchlight.loop)
                     else:
                         self.torchlight.loop.run_until_complete(self.writer.wait_closed())
                 except Exception as exc:
@@ -399,10 +395,7 @@ class FFmpegAudioPlayer:
 
                 self.Callback("Update", last_seconds_elapsed, seconds_elapsed)
 
-                is_ffmpeg_done = (
-                    self.ffmpeg_process is None
-                    or self.ffmpeg_process.returncode is not None
-                )
+                is_ffmpeg_done = self.ffmpeg_process is None or self.ffmpeg_process.returncode is not None
 
                 if self.seconds > 0:
                     if seconds_elapsed >= self.seconds:
