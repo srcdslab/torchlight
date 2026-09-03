@@ -1,6 +1,6 @@
 import requests
 
-FLARESOLVERR_URL = "http://0.0.0.0:8191/v1"
+FLARESOLVERR_URL = "http://127.0.0.1:8191/v1"
 
 def set_flaresolverr_url(url: str) -> None:
     global FLARESOLVERR_URL

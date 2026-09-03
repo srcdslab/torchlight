@@ -11,7 +11,7 @@ from collections.abc import Callable
 from typing import Any
 
 from torchlight.MyInstants import MYINSTANTS_URL
-from torchlight.FlareSolver import get_flaresolverr_session
+from torchlight.FlareSolverr import get_flaresolverr_session
 from torchlight.Torchlight import Torchlight
 
 SAMPLEBYTES = 2
