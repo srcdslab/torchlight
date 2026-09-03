@@ -77,7 +77,9 @@ class TorchlightHandler:
         self.player_manager.torchlight.command_handler = self.command_handler
 
         if "FlareSolverr" in self.config.config:
-            set_flaresolverr_url(f"http://{self.config['FlareSolverr']['Host']}:{self.config['FlareSolverr']['Port']}/v1")
+            set_flaresolverr_url(
+                f"http://{self.config['FlareSolverr']['Host']}:{self.config['FlareSolverr']['Port']}/v1"
+            )
 
     def InitModules(self) -> None:
         self.player_manager.Setup()

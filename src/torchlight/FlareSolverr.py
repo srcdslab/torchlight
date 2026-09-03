@@ -2,17 +2,14 @@ import aiohttp
 
 FLARESOLVERR_URL = "http://127.0.0.1:8191/v1"
 
+
 def set_flaresolverr_url(url: str) -> None:
     global FLARESOLVERR_URL
     FLARESOLVERR_URL = url
 
 
 async def get_cf_session(url: str, proxy: str | None = None) -> tuple[dict[str, str], str]:
-    payload = {
-        "cmd": "request.get",
-        "url": url,
-        "maxTimeout": 60000
-    }
+    payload = {"cmd": "request.get", "url": url, "maxTimeout": 60000}
 
     # Pass proxy to FlareSolverr if specified
     if proxy:
