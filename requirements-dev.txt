@@ -17,10 +17,6 @@ beautifulsoup4==4.12.3
     # via
     #   -c requirements.txt
     #   torchlight (pyproject.toml)
-certifi==2023.11.17
-    # via
-    #   -c requirements.txt
-    #   requests
 charset-normalizer==3.3.2
     # via
     #   -c requirements.txt

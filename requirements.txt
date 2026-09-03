@@ -10,8 +10,6 @@ attrs==23.2.0
     # via aiohttp
 beautifulsoup4==4.12.3
     # via torchlight (pyproject.toml)
-certifi==2023.11.17
-    # via requests
 charset-normalizer==3.3.2
     # via requests
 click==8.1.7
