@@ -400,7 +400,7 @@ class FFmpegAudioPlayer:
                 self.Callback("Update", last_seconds_elapsed, seconds_elapsed)
 
                 is_ffmpeg_done = (
-                    self.ffmpeg_process is None 
+                    self.ffmpeg_process is None
                     or self.ffmpeg_process.returncode is not None
                 )
 
