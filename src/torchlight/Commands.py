@@ -1525,7 +1525,7 @@ class MyInstantsSearch(BaseCommand):
                 return 1
 
             self.torchlight.last_url = urls
-            return audio_clip.Play()
+            return audio_clip.Play(is_from_mi=True)
         elif isinstance(urls, dict):
             # get the play cmd
             play_cmd: str = ""

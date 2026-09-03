@@ -41,8 +41,11 @@ class AudioClip:
         volume: float | None = None,
         speed: float | None = None,
         pitch: float | None = None,
+        is_from_mi: bool = False,
     ) -> bool:
-        return self.audio_player.PlayURI(self.uri, seconds, duration, *args, volume=volume, speed=speed, pitch=pitch)
+        return self.audio_player.PlayURI(
+            self.uri, seconds, duration, *args, volume=volume, speed=speed, pitch=pitch, is_from_mi=is_from_mi
+        )
 
     def Stop(self) -> bool:
         return self.audio_player.Stop()

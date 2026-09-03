@@ -1,6 +1,7 @@
 import asyncio
 import logging
 
+from torchlight.FlareSolver import set_flaresolverr_url
 from torchlight.AccessManager import AccessManager
 from torchlight.AsyncClient import AsyncClient
 from torchlight.AudioManager import AudioManager
@@ -74,6 +75,8 @@ class TorchlightHandler:
         )
 
         self.player_manager.torchlight.command_handler = self.command_handler
+
+        set_flaresolverr_url(f"http://{self.config['FlareSolverr']['Host']}:{self.config['FlareSolverr']['Port']}")
 
     def InitModules(self) -> None:
         self.player_manager.Setup()

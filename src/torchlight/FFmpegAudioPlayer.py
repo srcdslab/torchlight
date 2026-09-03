@@ -10,6 +10,8 @@ from asyncio.subprocess import Process
 from collections.abc import Callable
 from typing import Any
 
+from torchlight.MyInstants import MYINSTANTS_URL
+from torchlight.FlareSolver import get_flaresolverr_session
 from torchlight.Torchlight import Torchlight
 
 SAMPLEBYTES = 2
@@ -61,6 +63,7 @@ class FFmpegAudioPlayer:
         volume: float | None = None,
         speed: float | None = None,
         pitch: float | None = None,
+        is_from_mi: bool = False,
     ) -> bool:
         if volume is None:
             volume = self.volume
@@ -76,7 +79,7 @@ class FFmpegAudioPlayer:
             "--silent",
             "--show-error",
             "--connect-timeout",
-            "1",
+            "3",
             "--retry",
             "2",
             "--retry-delay",
@@ -86,13 +89,25 @@ class FFmpegAudioPlayer:
             "-L",
             uri,
         ]
-        if self.proxy:
-            curl_command.extend(
-                [
-                    "-x",
-                    self.proxy,
-                ]
-            )
+
+        if is_from_mi:
+            fs_session = get_flaresolverr_session(uri)
+            if fs_session:
+                cookie_str, user_agent = fs_session
+                curl_command.extend([
+                    "-H", f"Cookie: {cookie_str}",
+                    "-A", user_agent,
+                    "-e", MYINSTANTS_URL,
+                ])
+        else:
+            if self.proxy:
+                curl_command.extend(
+                    [
+                        "-x",
+                        self.proxy,
+                    ]
+                )
+
         ffmpeg_command = [
             "/usr/bin/ffmpeg",
             "-i",
