@@ -1,12 +1,12 @@
 import asyncio
 import logging
 
-from torchlight.FlareSolverr import set_flaresolverr_url
 from torchlight.AccessManager import AccessManager
 from torchlight.AsyncClient import AsyncClient
 from torchlight.AudioManager import AudioManager
 from torchlight.CommandHandler import CommandHandler
 from torchlight.Config import Config
+from torchlight.FlareSolverr import set_flaresolverr_url
 from torchlight.PlayerManager import PlayerManager
 from torchlight.Sourcemod import SourcemodConfig
 from torchlight.Torchlight import Torchlight

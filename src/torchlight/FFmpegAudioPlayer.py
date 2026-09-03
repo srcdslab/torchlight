@@ -6,8 +6,6 @@ import socket
 import struct
 import time
 import traceback
-from asyncio import StreamReader, StreamWriter, Task
-from asyncio.subprocess import Process
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
@@ -16,8 +14,8 @@ import aiohttp
 from aiohttp_socks import ProxyConnector
 from curl_cffi import requests as cffi_requests
 
-from torchlight.MyInstants import MYINSTANTS_URL
 from torchlight.FlareSolverr import get_cf_session
+from torchlight.MyInstants import MYINSTANTS_URL
 from torchlight.Torchlight import Torchlight
 
 SAMPLEBYTES = 2
@@ -50,9 +48,9 @@ class FFmpegAudioPlayer:
         self.seconds: float = 0.0
         self.duration_set: bool = False
 
-        self.writer: StreamWriter | None = None
-        self.ffmpeg_process: Process | None = None
-        self.stream_task: Task | None = None
+        self.writer: asyncio.StreamWriter | None = None
+        self.ffmpeg_process: asyncio.subprocess.Process | None = None
+        self.stream_task: asyncio.Task | None = None
         self.session: aiohttp.ClientSession | None = None
 
         self.callbacks: list[tuple[str, Callable]] = []
@@ -419,7 +417,7 @@ class FFmpegAudioPlayer:
             self.torchlight.SayChat(f"Error: {str(exc)}")
             raise exc
 
-    async def _read_stream(self, stream: StreamReader, writer: StreamWriter) -> None:
+    async def _read_stream(self, stream: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
             started = False
 
