@@ -92,13 +92,17 @@ class FFmpegAudioPlayer:
 
         if is_from_mi:
             fs_session = get_flaresolverr_session(uri)
-            if fs_session:
+            if isinstance(fs_session, tuple):
                 cookie_str, user_agent = fs_session
                 curl_command.extend([
                     "-H", f"Cookie: {cookie_str}",
                     "-A", user_agent,
                     "-e", MYINSTANTS_URL,
                 ])
+            else:
+                self.logger.error(f"Failed to get FlareSolverr session: {fs_session if isinstance(fs_session, str) else 'Unknown error'}")
+                return False
+            
         else:
             if self.proxy:
                 curl_command.extend(
