@@ -129,7 +129,9 @@ class FFmpegAudioPlayer:
             queue: asyncio.Queue[bytes | None] = asyncio.Queue(maxsize=10)
 
             def sync_fetch_curl_cffi() -> None:
-                proxies: dict[str, str] | None = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+                proxies: cffi_requests.ProxySpec | None = (
+                    {"http": proxy_url, "https": proxy_url} if proxy_url else None
+                )
                 try:
                     resp = cffi_requests.get(
                         uri,
@@ -341,21 +343,23 @@ class FFmpegAudioPlayer:
                             struct.pack("ii", 1, 0),
                         )
                     except OSError as exc:
-                        if exc.errno == 9:
-                            self.logger.error("Unable to setsockopt: %s", exc)
+                        self.logger.error("Unable to setsockopt: %s", exc)
 
                 self.writer.transport.abort()
-
-            self.writer.close()
-            try:
-                if self.torchlight.loop.is_running():
-                    self.torchlight.loop.create_task(self.writer.wait_closed())
-                else:
-                    self.torchlight.loop.run_until_complete(self.writer.wait_closed())
-            except Exception as exc:
-                self.logger.warning(exc)
-
-            self.writer = None
+                self.writer = None
+            else:
+                self.writer.close()
+                try:
+                    if self.torchlight.loop.is_running():
+                        asyncio.run_coroutine_threadsafe(
+                            self.writer.wait_closed(), self.torchlight.loop
+                        )
+                    else:
+                        self.torchlight.loop.run_until_complete(self.writer.wait_closed())
+                except Exception as exc:
+                    self.logger.warning(exc)
+                finally:
+                    self.writer = None
 
         self.logger.info("Stopped %s", self.uri)
         self.uri = ""
