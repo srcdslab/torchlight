@@ -13,9 +13,10 @@ from typing import Any
 from urllib.parse import urlparse
 
 import aiohttp
+from aiohttp_socks import ProxyConnector
 
 from torchlight.MyInstants import MYINSTANTS_URL
-from torchlight.FlareSolverr import get_flaresolverr_session
+from torchlight.FlareSolverr import get_cf_session
 from torchlight.Torchlight import Torchlight
 
 SAMPLEBYTES = 2
@@ -59,7 +60,7 @@ class FFmpegAudioPlayer:
         self.logger.debug("~FFmpegAudioPlayer()")
         self.Stop()
 
-    async def _stream_url_to_ffmpeg(self, uri: str, ffmpeg_command: list[str]) -> None:
+    async def _stream_url_to_ffmpeg(self, uri: str, ffmpeg_command: list[str], needs_cf_bypass: bool = False) -> None:
         parsed = urlparse(uri)
         is_local_file = parsed.scheme in ("file", "") or os.path.exists(uri)
 
@@ -96,55 +97,88 @@ class FFmpegAudioPlayer:
         if is_local_file:
             return
 
-        headers = {
-            "User-Agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/124.0.0.0 Safari/537.36"
-            )
-        }
+        cookies: dict[str, str] = {}
+        user_agent = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/124.0.0.0 Safari/537.36"
+        )
+
+        proxy_url = self.proxy if self.proxy else None
+
+        if needs_cf_bypass:
+            try:
+                self.logger.info("Solving Cloudflare challenge for URL: %s", uri)
+                cookies, user_agent = await get_cf_session(uri, proxy_url)
+            except Exception as e:
+                self.logger.error("FlareSolverr failed to bypass Cloudflare: %s", e)
+                self.Stop(False)
+                return
+
+        headers = {"User-Agent": user_agent}
+        if needs_cf_bypass and "myinstants.com" in uri:
+            headers["Referer"] = MYINSTANTS_URL
+
         timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=15.0)
         bytes_downloaded = 0
         max_network_retries = 5
 
+        connector = None
+        get_proxy_param = proxy_url
+
+        if proxy_url and proxy_url.startswith(("socks5://", "socks4://")):
+            connector = ProxyConnector.from_url(proxy_url)
+            get_proxy_param = None
+
         try:
-            if self.session is None or self.session.closed:
-                self.session = aiohttp.ClientSession()
+            if needs_cf_bypass:
+                req_session = aiohttp.ClientSession(cookies=cookies, connector=connector)
+            else:
+                if self.session is None or self.session.closed or connector is not None:
+                    req_session = aiohttp.ClientSession(connector=connector)
+                    if connector is None:
+                        self.session = req_session
+                else:
+                    req_session = self.session
 
-            proxy_url = self.proxy if self.proxy else None
-
-            for attempt in range(1, max_network_retries + 1):
-                if not self.playing or self.ffmpeg_process.returncode is not None:
-                    break
-
-                req_headers = headers.copy()
-                if bytes_downloaded > 0:
-                    req_headers["Range"] = f"bytes={bytes_downloaded}-"
-
-                try:
-                    async with self.session.get(uri, headers=req_headers, timeout=timeout, proxy=proxy_url) as resp:
-                        if resp.status not in (200, 206):
-                            self.logger.error("HTTP stream failed with status %d", resp.status)
-                            break
-
-                        async for chunk in resp.content.iter_chunked(32 * 1024):
-                            if not self.playing or self.ffmpeg_process.returncode is not None:
-                                break
-
-                            bytes_downloaded += len(chunk)
-
-                            if self.ffmpeg_process.stdin:
-                                self.ffmpeg_process.stdin.write(chunk)
-                                await self.ffmpeg_process.stdin.drain()
-
+            try:
+                for attempt in range(1, max_network_retries + 1):
+                    if not self.playing or self.ffmpeg_process.returncode is not None:
                         break
 
-                except (asyncio.TimeoutError, aiohttp.ClientError) as err:
-                    self.logger.warning(
-                        "Stream network drop/timeout (%s). Retrying (%d/%d)...", err, attempt, max_network_retries
-                    )
-                    await asyncio.sleep(0.5)
+                    req_headers = headers.copy()
+                    if bytes_downloaded > 0:
+                        req_headers["Range"] = f"bytes={bytes_downloaded}-"
 
+                    try:
+                        async with req_session.get(
+                            uri, headers=req_headers, timeout=timeout, proxy=get_proxy_param
+                        ) as resp:
+                            if resp.status not in (200, 206):
+                                self.logger.error("HTTP stream failed with status %d", resp.status)
+                                break
+
+                            async for chunk in resp.content.iter_chunked(32 * 1024):
+                                if not self.playing or self.ffmpeg_process.returncode is not None:
+                                    break
+
+                                bytes_downloaded += len(chunk)
+
+                                if self.ffmpeg_process.stdin:
+                                    self.ffmpeg_process.stdin.write(chunk)
+                                    await self.ffmpeg_process.stdin.drain()
+
+                            break
+
+                    except (asyncio.TimeoutError, aiohttp.ClientError) as err:
+                        self.logger.warning(
+                            "Stream network drop/timeout (%s). Retrying (%d/%d)...", err, attempt, max_network_retries
+                        )
+                        await asyncio.sleep(0.5)
+
+            finally:
+                if (needs_cf_bypass or connector is not None) and not req_session.closed:
+                    await req_session.close()
         except Exception as e:
             self.logger.error("Unexpected streaming error: %s", e, exc_info=True)
         finally:
@@ -169,7 +203,7 @@ class FFmpegAudioPlayer:
         volume: float | None = None,
         speed: float | None = None,
         pitch: float | None = None,
-        is_from_mi: bool = False,
+        needs_cf_bypass: bool = False,
     ) -> bool:
         if volume is None:
             volume = self.volume
@@ -219,7 +253,7 @@ class FFmpegAudioPlayer:
 
         self.logger.info("Playing %s", self.uri)
 
-        self.stream_task = asyncio.ensure_future(self._stream_url_to_ffmpeg(uri, ffmpeg_command))
+        self.stream_task = asyncio.ensure_future(self._stream_url_to_ffmpeg(uri, ffmpeg_command, needs_cf_bypass))
         return True
 
     def Stop(self, force: bool = True) -> bool:

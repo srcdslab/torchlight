@@ -1,6 +1,4 @@
-import logging
-
-import requests
+import aiohttp
 
 FLARESOLVERR_URL = "http://127.0.0.1:8191/v1"
 
@@ -9,31 +7,24 @@ def set_flaresolverr_url(url: str) -> None:
     FLARESOLVERR_URL = url
 
 
-def get_flaresolverr_session(url: str, target_url, logger: logging.Logger) -> tuple[str, str] | None:
+async def get_cf_session(url: str, proxy: str | None = None) -> tuple[dict[str, str], str]:
     payload = {
         "cmd": "request.get",
-        "url": target_url,
-        "maxTimeout": 60000,
+        "url": url,
+        "maxTimeout": 60000
     }
 
-    try:
-        response = requests.post(FLARESOLVERR_URL, json=payload, timeout=65)
-        res_data = response.json()
+    # Pass proxy to FlareSolverr if specified
+    if proxy:
+        payload["proxy"] = {"url": proxy}
 
-        if res_data.get("status") == "ok":
-            solution = res_data.get("solution", {})
-            user_agent = solution.get("userAgent", "")
-
-            cookies = solution.get("cookies", [])
-            cookie_str = "; ".join([f"{c['name']}={c['value']}" for c in cookies if "name" in c and "value" in c])
-
-            if not cookie_str:
-                logger.warning(f"FlareSolverr returned 200 OK but no cookies for {target_url}")
-
-            return (cookie_str, user_agent)
-
-        logger.error(f"FlareSolverr error: {res_data.get('message')}")
-    except Exception as e:
-        logger.error(f"FlareSolverr request failed: {e}")
-
-    return None
+    async with aiohttp.ClientSession() as session:
+        async with session.post(FLARESOLVERR_URL, json=payload, timeout=65) as response:
+            res_data = await response.json()
+            if res_data.get("status") == "ok":
+                solution = res_data.get("solution", {})
+                user_agent = solution.get("userAgent", "")
+                cookies = {c["name"]: c["value"] for c in solution.get("cookies", [])}
+                return cookies, user_agent
+            else:
+                raise RuntimeError(f"FlareSolverr error: {res_data.get('message')}")
