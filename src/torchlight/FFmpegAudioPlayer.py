@@ -129,9 +129,7 @@ class FFmpegAudioPlayer:
             queue: asyncio.Queue[bytes | None] = asyncio.Queue(maxsize=10)
 
             def sync_fetch_curl_cffi() -> None:
-                proxies: cffi_requests.ProxySpec | None = (
-                    {"http": proxy_url, "https": proxy_url} if proxy_url else None
-                )
+                proxies: cffi_requests.ProxySpec | None = ({"http": proxy_url, "https": proxy_url} if proxy_url else None)
                 try:
                     resp = cffi_requests.get(
                         uri,
@@ -394,23 +392,30 @@ class FFmpegAudioPlayer:
                 if self.started_playing:
                     seconds_elapsed = time.time() - self.started_playing
 
-                if self.duration_set and seconds_elapsed > self.seconds:
-                    seconds_elapsed = self.seconds
-
                 self.Callback("Update", last_seconds_elapsed, seconds_elapsed)
 
-                is_ffmpeg_done = self.ffmpeg_process is None or self.ffmpeg_process.returncode is not None
-
-                if self.duration_set and self.seconds > 0 and seconds_elapsed >= self.seconds:
-                    if is_ffmpeg_done:
+                if self.duration_set and self.seconds > 0:
+                    if seconds_elapsed >= self.seconds:
                         self.logger.debug("Playback naturally finished (time reached).")
                         self.Stop(False)
                         return
+                else:
+                    is_ffmpeg_done = (
+                        self.ffmpeg_process is None 
+                        or self.ffmpeg_process.returncode is not None
+                    )
+                    
+                    if is_ffmpeg_done:
+                        if self.writer:
+                            try:
+                                await self.writer.drain()
+                            except Exception:
+                                pass
 
-                elif not self.duration_set and is_ffmpeg_done:
-                    self.logger.debug("Playback naturally finished (FFmpeg EOF).")
-                    self.Stop(False)
-                    return
+                        if not self.duration_set:
+                            self.logger.debug("Playback naturally finished (FFmpeg EOF & drained).")
+                            self.Stop(False)
+                            return
 
                 last_seconds_elapsed = seconds_elapsed
                 await asyncio.sleep(0.1)
