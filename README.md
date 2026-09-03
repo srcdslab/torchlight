@@ -130,6 +130,24 @@ inside your JSON configuration.
    This routes all requests through WARP, which helps prevent YouTube blocking server IP addresses.
 ---
 
+### Myinstants
+
+To play sounds from myinstants website (!mi) you need to install `FlareSolverr`
+Link: https://github.com/Flaresolverr/Flaresolverr
+
+Follow the steps of its installation.
+
+After that, specify its Host and Port on the config.json file:
+```yaml
+"FlareSolverr"
+{
+  "Host": "127.0.0.0",
+  "Port": 8191
+}
+```
+
+`8191` is just the default port used on **FlareSolverr**
+
 ### Notes
 
 - Keep your cookie file private (it contains session authentication data).
