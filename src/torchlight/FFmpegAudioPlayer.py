@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 import aiohttp
 from aiohttp_socks import ProxyConnector
+from curl_cffi import requests as cffi_requests
 
 from torchlight.MyInstants import MYINSTANTS_URL
 from torchlight.FlareSolverr import get_cf_session
@@ -115,9 +116,70 @@ class FFmpegAudioPlayer:
                 self.Stop(False)
                 return
 
-        headers = {"User-Agent": user_agent}
+        headers = {
+            "User-Agent": user_agent,
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
         if needs_cf_bypass and "myinstants.com" in uri:
             headers["Referer"] = MYINSTANTS_URL
+            headers["Sec-Fetch-Dest"] = "audio"
+            headers["Sec-Fetch-Mode"] = "no-cors"
+            headers["Sec-Fetch-Site"] = "same-origin"
+
+        if needs_cf_bypass:
+            queue: asyncio.Queue[bytes | None] = asyncio.Queue(maxsize=10)
+
+            def sync_fetch_curl_cffi():
+                """Runs in a background thread to fetch audio chunks with Chrome TLS signature."""
+                proxies = {"http": proxy_url, "https": proxy_url} if proxy_url else None
+                try:
+                    resp = cffi_requests.get(
+                        uri,
+                        headers=headers,
+                        cookies=cookies,
+                        proxies=proxies,
+                        impersonate="chrome120",
+                        stream=True,
+                        timeout=15,
+                    )
+                    if resp.status_code not in (200, 206):
+                        self.logger.error("HTTP stream failed via curl_cffi with status %d", resp.status_code)
+                        asyncio.run_coroutine_threadsafe(queue.put(None), self.torchlight.loop)
+                        return
+
+                    for chunk in resp.iter_content(chunk_size=32 * 1024):
+                        if not chunk:
+                            continue
+
+                        future = asyncio.run_coroutine_threadsafe(queue.put(chunk), self.torchlight.loop)
+                        future.result()
+
+                except Exception as err:
+                    self.logger.error("curl_cffi fetch exception: %s", err)
+                finally:
+                    asyncio.run_coroutine_threadsafe(queue.put(None), self.torchlight.loop)
+
+            fetch_future = self.torchlight.loop.run_in_executor(None, sync_fetch_curl_cffi)
+
+            try:
+                while self.playing and self.ffmpeg_process.returncode is None:
+                    chunk = await queue.get()
+                    if chunk is None:
+                        break
+
+                    if self.ffmpeg_process.stdin:
+                        self.ffmpeg_process.stdin.write(chunk)
+                        await self.ffmpeg_process.stdin.drain()
+            finally:
+                await fetch_future
+                if self.ffmpeg_process and self.ffmpeg_process.stdin:
+                    try:
+                        self.ffmpeg_process.stdin.close()
+                        await self.ffmpeg_process.stdin.wait_closed()
+                    except Exception as e:
+                        self.logger.debug("Failed to cleanly close FFmpeg stdin: %s", e)
+            return
 
         timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=15.0)
         bytes_downloaded = 0
@@ -131,15 +193,12 @@ class FFmpegAudioPlayer:
             get_proxy_param = None
 
         try:
-            if needs_cf_bypass:
-                req_session = aiohttp.ClientSession(cookies=cookies, connector=connector)
+            if self.session is None or self.session.closed or connector is not None:
+                req_session = aiohttp.ClientSession(connector=connector)
+                if connector is None:
+                    self.session = req_session
             else:
-                if self.session is None or self.session.closed or connector is not None:
-                    req_session = aiohttp.ClientSession(connector=connector)
-                    if connector is None:
-                        self.session = req_session
-                else:
-                    req_session = self.session
+                req_session = self.session
 
             try:
                 for attempt in range(1, max_network_retries + 1):
@@ -177,7 +236,7 @@ class FFmpegAudioPlayer:
                         await asyncio.sleep(0.5)
 
             finally:
-                if (needs_cf_bypass or connector is not None) and not req_session.closed:
+                if connector is not None and not req_session.closed:
                     await req_session.close()
         except Exception as e:
             self.logger.error("Unexpected streaming error: %s", e, exc_info=True)
@@ -292,11 +351,10 @@ class FFmpegAudioPlayer:
 
             self.writer.close()
             try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    loop.create_task(self.writer.wait_closed())
+                if self.torchlight.loop.is_running():
+                    self.torchlight.loop.create_task(self.writer.wait_closed())
                 else:
-                    loop.run_until_complete(self.writer.wait_closed())
+                    self.torchlight.loop.run_until_complete(self.writer.wait_closed())
             except Exception as exc:
                 self.logger.warning(exc)
 
