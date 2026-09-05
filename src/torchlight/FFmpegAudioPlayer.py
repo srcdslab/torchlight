@@ -14,7 +14,6 @@ import aiohttp
 from aiohttp_socks import ProxyConnector
 from curl_cffi import requests as cffi_requests
 
-from torchlight.FlareSolverr import get_cf_session
 from torchlight.MyInstants import MYINSTANTS_URL
 from torchlight.Torchlight import Torchlight
 
@@ -109,7 +108,7 @@ class FFmpegAudioPlayer:
         if needs_cf_bypass:
             try:
                 self.logger.info("Solving Cloudflare challenge for URL: %s", uri)
-                cookies, user_agent = await get_cf_session(uri, proxy_url)
+                cookies, user_agent = await self.torchlight.flaresolverr.get_cf_session(uri, proxy_url)
             except Exception as e:
                 self.logger.error("FlareSolverr failed to bypass Cloudflare: %s", e)
                 self.Stop(False)

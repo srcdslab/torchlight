@@ -6,7 +6,6 @@ from torchlight.AsyncClient import AsyncClient
 from torchlight.AudioManager import AudioManager
 from torchlight.CommandHandler import CommandHandler
 from torchlight.Config import Config
-from torchlight.FlareSolverr import close_cf_session, set_flaresolverr_url
 from torchlight.PlayerManager import PlayerManager
 from torchlight.Sourcemod import SourcemodConfig
 from torchlight.Torchlight import Torchlight
@@ -38,6 +37,11 @@ class TorchlightHandler:
         await self.torchlight.forwards.Replay(["OnClientPostAdminCheck"])
 
     def Init(self) -> None:
+        # Init() also runs on reconnect, so release the previous run's FlareSolverr session.
+        previous_torchlight = getattr(self, "torchlight", None)
+        if previous_torchlight is not None:
+            asyncio.ensure_future(previous_torchlight.flaresolverr.close())
+
         self.access_manager = AccessManager(self.config.config_folder)
         self.access_manager.Load()
 
@@ -75,11 +79,6 @@ class TorchlightHandler:
         )
 
         self.player_manager.torchlight.command_handler = self.command_handler
-
-        if "FlareSolverr" in self.config.config:
-            set_flaresolverr_url(
-                f"http://{self.config['FlareSolverr']['Host']}:{self.config['FlareSolverr']['Port']}/v1"
-            )
 
     def InitModules(self) -> None:
         self.player_manager.Setup()
@@ -146,5 +145,7 @@ class TorchlightHandler:
         asyncio.ensure_future(self._Connect(), loop=self.loop)
 
     def __del__(self) -> None:
-        asyncio.ensure_future(close_cf_session())
+        torchlight = getattr(self, "torchlight", None)
+        if torchlight is not None:
+            asyncio.ensure_future(torchlight.flaresolverr.close())
         self.logger.debug("~TorchlightHandler()")
