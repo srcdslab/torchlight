@@ -966,6 +966,9 @@ class YouTubeSearch(BaseCommand):
 
         self.torchlight.last_url = url
 
+        # Set the duration of the audio clip because youtube already provides it in the metadata
+        # Helps fixing youtube not sending buffer in time.
+        audio_clip.SetDuration(float(info["duration"]))
         return audio_clip.Play(real_time)
 
 
@@ -1525,7 +1528,7 @@ class MyInstantsSearch(BaseCommand):
                 return 1
 
             self.torchlight.last_url = urls
-            return audio_clip.Play()
+            return audio_clip.Play(needs_cf_bypass=True)
         elif isinstance(urls, dict):
             # get the play cmd
             play_cmd: str = ""

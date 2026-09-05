@@ -6,6 +6,7 @@ from torchlight.AsyncClient import AsyncClient
 from torchlight.AudioManager import AudioManager
 from torchlight.CommandHandler import CommandHandler
 from torchlight.Config import Config
+from torchlight.FlareSolverr import set_flaresolverr_url
 from torchlight.PlayerManager import PlayerManager
 from torchlight.Sourcemod import SourcemodConfig
 from torchlight.Torchlight import Torchlight
@@ -74,6 +75,11 @@ class TorchlightHandler:
         )
 
         self.player_manager.torchlight.command_handler = self.command_handler
+
+        if "FlareSolverr" in self.config.config:
+            set_flaresolverr_url(
+                f"http://{self.config['FlareSolverr']['Host']}:{self.config['FlareSolverr']['Port']}/v1"
+            )
 
     def InitModules(self) -> None:
         self.player_manager.Setup()

@@ -54,6 +54,12 @@
 		}
 	},
 
+	"FlareSolverr":
+	{
+		"Host": "127.0.0.1",
+		"Port": 8191
+	},
+
 	"GeoIP":
 	{
 		"Path": "/usr/share/GeoIP",
