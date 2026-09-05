@@ -3,8 +3,23 @@ import logging
 from collections.abc import Coroutine
 from typing import Any
 
+import aiohttp
+
 
 class Utils:
+    @staticmethod
+    async def FetchText(url: str, *, timeout: float = 10, params: dict[str, str] | None = None) -> str:
+        # timeout is the total budget for connecting and reading the body.
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
+            async with session.get(url, params=params) as resp:
+                return await resp.text()
+
+    @staticmethod
+    async def FetchJson(url: str, *, timeout: float = 10, params: dict[str, str] | None = None) -> Any:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=timeout)) as session:
+            async with session.get(url, params=params) as resp:
+                return await resp.json()
+
     @staticmethod
     def FireAndForget(coro: Coroutine[Any, Any, Any], logger: logging.Logger) -> asyncio.Task:
         # Logs exceptions instead of letting asyncio silently discard them on an untracked task.
