@@ -7,6 +7,7 @@ from torchlight.Constants import Clients
 from torchlight.Player import Player
 from torchlight.Sourcemod import SourcemodAdmin, SourcemodConfig
 from torchlight.Torchlight import Torchlight
+from torchlight.Utils import Utils
 
 
 class PlayerManager:
@@ -92,7 +93,7 @@ class PlayerManager:
         if player is None:
             return
 
-        asyncio.ensure_future(self.OnClientPostAdminCheckAsync(player))
+        Utils.FireAndForget(self.OnClientPostAdminCheckAsync(player), self.logger)
 
     async def OnClientPostAdminCheckAsync(self, player: Player) -> None:
         flag_bits: int = (await self.torchlight.sourcemod_api.GetUserFlagBits(player.index))["result"]
