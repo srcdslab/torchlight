@@ -6,7 +6,7 @@ from torchlight.AsyncClient import AsyncClient
 from torchlight.AudioManager import AudioManager
 from torchlight.CommandHandler import CommandHandler
 from torchlight.Config import Config
-from torchlight.FlareSolverr import set_flaresolverr_url
+from torchlight.FlareSolverr import close_cf_session, set_flaresolverr_url
 from torchlight.PlayerManager import PlayerManager
 from torchlight.Sourcemod import SourcemodConfig
 from torchlight.Torchlight import Torchlight
@@ -146,4 +146,5 @@ class TorchlightHandler:
         asyncio.ensure_future(self._Connect(), loop=self.loop)
 
     def __del__(self) -> None:
+        asyncio.ensure_future(close_cf_session())
         self.logger.debug("~TorchlightHandler()")
