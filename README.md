@@ -141,12 +141,12 @@ After that, specify its Host and Port on the config.json file:
 ```yaml
 "FlareSolverr"
 {
-  "Host": "127.0.0.0",
+  "Host": "127.0.0.1",
   "Port": 8191
-}
+},
 ```
-
-`8191` is just the default port used on **FlareSolverr**
+If you are using docker for torchlight, please specify `Host` as the main server's public IP.
+`8191` is just the default port used on `FlareSolverr`
 
 ### Notes
 

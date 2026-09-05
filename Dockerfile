@@ -33,7 +33,7 @@ FROM build as build-production
 RUN --mount=type=secret,id=pipconf,dst="/root/.config/pip/pip.conf" \
     --mount=type=cache,sharing=locked,id=pipcache,mode=0777,target=/root/.cache/pip/http \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
-    pip wheel --wheel-dir /app/wheels -r requirements.txt
+    pip wheel --no-deps --wheel-dir /app/wheels -r requirements.txt
 
 FROM build as build-development
 
@@ -42,7 +42,7 @@ RUN --mount=type=secret,id=pipconf,dst="/root/.config/pip/pip.conf" \
     --mount=type=cache,sharing=locked,id=pipcache,mode=0777,target=/root/.cache/pip/http \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
     --mount=type=bind,source=requirements-dev.txt,target=requirements-dev.txt \
-    pip wheel --wheel-dir /app/wheels -r requirements.txt -r requirements-dev.txt
+    pip wheel --no-deps --wheel-dir /app/wheels -r requirements.txt -r requirements-dev.txt
 
 FROM python:3.10-slim-bookworm@sha256:9a97ede5d731252b42541a5d3ec60f6d4cd03747ca75315adc784ed864651c0e as runtime
 
