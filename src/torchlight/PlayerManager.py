@@ -147,7 +147,7 @@ class PlayerManager:
         self.audio_storage = {}
         self.access_manager.Load()
 
-        for i in range(1, Clients.MAXPLAYERS):
+        for i in range(1, Clients.MAXPLAYERS + 1):
             player = self.players[i]
             if player is not None:
                 self.player_count += 1
