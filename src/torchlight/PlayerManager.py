@@ -7,6 +7,7 @@ from torchlight.Constants import Clients
 from torchlight.Player import Player
 from torchlight.Sourcemod import SourcemodAdmin, SourcemodConfig
 from torchlight.Torchlight import Torchlight
+from torchlight.Utils import Utils
 
 
 class PlayerManager:
@@ -92,7 +93,7 @@ class PlayerManager:
         if player is None:
             return
 
-        asyncio.ensure_future(self.OnClientPostAdminCheckAsync(player))
+        Utils.FireAndForget(self.OnClientPostAdminCheckAsync(player), self.logger)
 
     async def OnClientPostAdminCheckAsync(self, player: Player) -> None:
         flag_bits: int = (await self.torchlight.sourcemod_api.GetUserFlagBits(player.index))["result"]
@@ -146,7 +147,7 @@ class PlayerManager:
         self.audio_storage = {}
         self.access_manager.Load()
 
-        for i in range(1, Clients.MAXPLAYERS):
+        for i in range(1, Clients.MAXPLAYERS + 1):
             player = self.players[i]
             if player is not None:
                 self.player_count += 1
