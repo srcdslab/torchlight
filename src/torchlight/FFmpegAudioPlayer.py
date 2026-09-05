@@ -20,6 +20,26 @@ from torchlight.Torchlight import Torchlight
 
 SAMPLEBYTES = 2
 
+# Extra request headers some hosts require, keyed by domain. Matched against the URI's
+# hostname (exact or subdomain), so a new host means adding an entry here rather than
+# another special case inside the streaming path.
+DOMAIN_HEADER_PROFILES: dict[str, dict[str, str]] = {
+    "myinstants.com": {
+        "Referer": MYINSTANTS_URL,
+        "Sec-Fetch-Dest": "audio",
+        "Sec-Fetch-Mode": "no-cors",
+        "Sec-Fetch-Site": "same-origin",
+    },
+}
+
+
+def get_domain_headers(uri: str) -> dict[str, str]:
+    hostname = (urlparse(uri).hostname or "").lower()
+    for domain, headers in DOMAIN_HEADER_PROFILES.items():
+        if hostname == domain or hostname.endswith(f".{domain}"):
+            return headers
+    return {}
+
 
 class FFmpegAudioPlayer:
     VALID_CALLBACKS = ["Play", "Stop", "Update"]
@@ -120,11 +140,8 @@ class FFmpegAudioPlayer:
             "Accept": "*/*",
             "Accept-Language": "en-US,en;q=0.9",
         }
-        if needs_cf_bypass and "myinstants.com" in uri:
-            headers["Referer"] = MYINSTANTS_URL
-            headers["Sec-Fetch-Dest"] = "audio"
-            headers["Sec-Fetch-Mode"] = "no-cors"
-            headers["Sec-Fetch-Site"] = "same-origin"
+        if needs_cf_bypass:
+            headers.update(get_domain_headers(uri))
 
         if needs_cf_bypass:
             queue: asyncio.Queue[bytes | None] = asyncio.Queue(maxsize=10)
