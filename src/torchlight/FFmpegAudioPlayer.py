@@ -146,12 +146,17 @@ class FFmpegAudioPlayer:
                         return
 
                     for chunk in resp.iter_content(chunk_size=32 * 1024):
-                        if not chunk:
-                            continue
+                        if not chunk or not self.playing:
+                            break
 
-                        future = asyncio.run_coroutine_threadsafe(queue.put(chunk), self.torchlight.loop)
-                        future.result()
-
+                        while self.playing:
+                            try:
+                                future = asyncio.run_coroutine_threadsafe(queue.put(chunk), self.torchlight.loop)
+                                future.result(timeout=0.5)
+                                break
+                            except Exception:
+                                if not self.playing:
+                                    break
                 except Exception as err:
                     self.logger.error("curl_cffi fetch exception: %s", err)
                 finally:
@@ -160,14 +165,15 @@ class FFmpegAudioPlayer:
             fetch_future = self.torchlight.loop.run_in_executor(None, sync_fetch_curl_cffi)
 
             try:
-                while self.playing and self.ffmpeg_process.returncode is None:
+                proc = self.ffmpeg_process
+                while self.playing and proc and proc.returncode is None:
                     chunk = await queue.get()
                     if chunk is None:
                         break
 
-                    if self.ffmpeg_process.stdin:
-                        self.ffmpeg_process.stdin.write(chunk)
-                        await self.ffmpeg_process.stdin.drain()
+                    if proc.stdin and not proc.stdin.is_closing():
+                        proc.stdin.write(chunk)
+                        await proc.stdin.drain()
             finally:
                 await fetch_future
                 if self.ffmpeg_process and self.ffmpeg_process.stdin:
@@ -244,6 +250,9 @@ class FFmpegAudioPlayer:
                     await self.ffmpeg_process.stdin.wait_closed()
                 except Exception as e:
                     self.logger.debug("Failed to cleanly close FFmpeg stdin: %s", e)
+            if self.session and not self.session.closed:
+                await self.session.close()
+                self.session = None
 
     def SetDuration(self, duration: float) -> None:
         self.seconds = duration
@@ -270,7 +279,9 @@ class FFmpegAudioPlayer:
         if pitch is None:
             pitch = self.pitch
 
-        self.seconds = 0.0
+        if not self.duration_set:
+            self.seconds = 0.0
+
         self.started_playing = None
         self.stopped_playing = None
 
@@ -322,13 +333,19 @@ class FFmpegAudioPlayer:
             self.stream_task.cancel()
             self.stream_task = None
 
-        if self.ffmpeg_process:
+        if self.session and not self.session.closed:
+            asyncio.run_coroutine_threadsafe(self.session.close(), self.torchlight.loop)
+            self.session = None
+
+        proc = self.ffmpeg_process
+        self.ffmpeg_process = None
+
+        if proc:
             try:
-                self.ffmpeg_process.terminate()
-                self.ffmpeg_process.kill()
+                proc.terminate()
+                proc.kill()
             except ProcessLookupError as exc:
                 self.logger.debug(exc)
-            self.ffmpeg_process = None
 
         if self.writer:
             if force:
@@ -359,6 +376,8 @@ class FFmpegAudioPlayer:
 
         self.logger.info("Stopped %s", self.uri)
         self.uri = ""
+        self.duration_set = False
+        self.seconds = 0.0
 
         self.Callback("Stop")
 
