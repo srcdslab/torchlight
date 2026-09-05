@@ -22,7 +22,7 @@ class SubscribeBase:
         json_obj = {
             "method": "unsubscribe",
             "module": self.module,
-            "events": self.callbacks.keys(),
+            "events": list(self.callbacks.keys()),
         }
 
         asyncio.ensure_future(self.async_client.Send(json_obj))
