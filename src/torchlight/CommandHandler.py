@@ -102,7 +102,8 @@ class CommandHandler:
                 elif isinstance(trigger, str):
                     is_match = message[0].lower() == trigger.lower()
                 else:  # compiled regex
-                    is_match = trigger.search(message[0]) is not None
+                    r_match = trigger.search(message[0])
+                    is_match = r_match is not None
 
                 if not is_match:
                     continue
