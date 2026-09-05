@@ -20,6 +20,9 @@ class SourceModAPI:
 
         res_raw = await self.async_client.Send(json_obj)
 
+        if res_raw is None:
+            raise ConnectionError(f"{function}({args}): no response from SourceMod (RCON link is down)")
+
         res: dict[str, Any] = {}
         if isinstance(res_raw, dict):
             res = res_raw

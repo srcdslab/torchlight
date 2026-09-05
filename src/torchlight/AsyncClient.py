@@ -89,14 +89,14 @@ class AsyncClient:
             if not self.protocol:
                 return None
 
-            self.recv_future = Future()
+            future = self.recv_future = Future()
             self.protocol.Send(data)
-            await self.recv_future
 
-            if self.recv_future.done():
-                json_obj = self.recv_future.result()
-            else:
-                json_obj = None
+            try:
+                await future
+            except asyncio.CancelledError:
+                return None
+            finally:
+                self.recv_future = None
 
-            self.recv_future = None
-            return json_obj
+            return future.result()
