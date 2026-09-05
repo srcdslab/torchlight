@@ -1,5 +1,6 @@
 import logging
 import sys
+import time
 from typing import Any
 
 from torchlight.FFmpegAudioPlayer import FFmpegAudioPlayer
@@ -63,10 +64,12 @@ class AudioClip:
     def OnStop(self) -> None:
         self.logger.debug(sys._getframe().f_code.co_name + " " + self.uri)
 
-        if self.audio_player.playing:
-            delta = self.audio_player.position - self.last_position
-            self.player.storage["Audio"]["TimeUsed"] += delta
-            self.player.storage["Audio"]["LastUseLength"] += delta
+        if self.audio_player.started_playing is not None:
+            seconds_elapsed = time.time() - self.audio_player.started_playing
+            delta = seconds_elapsed - self.last_position
+            if delta > 0:
+                self.player.storage["Audio"]["TimeUsed"] += delta
+                self.player.storage["Audio"]["LastUseLength"] += delta
 
         if str(self.level) in self.config:
             if self.player.storage:
