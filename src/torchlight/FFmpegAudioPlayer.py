@@ -51,6 +51,7 @@ class FFmpegAudioPlayer:
         self.writer: asyncio.StreamWriter | None = None
         self.ffmpeg_process: asyncio.subprocess.Process | None = None
         self.stream_task: asyncio.Task | None = None
+        self.read_stream_task: asyncio.Task | None = None
         self.session: aiohttp.ClientSession | None = None
 
         self.callbacks: list[tuple[str, Callable]] = []
@@ -91,7 +92,7 @@ class FFmpegAudioPlayer:
             return
 
         if self.ffmpeg_process.stdout:
-            asyncio.ensure_future(self._read_stream(self.ffmpeg_process.stdout, self.writer))
+            self.read_stream_task = asyncio.ensure_future(self._read_stream(self.ffmpeg_process.stdout, self.writer))
 
         if is_local_file:
             return
@@ -323,6 +324,21 @@ class FFmpegAudioPlayer:
         self.stream_task = asyncio.ensure_future(self._stream_url_to_ffmpeg(uri, ffmpeg_command, needs_cf_bypass))
         return True
 
+    async def _reap_process(self, proc: asyncio.subprocess.Process) -> None:
+        try:
+            proc.terminate()
+        except ProcessLookupError:
+            return
+
+        try:
+            await asyncio.wait_for(proc.wait(), timeout=2.0)
+        except asyncio.TimeoutError:
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                return
+            await proc.wait()
+
     def Stop(self, force: bool = True) -> bool:
         if not self.playing:
             return False
@@ -333,6 +349,10 @@ class FFmpegAudioPlayer:
             self.stream_task.cancel()
             self.stream_task = None
 
+        if self.read_stream_task and not self.read_stream_task.done():
+            self.read_stream_task.cancel()
+            self.read_stream_task = None
+
         if self.session and not self.session.closed:
             asyncio.run_coroutine_threadsafe(self.session.close(), self.torchlight.loop)
             self.session = None
@@ -342,10 +362,12 @@ class FFmpegAudioPlayer:
 
         if proc:
             try:
-                proc.terminate()
-                proc.kill()
-            except ProcessLookupError as exc:
-                self.logger.debug(exc)
+                if self.torchlight.loop.is_running():
+                    asyncio.run_coroutine_threadsafe(self._reap_process(proc), self.torchlight.loop)
+                else:
+                    self.torchlight.loop.run_until_complete(self._reap_process(proc))
+            except Exception as exc:
+                self.logger.warning(exc)
 
         if self.writer:
             if force:

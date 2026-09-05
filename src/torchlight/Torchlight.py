@@ -12,6 +12,7 @@ from torchlight.Config import Config
 from torchlight.Player import Player
 from torchlight.SourceModAPI import SourceModAPI
 from torchlight.Subscribe import Forwards, GameEvents
+from torchlight.Utils import Utils
 
 if TYPE_CHECKING:
     from .CommandHandler import CommandHandler
@@ -77,7 +78,7 @@ class Torchlight:
             message = message[:973] + "..."
         lines = textwrap.wrap(message, 244, break_long_words=True)
         for line in lines:
-            asyncio.ensure_future(self.sourcemod_api.CPrintToChatAll(line))
+            Utils.FireAndForget(self.sourcemod_api.CPrintToChatAll(line), self.logger)
 
         if player:
             self.SetPlayerCooldown(player, len(lines) * self.config["AntiSpam"]["ChatCooldown"])
@@ -92,7 +93,7 @@ class Torchlight:
             message = message[:973] + "..."
         lines = textwrap.wrap(message, 244, break_long_words=True)
         for line in lines:
-            asyncio.ensure_future(self.sourcemod_api.CPrintToChat(player.index, line))
+            Utils.FireAndForget(self.sourcemod_api.CPrintToChat(player.index, line), self.logger)
 
     def SetPlayerCooldown(self, player: Player, cooldown: Any) -> None:
         if player.index == 0:
@@ -111,8 +112,9 @@ class Torchlight:
         if player.index == 0:
             return
 
-        asyncio.ensure_future(
-            self.sourcemod_api.CreateMenu(player.index, {"title": title, "options": list(options.items())})
+        Utils.FireAndForget(
+            self.sourcemod_api.CreateMenu(player.index, {"title": title, "options": list(options.items())}),
+            self.logger,
         )
 
     def __del__(self) -> None:

@@ -49,4 +49,5 @@ class SourceRCONServer:
         except OSError:
             pass
         finally:
+            peer.close()
             self.Remove(peer)
