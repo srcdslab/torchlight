@@ -30,6 +30,9 @@ class SourceRCONClient:
     def send(self, data: bytes) -> Awaitable:
         return self.loop.sock_sendall(self._sock, data)
 
+    def close(self) -> None:
+        self._sock.close()
+
     # @profile
     async def _peer_loop(self) -> None:
         while True:
@@ -66,7 +69,7 @@ class SourceRCONClient:
                     self.logger.info(sys._getframe().f_code.co_name + f" Connection denied from {self.name}")
                     self.p_send(p_id, 0, "")
                     self.p_send(-1, 2, "")
-                    self._sock.close()
+                    self.close()
         else:
             if p_type == 2:
                 if data:
