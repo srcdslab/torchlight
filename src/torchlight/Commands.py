@@ -33,6 +33,7 @@ from torchlight.URLInfo import (
     get_url_youtube_info,
     print_url_metadata,
 )
+from torchlight.Utils import Utils
 
 
 class BaseCommand:
@@ -495,9 +496,7 @@ class WUnderground(BaseCommand):
             additional = "?geo_ip={}".format(player.address.split(":")[0])
         else:
             try:
-                data = await Utils.FetchJson(
-                    f"http://autocomplete.wunderground.com/aq?format=JSON&query={message[1]}"
-                )
+                data = await Utils.FetchJson(f"http://autocomplete.wunderground.com/aq?format=JSON&query={message[1]}")
                 if not data:
                     return 3
             except Exception as e:
