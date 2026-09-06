@@ -80,6 +80,20 @@ class FFmpegAudioPlayer:
         self.logger.debug("~FFmpegAudioPlayer()")
         self.Stop()
 
+    async def _write_to_ffmpeg(self, chunk: bytes) -> None:
+        proc = self.ffmpeg_process
+        if proc and proc.stdin and not proc.stdin.is_closing():
+            proc.stdin.write(chunk)
+            await proc.stdin.drain()
+
+    async def _close_ffmpeg_stdin(self) -> None:
+        if self.ffmpeg_process and self.ffmpeg_process.stdin:
+            try:
+                self.ffmpeg_process.stdin.close()
+                await self.ffmpeg_process.stdin.wait_closed()
+            except Exception as e:
+                self.logger.debug("Failed to cleanly close FFmpeg stdin: %s", e)
+
     async def _stream_url_to_ffmpeg(self, uri: str, ffmpeg_command: list[str], needs_cf_bypass: bool = False) -> None:
         parsed = urlparse(uri)
         is_local_file = parsed.scheme in ("file", "") or os.path.exists(uri)
@@ -189,17 +203,10 @@ class FFmpegAudioPlayer:
                     if chunk is None:
                         break
 
-                    if proc.stdin and not proc.stdin.is_closing():
-                        proc.stdin.write(chunk)
-                        await proc.stdin.drain()
+                    await self._write_to_ffmpeg(chunk)
             finally:
                 await fetch_future
-                if self.ffmpeg_process and self.ffmpeg_process.stdin:
-                    try:
-                        self.ffmpeg_process.stdin.close()
-                        await self.ffmpeg_process.stdin.wait_closed()
-                    except Exception as e:
-                        self.logger.debug("Failed to cleanly close FFmpeg stdin: %s", e)
+                await self._close_ffmpeg_stdin()
             return
 
         timeout = aiohttp.ClientTimeout(total=None, connect=10.0, sock_read=15.0)
@@ -244,9 +251,7 @@ class FFmpegAudioPlayer:
 
                                 bytes_downloaded += len(chunk)
 
-                                if self.ffmpeg_process.stdin:
-                                    self.ffmpeg_process.stdin.write(chunk)
-                                    await self.ffmpeg_process.stdin.drain()
+                                await self._write_to_ffmpeg(chunk)
 
                             break
 
@@ -262,12 +267,7 @@ class FFmpegAudioPlayer:
         except Exception as e:
             self.logger.error("Unexpected streaming error: %s", e, exc_info=True)
         finally:
-            if self.ffmpeg_process and self.ffmpeg_process.stdin:
-                try:
-                    self.ffmpeg_process.stdin.close()
-                    await self.ffmpeg_process.stdin.wait_closed()
-                except Exception as e:
-                    self.logger.debug("Failed to cleanly close FFmpeg stdin: %s", e)
+            await self._close_ffmpeg_stdin()
             if self.session and not self.session.closed:
                 await self.session.close()
                 self.session = None
