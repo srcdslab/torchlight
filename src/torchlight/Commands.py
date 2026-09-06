@@ -81,6 +81,9 @@ class BaseCommand:
     def command_name(self) -> str:
         return self.__class__.__name__
 
+    def close(self) -> None:
+        """Release resources held by this command before it is dropped (e.g. on reload)."""
+
     def check_chat_cooldown(self, player: Player) -> bool:
         if player.chat_cooldown > self.torchlight.loop.time():
             cooldown = player.chat_cooldown - self.torchlight.loop.time()
@@ -420,6 +423,11 @@ class OpenWeather(BaseCommand):
         self.config_folder = self.torchlight.config["GeoIP"]["Path"]
         self.city_filename = self.torchlight.config["GeoIP"]["CityFilename"]
         self.geo_ip = geoip2.database.Reader(f"{self.config_folder}/{self.city_filename}")
+
+    def close(self) -> None:
+        # CommandHandler.Setup() rebuilds every command on each reload; without this the
+        # previous Reader's mmap of the GeoIP database is only released on GC (issue #55).
+        self.geo_ip.close()
 
     def degreeToCardinal(self, degree: int) -> str:
         directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]

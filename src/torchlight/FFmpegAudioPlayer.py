@@ -420,6 +420,12 @@ class FFmpegAudioPlayer:
 
         self.Callback("Stop")
 
+        # The Stop callbacks (and the Play/Update ones) close over the AudioClip and
+        # the AudioManager, and the player is reachable from those closures in turn.
+        # Drop them once they have fired so the player and its clip can be collected
+        # instead of leaning on cyclic GC (issue #55).
+        self.callbacks.clear()
+
         return True
 
     def AddCallback(self, cbtype: str, cbfunc: Callable) -> bool:
