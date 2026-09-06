@@ -38,6 +38,8 @@ from torchlight.Utils import Utils
 
 class BaseCommand:
     order = 0
+    # Echo the command back to chat when it was triggered from a menu selection.
+    echo_from_menu = False
 
     def __init__(
         self,
@@ -603,6 +605,8 @@ class VoteDisable(BaseCommand):
 
 
 class VoiceTrigger(BaseCommand):
+    echo_from_menu = True
+
     def _setup(self) -> None:
         self.logger.debug(sys._getframe().f_code.co_name)
         for trigger in self.trigger_manager.voice_triggers.keys():
@@ -749,6 +753,9 @@ class VoiceTrigger(BaseCommand):
 
 
 class Random(VoiceTrigger):
+    # Kept off to preserve the previous exact-class-name behavior; VoiceTrigger enables it.
+    echo_from_menu = False
+
     def _setup(self) -> None:
         self.logger.debug(sys._getframe().f_code.co_name)
 
@@ -1408,6 +1415,8 @@ class Exec(BaseCommand):
 
 
 class MyInstantsSearch(BaseCommand):
+    echo_from_menu = True
+
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
