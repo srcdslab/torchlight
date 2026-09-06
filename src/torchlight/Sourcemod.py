@@ -1,5 +1,4 @@
 import copy
-import sys
 from collections import OrderedDict
 from dataclasses import dataclass
 
@@ -34,12 +33,8 @@ class SourcemodConfig(ConfigFile):
         self.sm_flags: OrderedDict = OrderedDict()
         self.sm_groups: list[SourcemodGroup] = []
 
-    def Load(self) -> int:
-        try:
-            self.sm_flags = self.load_json(ordered=True)
-        except ValueError as e:
-            self.logger.error(sys._getframe().f_code.co_name + " " + str(e))
-            return 1
+    def Load(self) -> None:
+        self.sm_flags = self.load_json(ordered=True)
         self.sm_groups.clear()
         for sm_group in self.config["SourcemodGroups"]:
             self.sm_groups.append(
@@ -49,7 +44,6 @@ class SourcemodConfig(ConfigFile):
                     flags=sm_group["flags"],
                 )
             )
-        return 0
 
     def flagbits_to_flags(self, *, flagbits: int) -> list[str]:
         flags: list[str] = []
