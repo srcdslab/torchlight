@@ -6,7 +6,7 @@ from types import FrameType
 
 import click
 
-from torchlight.Config import Config
+from torchlight.Config import Config, ConfigError
 from torchlight.PlayerManager import PlayerManager
 from torchlight.SourceRCONServer import SourceRCONServer
 from torchlight.TorchlightHandler import TorchlightHandler
@@ -30,7 +30,13 @@ def graceful_shutdown(signal: int, frame: FrameType | None) -> None:
 @click.version_option()
 def cli(config_folder: str) -> None:
     config = Config(config_folder)
-    config.load()
+
+    # A malformed or missing config file aborts startup with the offending path and
+    # parse error rather than silently starting with an empty config (see issue #164).
+    try:
+        config.load()
+    except ConfigError as e:
+        raise click.ClickException(str(e)) from e
 
     logging.basicConfig(
         level=logging.getLevelName(config["Logging"]["level"]),
@@ -44,7 +50,10 @@ def cli(config_folder: str) -> None:
     event_loop = asyncio.get_event_loop()
 
     global torchlight_handler
-    torchlight_handler = TorchlightHandler(event_loop, config)
+    try:
+        torchlight_handler = TorchlightHandler(event_loop, config)
+    except ConfigError as e:
+        raise click.ClickException(str(e)) from e
 
     # Handles new connections on 0.0.0.0:27015
     rcon_server = SourceRCONServer(
