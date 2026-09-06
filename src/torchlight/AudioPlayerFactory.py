@@ -20,6 +20,6 @@ class AudioPlayerFactory:
         self.logger.info("~AudioPlayerFactory()")
 
     def NewPlayer(self, _type: AudioPlayerType, torchlight: Torchlight) -> FFmpegAudioPlayer:
-        if _type == AudioPlayerType.AUDIOPLAYER_FFMPEG:
-            return self.ffmpeg_audio_player_factory.NewPlayer(torchlight)
+        if _type != AudioPlayerType.AUDIOPLAYER_FFMPEG:
+            raise ValueError(f"Unsupported audio player type: {_type}")
         return self.ffmpeg_audio_player_factory.NewPlayer(torchlight)

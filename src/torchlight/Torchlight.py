@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from torchlight.AsyncClient import AsyncClient
 from torchlight.Config import Config
+from torchlight.FlareSolverr import DEFAULT_FLARESOLVERR_URL, FlareSolverr
 from torchlight.Player import Player
 from torchlight.SourceModAPI import SourceModAPI
 from torchlight.Subscribe import Forwards, GameEvents
@@ -37,6 +38,7 @@ class Torchlight:
         self.sourcemod_api = SourceModAPI(self.async_client)
         self.game_events = GameEvents(self.async_client)
         self.forwards = Forwards(self.async_client)
+        self.flaresolverr = FlareSolverr(self._flaresolverr_url())
 
         self.disable_votes: set = set()
         self.disabled = 0
@@ -44,6 +46,12 @@ class Torchlight:
         self.callbacks: list[tuple[str, Callable]] = []
 
         self.command_handler = command_handler
+
+    def _flaresolverr_url(self) -> str:
+        flaresolverr_config = self.config.config.get("FlareSolverr", {})
+        if not flaresolverr_config:
+            return DEFAULT_FLARESOLVERR_URL
+        return f"http://{flaresolverr_config['Host']}:{flaresolverr_config['Port']}/v1"
 
     def Reload(self) -> None:
         self.config.load()

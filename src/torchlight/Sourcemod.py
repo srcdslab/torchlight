@@ -1,12 +1,9 @@
 import copy
-import json
-import logging
-import os
 import sys
 from collections import OrderedDict
 from dataclasses import dataclass
 
-from torchlight.Config import Config
+from torchlight.Config import Config, ConfigFile
 
 
 @dataclass
@@ -25,25 +22,21 @@ class SourcemodAdmin:
     level: int
 
 
-class SourcemodConfig:
+class SourcemodConfig(ConfigFile):
     def __init__(
         self,
         config_folder: str,
         config: Config,
         config_filename: str = "flags.json",
     ) -> None:
-        self.logger = logging.getLogger(self.__class__.__name__)
+        super().__init__(config_folder, config_filename)
         self.config = config
-        self.config_folder = os.path.abspath(config_folder)
-        self.config_filename = config_filename
-        self.config_filepath = os.path.abspath(os.path.join(config_folder, config_filename))
         self.sm_flags: OrderedDict = OrderedDict()
         self.sm_groups: list[SourcemodGroup] = []
 
     def Load(self) -> int:
         try:
-            with open(self.config_filepath) as fp:
-                self.sm_flags = json.load(fp, object_pairs_hook=OrderedDict)
+            self.sm_flags = self.load_json(ordered=True)
         except ValueError as e:
             self.logger.error(sys._getframe().f_code.co_name + " " + str(e))
             return 1

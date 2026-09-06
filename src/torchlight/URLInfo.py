@@ -1,4 +1,3 @@
-import asyncio
 import io
 import json
 import logging
@@ -18,18 +17,16 @@ logger = logging.getLogger(__name__)
 
 # @profile
 async def get_url_data(url: str) -> tuple[bytes, str, int]:
-    async with aiohttp.ClientSession() as session:
-        resp = await asyncio.wait_for(session.get(url), 5)
-        if resp:
+    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+        async with session.get(url) as resp:
             content_type: str = resp.headers.get("Content-Type", "")
             content_length_raw: str = resp.headers.get("Content-Length", "")
-            content = await asyncio.wait_for(resp.content.read(65536), 5)
+            content = await resp.content.read(65536)
 
             content_length = -1
             if content_length_raw:
                 content_length = int(content_length_raw)
 
-            resp.close()
     return content, content_type, content_length
 
 

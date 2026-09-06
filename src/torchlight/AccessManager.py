@@ -1,37 +1,32 @@
 import copy
 import json
-import logging
-import os
 from collections import OrderedDict
 
+from torchlight.Config import ConfigFile
 from torchlight.Sourcemod import SourcemodAdmin
 
 
-class AccessManager:
+class AccessManager(ConfigFile):
     def __init__(self, config_folder: str, config_filename: str = "admins.json") -> None:
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.config_folder = os.path.abspath(config_folder)
-        self.config_filename = config_filename
-        self.config_filepath = os.path.abspath(os.path.join(config_folder, config_filename))
+        super().__init__(config_folder, config_filename)
         self.access_dict: OrderedDict = OrderedDict()
         self.admins: list[SourcemodAdmin] = []
 
     def Load(self) -> None:
         self.logger.info(f"Loading access from {self.config_filepath}")
 
-        with open(self.config_filepath) as fp:
-            self.access_dict = json.load(fp, object_pairs_hook=OrderedDict)
-            self.admins.clear()
-            for admin_dict in self.access_dict["admins"]:
-                self.admins.append(
-                    SourcemodAdmin(
-                        name=admin_dict["name"],
-                        level=admin_dict["level"],
-                        unique_id=admin_dict["unique_id"],
-                        flag_bits=0,
-                        groups=[],
-                    )
+        self.access_dict = self.load_json(ordered=True)
+        self.admins.clear()
+        for admin_dict in self.access_dict["admins"]:
+            self.admins.append(
+                SourcemodAdmin(
+                    name=admin_dict["name"],
+                    level=admin_dict["level"],
+                    unique_id=admin_dict["unique_id"],
+                    flag_bits=0,
+                    groups=[],
                 )
+            )
 
         self.logger.info(f"Loaded {self.admins}")
 

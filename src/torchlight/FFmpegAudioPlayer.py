@@ -14,7 +14,6 @@ import aiohttp
 from aiohttp_socks import ProxyConnector
 from curl_cffi import requests as cffi_requests
 
-from torchlight.FlareSolverr import get_cf_session
 from torchlight.MyInstants import MYINSTANTS_URL
 from torchlight.Torchlight import Torchlight
 
@@ -62,6 +61,7 @@ class FFmpegAudioPlayer:
         self.speed = float(params.get("Speed", {}).get("Default", 1.0))
         self.pitch = float(params.get("Pitch", {}).get("Default", 1.0))
         self.proxy = self.config.get("Proxy", "")
+        self.ffmpeg_path = self.config.get("FfmpegPath", "/usr/bin/ffmpeg")
 
         self.started_playing: float | None = None
         self.stopped_playing: float | None = None
@@ -129,7 +129,7 @@ class FFmpegAudioPlayer:
         if needs_cf_bypass:
             try:
                 self.logger.info("Solving Cloudflare challenge for URL: %s", uri)
-                cookies, user_agent = await get_cf_session(uri, proxy_url)
+                cookies, user_agent = await self.torchlight.flaresolverr.get_cf_session(uri, proxy_url)
             except Exception as e:
                 self.logger.error("FlareSolverr failed to bypass Cloudflare: %s", e)
                 self.Stop(False)
@@ -304,7 +304,7 @@ class FFmpegAudioPlayer:
         self.stopped_playing = None
 
         ffmpeg_command = [
-            "/usr/bin/ffmpeg",
+            self.ffmpeg_path,
             "-i",
             "pipe:0",
             "-acodec",

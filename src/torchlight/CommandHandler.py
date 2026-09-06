@@ -128,7 +128,7 @@ class CommandHandler:
                             ret = ret_temp
                     else:
                         ret = await command._func(message, player)
-                        if from_menu and command.__class__.__name__ in ("VoiceTrigger", "MyInstantsSearch") and ret:
+                        if from_menu and command.echo_from_menu and ret:
                             self.torchlight.SayChat(f"{{olive}}{player.name}: {{default}}{line}")
 
                 except Exception as e:
