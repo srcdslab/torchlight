@@ -42,6 +42,7 @@ class FFmpegAudioPlayer:
         self.speed = float(params.get("Speed", {}).get("Default", 1.0))
         self.pitch = float(params.get("Pitch", {}).get("Default", 1.0))
         self.proxy = self.config.get("Proxy", "")
+        self.ffmpeg_path = self.config.get("FfmpegPath", "/usr/bin/ffmpeg")
 
         self.started_playing: float | None = None
         self.stopped_playing: float | None = None
@@ -287,7 +288,7 @@ class FFmpegAudioPlayer:
         self.stopped_playing = None
 
         ffmpeg_command = [
-            "/usr/bin/ffmpeg",
+            self.ffmpeg_path,
             "-i",
             "pipe:0",
             "-acodec",
