@@ -30,6 +30,7 @@
 		"Port": 27019,
 		"SampleRate": 22050,
 		"Proxy": "",
+		"FfmpegPath": "/usr/bin/ffmpeg",
 
 		"AudioParams":
 		{
