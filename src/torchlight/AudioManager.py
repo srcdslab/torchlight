@@ -98,6 +98,15 @@ class AudioManager:
 
         return True
 
+    def _StopClip(self, player: Player, audio_clip: AudioClip) -> None:
+        audio_clip.Stop()
+        self.torchlight.SayPrivate(audio_clip.player, "Your audio clip was stopped.")
+        if player != audio_clip.player:
+            self.torchlight.SayPrivate(
+                player,
+                f'Stopped "{audio_clip.player.name}"({audio_clip.player.user_id}) audio clip.',
+            )
+
     def Stop(self, player: Player, extra: str) -> None:
         level = player.admin.level
 
@@ -109,26 +118,14 @@ class AudioManager:
                 audio_clip.stops.add(player.user_id)
 
                 if len(audio_clip.stops) >= 3:
-                    audio_clip.Stop()
-                    self.torchlight.SayPrivate(audio_clip.player, "Your audio clip was stopped.")
-                    if player != audio_clip.player:
-                        self.torchlight.SayPrivate(
-                            player,
-                            f'Stopped "{audio_clip.player.name}"({audio_clip.player.user_id}) audio clip.',
-                        )
+                    self._StopClip(player, audio_clip)
                 else:
                     self.torchlight.SayPrivate(
                         player,
                         f"This audio clip needs {3 - len(audio_clip.stops)} more !stop's.",
                     )
             else:
-                audio_clip.Stop()
-                self.torchlight.SayPrivate(audio_clip.player, "Your audio clip was stopped.")
-                if player != audio_clip.player:
-                    self.torchlight.SayPrivate(
-                        player,
-                        f'Stopped "{audio_clip.player.name}"({audio_clip.player.user_id}) audio clip.',
-                    )
+                self._StopClip(player, audio_clip)
 
     def AudioClip(
         self,
