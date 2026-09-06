@@ -16,6 +16,18 @@ class Advertiser:
         self.ad_stop = 0
         self.next_ad_stop = 0
 
+    def _prune_last_clips(self) -> None:
+        """Drop finished entries whose ad window has fully elapsed.
+
+        Think() prunes too, but it only runs while a dominant clip is updating;
+        calling this on every stop bounds the dict during quiet periods.
+        """
+        now = self.torchlight.loop.time()
+        span = self.config["MaxSpan"]
+        for key, clip in list(self.last_clips.items()):
+            if not clip["active"] and clip["timestamp"] and clip["timestamp"] + clip["duration"] + span < now:
+                del self.last_clips[key]
+
     def Think(self, delta: int) -> None:
         now = self.torchlight.loop.time()
         duration = 0.0
@@ -74,11 +86,13 @@ class Advertiser:
 
         self.last_clips[hash(clip)]["dominant"] = False
 
+        self._prune_last_clips()
+
     def OnUpdate(self, clip: AudioClip, old_position: int, new_position: int) -> None:
         delta = new_position - old_position
-        last_clip = self.last_clips[hash(clip)]
+        last_clip = self.last_clips.get(hash(clip))
 
-        if not last_clip["dominant"]:
+        if last_clip is None or not last_clip["dominant"]:
             return
 
         last_clip["duration"] += delta

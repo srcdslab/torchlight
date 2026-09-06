@@ -32,6 +32,23 @@ class AntiSpam:
 
         return True
 
+    def _prune_last_clips(self) -> None:
+        """Drop finished entries whose usage window has fully elapsed.
+
+        SpamCheck() prunes too, but it only runs while a dominant clip is updating,
+        so a burst that leaves no dominant clip behind would keep its entries around
+        until the next one plays. Calling this on every stop bounds the dict.
+        """
+        now = self.torchlight.loop.time()
+        span = self.config["MaxUsageSpan"]
+        for key, last_clip in list(self.last_clips.items()):
+            if (
+                not last_clip["active"]
+                and last_clip["timestamp"]
+                and last_clip["timestamp"] + last_clip["duration"] + span < now
+            ):
+                del self.last_clips[key]
+
     def SpamCheck(self, audio_clips: list[AudioClip], delta: int) -> None:
         now = self.torchlight.loop.time()
         duration = 0.0
@@ -97,6 +114,8 @@ class AntiSpam:
 
         self.last_clips[hash(clip)]["dominant"] = False
 
+        self._prune_last_clips()
+
     def OnUpdate(
         self,
         audio_clips: list[AudioClip],
@@ -105,9 +124,9 @@ class AntiSpam:
         new_position: int,
     ) -> None:
         delta = new_position - old_position
-        last_clip = self.last_clips[hash(clip)]
+        last_clip = self.last_clips.get(hash(clip))
 
-        if not last_clip["dominant"]:
+        if last_clip is None or not last_clip["dominant"]:
             return
 
         last_clip["duration"] += delta

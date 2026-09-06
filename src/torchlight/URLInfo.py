@@ -119,9 +119,12 @@ def get_url_youtube_info(url: str, proxy: str = "", cookies: str = "") -> dict:
     if cookies:
         ydl_opts["cookiefile"] = cookies
 
-    ydl = yt_dlp.YoutubeDL(ydl_opts)
-    ydl.add_default_info_extractors()
-    return ydl.extract_info(url, download=False)
+    # Context-managed so YoutubeDL.close() runs: without it every !yt / !yts call
+    # (and each retry in get_first_valid_entry) leaks the extractor's HTTP connection
+    # pools and cookie jar until GC, which adds up on a long-running bot (issue #55).
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.add_default_info_extractors()
+        return ydl.extract_info(url, download=False)
 
 
 # @profile

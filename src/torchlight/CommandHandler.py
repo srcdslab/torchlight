@@ -33,6 +33,11 @@ class CommandHandler:
 
     def Setup(self) -> None:
         counter = len(self.commands)
+        for command in self.commands:
+            try:
+                command.close()
+            except Exception:
+                self.logger.error(traceback.format_exc())
         self.commands.clear()
         if counter:
             self.logger.info(sys._getframe().f_code.co_name + f" Unloaded {counter} commands!")
