@@ -12,7 +12,6 @@ from pathlib import Path
 from re import Match, Pattern
 from typing import Any, cast
 
-import aiohttp
 import defusedxml.ElementTree as etree
 import geoip2.database
 import gtts
@@ -34,6 +33,7 @@ from torchlight.URLInfo import (
     get_url_youtube_info,
     print_url_metadata,
 )
+from torchlight.Utils import Utils
 
 
 class BaseCommand:
@@ -295,20 +295,13 @@ class WolframAlpha(BaseCommand):
         ).strip()
 
     async def Calculate(self, parameters_json: dict[str, str], player: Player) -> int:
-        async with aiohttp.ClientSession() as session:
-            resp = await asyncio.wait_for(
-                session.get(
-                    "http://api.wolframalpha.com/v2/query",
-                    params=parameters_json,
-                ),
-                10,
-            )
-            if not resp:
-                return 1
-
-            data = await asyncio.wait_for(resp.text(), 5)
-            if not data:
-                return 2
+        data = await Utils.FetchText(
+            "http://api.wolframalpha.com/v2/query",
+            params=parameters_json,
+            timeout=15,
+        )
+        if not data:
+            return 2
 
         root = etree.fromstring(data)
 
@@ -389,29 +382,21 @@ class UrbanDictionary(BaseCommand):
         if self.check_disabled(player):
             return -1
 
-        async with aiohttp.ClientSession() as session:
-            resp = await asyncio.wait_for(
-                session.get(f"https://api.urbandictionary.com/v0/define?term={message[1]}"),
-                5,
+        data = await Utils.FetchJson(f"https://api.urbandictionary.com/v0/define?term={message[1]}")
+        if not data:
+            return 3
+
+        if "list" not in data or not data["list"]:
+            self.torchlight.SayChat(f"[UB] No definition found for: {message[1]}", player)
+            return 4
+
+        def print_item(item: dict[str, Any]) -> None:
+            self.torchlight.SayChat(
+                "[UD] {word} ({thumbs_up}/{thumbs_down}): {definition}\n{example}".format(**item),
+                player,
             )
-            if not resp:
-                return 1
 
-            data = await asyncio.wait_for(resp.json(), 5)
-            if not data:
-                return 3
-
-            if "list" not in data or not data["list"]:
-                self.torchlight.SayChat(f"[UB] No definition found for: {message[1]}", player)
-                return 4
-
-            def print_item(item: dict[str, Any]) -> None:
-                self.torchlight.SayChat(
-                    "[UD] {word} ({thumbs_up}/{thumbs_down}): {definition}\n{example}".format(**item),
-                    player,
-                )
-
-            print_item(data["list"][0])
+        print_item(data["list"][0])
 
         return 0
 
@@ -456,21 +441,13 @@ class OpenWeather(BaseCommand):
         else:
             search = f"q={message[1]}"
 
-        async with aiohttp.ClientSession() as session:
-            resp = await asyncio.wait_for(
-                session.get(
-                    "https://api.openweathermap.org/data/2.5/weather?APPID={}&units=metric&{}".format(
-                        self.torchlight.config["OpenWeatherAPIKey"], search
-                    )
-                ),
-                5,
+        data = await Utils.FetchJson(
+            "https://api.openweathermap.org/data/2.5/weather?APPID={}&units=metric&{}".format(
+                self.torchlight.config["OpenWeatherAPIKey"], search
             )
-            if not resp:
-                return 2
-
-            data = await asyncio.wait_for(resp.json(), 5)
-            if not data:
-                return 3
+        )
+        if not data:
+            return 3
 
         if data["cod"] != 200:
             self.torchlight.SayPrivate(player, "[OW] {}".format(data["message"]))
@@ -520,49 +497,8 @@ class WUnderground(BaseCommand):
             search = "autoip"
             additional = "?geo_ip={}".format(player.address.split(":")[0])
         else:
-            async with aiohttp.ClientSession() as session:
-                resp = await asyncio.wait_for(
-                    session.get(f"http://autocomplete.wunderground.com/aq?format=JSON&query={message[1]}"),
-                    5,
-                )
-                if not resp:
-                    return 2
-
-                try:
-                    data = await asyncio.wait_for(resp.json(), 5)
-                    if not data:
-                        return 3
-                except Exception as e:
-                    self.logger.error(e)
-                    self.torchlight.SayPrivate(
-                        message="Failed to retrieve data from the wunderground api",
-                        player=player,
-                    )
-                    return 1
-
-            if not data["RESULTS"]:
-                self.torchlight.SayPrivate(player, "[WU] No cities match your search query.")
-                return 4
-
-            search = data["RESULTS"][0]["name"]
-            additional = ""
-
-        async with aiohttp.ClientSession() as session:
-            resp = await asyncio.wait_for(
-                session.get(
-                    "http://api.wunderground.com/api/{}/conditions/q/{}.json{}".format(
-                        self.torchlight.config["WundergroundAPIKey"],
-                        search,
-                        additional,
-                    )
-                ),
-                5,
-            )
-            if not resp:
-                return 2
-
             try:
-                data = await asyncio.wait_for(resp.json(), 5)
+                data = await Utils.FetchJson(f"http://autocomplete.wunderground.com/aq?format=JSON&query={message[1]}")
                 if not data:
                     return 3
             except Exception as e:
@@ -572,6 +508,31 @@ class WUnderground(BaseCommand):
                     player=player,
                 )
                 return 1
+
+            if not data["RESULTS"]:
+                self.torchlight.SayPrivate(player, "[WU] No cities match your search query.")
+                return 4
+
+            search = data["RESULTS"][0]["name"]
+            additional = ""
+
+        try:
+            data = await Utils.FetchJson(
+                "http://api.wunderground.com/api/{}/conditions/q/{}.json{}".format(
+                    self.torchlight.config["WundergroundAPIKey"],
+                    search,
+                    additional,
+                )
+            )
+            if not data:
+                return 3
+        except Exception as e:
+            self.logger.error(e)
+            self.torchlight.SayPrivate(
+                message="Failed to retrieve data from the wunderground api",
+                player=player,
+            )
+            return 1
 
         if "error" in data["response"]:
             self.torchlight.SayPrivate(
