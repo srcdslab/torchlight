@@ -20,6 +20,7 @@ from translatepy import Translate as Translator
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
 from torchlight.Config import Config
+from torchlight.GeoIP import get_city_reader
 from torchlight.MyInstants import myinstants_get_random_sound
 from torchlight.Player import Player
 from torchlight.PlayerManager import PlayerManager
@@ -422,12 +423,15 @@ class OpenWeather(BaseCommand):
         )
         self.config_folder = self.torchlight.config["GeoIP"]["Path"]
         self.city_filename = self.torchlight.config["GeoIP"]["CityFilename"]
-        self.geo_ip = geoip2.database.Reader(f"{self.config_folder}/{self.city_filename}")
-
-    def close(self) -> None:
-        # CommandHandler.Setup() rebuilds every command on each reload; without this the
-        # previous Reader's mmap of the GeoIP database is only released on GC (issue #55).
-        self.geo_ip.close()
+        self.geo_ip: geoip2.database.Reader | None = None
+        database_path = f"{self.config_folder}/{self.city_filename}"
+        try:
+            self.geo_ip = get_city_reader(database_path)
+        except Exception:
+            self.logger.error(
+                f"Failed to open GeoIP database ({database_path}); "
+                f"!ow without an explicit location will be unavailable\n{traceback.format_exc()}"
+            )
 
     def degreeToCardinal(self, degree: int) -> str:
         directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
@@ -444,6 +448,9 @@ class OpenWeather(BaseCommand):
 
         if not message[1]:
             # Use GeoIP location
+            if self.geo_ip is None:
+                self.torchlight.SayPrivate(player, "[OW] Location lookup is unavailable, please specify a city.")
+                return 1
             info = self.geo_ip.city(player.address.split(":")[0])
             search = f"lat={info.location.latitude}&lon={info.location.longitude}"
         else:
