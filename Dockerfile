@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.6@sha256:ac85f380a63b13dfcefa89046420e1781752bab202122f8f50032edf31be0021
 
-FROM python:3.10-bookworm@sha256:4f7ca582d310c40d430ab6a17c46a0b360aee5987e0ef5aa155eeabc9ffa8393 as build
+FROM python:3.12-bookworm@sha256:581429e3df12d76e6af4be5ab7d0e7fc2013eb57dc23d2de691411c8efdbb970 as build
 
 ARG BUILD_VERSION=0.10.0
 
@@ -44,7 +44,7 @@ RUN --mount=type=secret,id=pipconf,dst="/root/.config/pip/pip.conf" \
     --mount=type=bind,source=requirements-dev.txt,target=requirements-dev.txt \
     pip wheel --no-deps --wheel-dir /app/wheels -r requirements.txt -r requirements-dev.txt
 
-FROM python:3.10-slim-bookworm@sha256:9a97ede5d731252b42541a5d3ec60f6d4cd03747ca75315adc784ed864651c0e as runtime
+FROM python:3.12-slim-bookworm@sha256:782412e85d0f0984994c290652577d4018aff08145c85b262bb63dc0c7522254 as runtime
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 

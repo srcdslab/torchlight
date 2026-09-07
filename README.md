@@ -11,7 +11,7 @@ Bot for source engine games with a lot of commands:
 
 ## Requirements
 ### Linux
-  * [Python3.10+](https://github.com/python/cpython)
+  * [Python3.12+](https://github.com/python/cpython)
   * [FFMPEG](https://github.com/FFmpeg/FFmpeg)
   * [youtube-dl](https://github.com/ytdl-org/youtube-dl)
   * [dectalk](https://github.com/dectalk/dectalk)
