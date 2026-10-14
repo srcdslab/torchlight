@@ -62,39 +62,35 @@ class AudioManager:
         return params
 
     def CheckLimits(self, player: Player) -> bool:
-        level = player.admin.level
+        # Per-level limits live in the AudioLimits section (the same source as
+        # AudioClip and FormatAccess). Read them at call time so !reload applies.
+        # A level without an entry, or no AudioLimits section at all, means no limits.
+        limits = self.torchlight.config.config.get("AudioLimits", {}).get(str(player.admin.level))
+        if not limits:
+            return True
 
-        if str(level) in self.anti_spam.config:
-            if (
-                self.anti_spam.config[str(level)]["Uses"] >= 0
-                and player.storage["Audio"]["Uses"] >= self.anti_spam.config[str(level)]["Uses"]
-            ):
-                self.torchlight.SayPrivate(
-                    player,
-                    "You have used up all of your free uses! ({} uses)".format(
-                        self.anti_spam.config[str(level)]["Uses"]
-                    ),
-                )
-                return False
+        audio_storage = player.storage["Audio"]
 
-            if player.storage["Audio"]["TimeUsed"] >= self.anti_spam.config[str(level)]["TotalTime"]:
-                self.torchlight.SayPrivate(
-                    player,
-                    "You have used up all of your free time! ({} seconds)".format(
-                        self.anti_spam.config[str(level)]["TotalTime"]
-                    ),
-                )
-                return False
+        # Negative Uses / TotalTime mean unlimited, consistent with FormatAccess.
+        uses = limits.get("Uses", -1)
+        if uses >= 0 and audio_storage["Uses"] >= uses:
+            self.torchlight.SayPrivate(player, f"You have used up all of your free uses! ({uses} uses)")
+            return False
 
-            time_elapsed = self.torchlight.loop.time() - player.storage["Audio"]["LastUse"]
-            use_delay = player.storage["Audio"]["LastUseLength"] * self.anti_spam.config[str(level)]["DelayFactor"]
+        total_time = limits.get("TotalTime", -1)
+        if total_time >= 0 and audio_storage["TimeUsed"] >= total_time:
+            self.torchlight.SayPrivate(player, f"You have used up all of your free time! ({total_time} seconds)")
+            return False
 
-            if time_elapsed < use_delay:
-                self.torchlight.SayPrivate(
-                    player,
-                    f"You are currently on cooldown! ({round(use_delay - time_elapsed)} seconds left)",
-                )
-                return False
+        time_elapsed = self.torchlight.loop.time() - audio_storage["LastUse"]
+        use_delay = audio_storage["LastUseLength"] * limits.get("DelayFactor", 0)
+
+        if time_elapsed < use_delay:
+            self.torchlight.SayPrivate(
+                player,
+                f"You are currently on cooldown! ({round(use_delay - time_elapsed)} seconds left)",
+            )
+            return False
 
         return True
 
@@ -145,24 +141,27 @@ class AudioManager:
         if not self.CheckLimits(player):
             return None
 
+        def register(clip: AudioClip) -> None:
+            # Only track the clip once AudioClip.Play() has started it: a clip whose caller
+            # bails out before Play() never gets a Stop callback, so registering it up front
+            # would leave it in audio_clips forever (#182).
+            self.audio_clips.append(clip)
+            clip.audio_player.AddCallback("Stop", lambda: self.audio_clips.remove(clip))
+
+            if clip.level < self.anti_spam.config["ImmunityLevel"]:
+                clip.audio_player.AddCallback("Play", lambda *args: self.anti_spam.OnPlay(clip, *args))
+                clip.audio_player.AddCallback("Stop", lambda *args: self.anti_spam.OnStop(clip, *args))
+                clip.audio_player.AddCallback(
+                    "Update",
+                    lambda *args: self.anti_spam.OnUpdate(self.audio_clips, clip, *args),
+                )
+
+            clip.audio_player.AddCallback("Play", lambda *args: self.advertiser.OnPlay(clip, *args))
+            clip.audio_player.AddCallback("Stop", lambda *args: self.advertiser.OnStop(clip, *args))
+            clip.audio_player.AddCallback("Update", lambda *args: self.advertiser.OnUpdate(clip, *args))
+
         audio_player: FFmpegAudioPlayer = self.audio_player_factory.NewPlayer(_type, self.torchlight)
-        clip = AudioClip(player, uri, audio_player, self.torchlight)
-        self.audio_clips.append(clip)
-        audio_player.AddCallback("Stop", lambda: self.audio_clips.remove(clip))
-
-        if player.admin.level < self.anti_spam.config["ImmunityLevel"]:
-            clip.audio_player.AddCallback("Play", lambda *args: self.anti_spam.OnPlay(clip, *args))
-            clip.audio_player.AddCallback("Stop", lambda *args: self.anti_spam.OnStop(clip, *args))
-            clip.audio_player.AddCallback(
-                "Update",
-                lambda *args: self.anti_spam.OnUpdate(self.audio_clips, clip, *args),
-            )
-
-        clip.audio_player.AddCallback("Play", lambda *args: self.advertiser.OnPlay(clip, *args))
-        clip.audio_player.AddCallback("Stop", lambda *args: self.advertiser.OnStop(clip, *args))
-        clip.audio_player.AddCallback("Update", lambda *args: self.advertiser.OnUpdate(clip, *args))
-
-        return clip
+        return AudioClip(player, uri, audio_player, self.torchlight, on_start=register)
 
     def OnDisconnect(self, player: Player) -> None:
         for audio_clip in self.audio_clips[:]:
