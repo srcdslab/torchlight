@@ -1374,16 +1374,17 @@ class AdminAccess(BaseCommand):
         # Modify access
         else:
             targeted_player: Player | None = None
+            reg_name: str | None = None
             buffer = message[1]
             temp_buffer = buffer.find(" as ")
             if temp_buffer != -1:
                 try:
-                    reg_name, level_parsed = buffer[temp_buffer + 4 :].rsplit(" ", 1)
+                    name_parsed, level_parsed = buffer[temp_buffer + 4 :].rsplit(" ", 1)
                 except ValueError as e:
                     self.torchlight.SayChat(str(e))
                     return 1
 
-                reg_name = reg_name.strip()
+                reg_name = name_parsed.strip() or None
                 level_parsed = level_parsed.strip()
                 buffer = buffer[:temp_buffer].strip()
             else:
@@ -1395,6 +1396,10 @@ class AdminAccess(BaseCommand):
 
                 buffer = buffer.strip()
                 level_parsed = level_parsed.strip()
+
+            if not buffer:
+                self.torchlight.SayChat("Missing target: use a player name or #userid")
+                return 7
 
             self.logger.info(f"Searching {buffer} to set his level to {level_parsed}")
 
@@ -1432,7 +1437,7 @@ class AdminAccess(BaseCommand):
                     )
                     return 5
 
-                if "Regname" in locals():
+                if reg_name is not None:
                     self.torchlight.SayChat(
                         f'Changed "{targeted_player.name}"({targeted_player.unique_id})'
                         f" as {targeted_player.admin.name} level/name"
