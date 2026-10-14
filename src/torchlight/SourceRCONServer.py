@@ -4,8 +4,15 @@ import socket
 import sys
 from typing import Any
 
+from torchlight.CommandHandler import CommandHandler
 from torchlight.SourceRCONClient import SourceRCONClient
 from torchlight.TorchlightHandler import TorchlightHandler
+from torchlight.Utils import Utils
+
+# Value shipped in config/config.json; anyone who has read the repository knows it.
+SHIPPED_DEFAULT_RCON_CREDENTIAL = "supersecretpassword"
+# Connections beyond this are refused, so a flood of sockets cannot grow the peer list without bound.
+MAX_PEERS = 16
 
 
 class SourceRCONServer:
@@ -20,28 +27,47 @@ class SourceRCONServer:
         self._serv_sock.bind((self.rcon_config["Host"], self.rcon_config["Port"]))
         self._serv_sock.listen(5)
         self.peers: list[SourceRCONClient] = []
-        self.password = self.rcon_config["Password"]
+        self.password: str = str(self.rcon_config["Password"] or "")
+
+        if not self.password:
+            self.logger.warning("TorchRCON password is empty: RCON authentication is disabled")
+        elif self.password == SHIPPED_DEFAULT_RCON_CREDENTIAL:
+            self.logger.warning(
+                "TorchRCON password is the shipped default: anyone can get console access, change it in config.json"
+            )
+
+    def GetCommandHandler(self) -> CommandHandler:
+        # Looked up on every command so RCON sessions follow the CommandHandler of the current connection.
+        return self.torchlight_handler.command_handler
 
     def Remove(self, peer: SourceRCONClient) -> None:
-        self.logger.info(sys._getframe().f_code.co_name + f" Peer {peer.name} disconnected!")
-        self.peers.remove(peer)
+        if peer in self.peers:
+            self.peers.remove(peer)
+            self.logger.info(sys._getframe().f_code.co_name + f" Peer {peer.name} disconnected!")
 
     async def _server(self) -> None:
         while True:
             peer_socket: socket.socket
             peer_name: Any
             peer_socket, peer_name = await self.loop.sock_accept(self._serv_sock)
+            if len(self.peers) >= MAX_PEERS:
+                self.logger.warning(
+                    sys._getframe().f_code.co_name + f" Peer {peer_name} refused: {MAX_PEERS} peers already connected"
+                )
+                peer_socket.close()
+                continue
+
             peer_socket.setblocking(False)
             peer = SourceRCONClient(
                 self.loop,
                 peer_socket,
                 peer_name,
                 self.password,
-                self.torchlight_handler.command_handler,
+                self.GetCommandHandler,
             )
-            asyncio.Task(self._peer_handler(peer))
             self.peers.append(peer)
             self.logger.info(sys._getframe().f_code.co_name + f" Peer {peer.name} connected!")
+            Utils.FireAndForget(self._peer_handler(peer), self.logger)
 
     async def _peer_handler(self, peer: SourceRCONClient) -> None:
         try:

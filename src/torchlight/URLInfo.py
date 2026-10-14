@@ -1,33 +1,131 @@
+import asyncio
 import io
+import ipaddress
 import json
 import logging
+import socket
 from collections.abc import Callable
 from typing import Any
 
 import aiohttp
 import magic
 import yt_dlp
+from aiohttp.abc import ResolveResult
 from bs4 import BeautifulSoup
 from PIL import Image
+from yarl import URL
 
 from torchlight.Utils import Utils
 
 logger = logging.getLogger(__name__)
 
 
+ALLOWED_URL_SCHEMES = ("http", "https")
+MAX_REDIRECTS = 5
+REDIRECT_STATUSES = (301, 302, 303, 307, 308)
+
+
+class NonPublicURLError(Exception):
+    """Raised when a URL uses a forbidden scheme or points to a non-public address."""
+
+
+def _is_public_ip(address: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(address.split("%", 1)[0])
+    except ValueError:
+        return False
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+        ip = ip.ipv4_mapped
+    return ip.is_global
+
+
+def _looks_like_ip_literal(host: str) -> bool:
+    # Same heuristic aiohttp uses to skip DNS resolution for a host, so every host
+    # it would connect to directly gets checked here instead of by the resolver.
+    return ":" in host or host.replace(".", "").isdigit()
+
+
+def _check_url(url: URL) -> str:
+    """Validate scheme and literal-IP host of a URL, return its host for resolution."""
+    if url.scheme not in ALLOWED_URL_SCHEMES:
+        raise NonPublicURLError("Only http:// and https:// URLs are allowed")
+
+    host = url.raw_host
+    if not host:
+        raise NonPublicURLError("URL has no host")
+
+    if _looks_like_ip_literal(host) and not _is_public_ip(host):
+        raise NonPublicURLError("URL points to a non-public address")
+
+    return host
+
+
+class PublicOnlyResolver(aiohttp.ThreadedResolver):
+    """Resolver that drops every non-public address, so connections (including
+    redirect hops) can only reach the public internet. Resolving at connect time
+    also covers DNS rebinding between a pre-check and the actual request."""
+
+    async def resolve(
+        self, host: str, port: int = 0, family: socket.AddressFamily = socket.AF_INET
+    ) -> list[ResolveResult]:
+        results = await super().resolve(host, port, family)
+        public = [result for result in results if _is_public_ip(result["host"])]
+        if not public:
+            raise NonPublicURLError("URL points to a non-public address")
+        return public
+
+
+async def assert_public_url(url: str) -> None:
+    """Raise NonPublicURLError unless url is http(s) and its host only resolves to public addresses."""
+    try:
+        parsed = URL(url)
+    except ValueError as exc:
+        raise NonPublicURLError("Invalid URL") from exc
+
+    host = _check_url(parsed)
+    if _looks_like_ip_literal(host):
+        return
+
+    loop = asyncio.get_running_loop()
+    try:
+        infos = await loop.getaddrinfo(host, parsed.port, type=socket.SOCK_STREAM)
+    except OSError as exc:
+        raise NonPublicURLError(f"Could not resolve host '{host}'") from exc
+
+    addresses = {str(info[4][0]) for info in infos}
+    if not addresses or not all(_is_public_ip(address) for address in addresses):
+        raise NonPublicURLError("URL points to a non-public address")
+
+
+def _parse_content_length(raw: str) -> int:
+    try:
+        length = int(raw)
+    except ValueError:
+        return -1
+    return length if length >= 0 else -1
+
+
 # @profile
 async def get_url_data(url: str) -> tuple[bytes, str, int]:
-    async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
-        async with session.get(url) as resp:
-            content_type: str = resp.headers.get("Content-Type", "")
-            content_length_raw: str = resp.headers.get("Content-Length", "")
-            content = await resp.content.read(65536)
+    current_url = URL(url)
+    connector = aiohttp.TCPConnector(resolver=PublicOnlyResolver())
+    async with aiohttp.ClientSession(connector=connector, timeout=aiohttp.ClientTimeout(total=10)) as session:
+        # Redirects are followed by hand so each hop's scheme and literal-IP host
+        # are checked; hostnames are filtered by PublicOnlyResolver on connect.
+        for _ in range(MAX_REDIRECTS + 1):
+            _check_url(current_url)
+            async with session.get(current_url, allow_redirects=False) as resp:
+                location = resp.headers.get("Location")
+                if resp.status in REDIRECT_STATUSES and location:
+                    current_url = resp.url.join(URL(location))
+                    continue
 
-            content_length = -1
-            if content_length_raw:
-                content_length = int(content_length_raw)
+                content_type: str = resp.headers.get("Content-Type", "")
+                content_length = _parse_content_length(resp.headers.get("Content-Length", ""))
+                content = await resp.content.read(65536)
+                return content, content_type, content_length
 
-    return content, content_type, content_length
+    raise Exception(f"Too many redirects (max {MAX_REDIRECTS})")
 
 
 def get_page_metadata(*, content: bytes, content_type: str, content_length: int) -> str:
@@ -39,13 +137,11 @@ def get_page_metadata(*, content: bytes, content_type: str, content_length: int)
             if Soup.title:
                 metadata = f"[URL] {Soup.title.string}"
     elif content_type and content_type.startswith("image"):
-        fp = io.BytesIO(content)
-        im = Image.open(fp)
-        metadata = (
-            f"[IMAGE] {im.format} | Width: {im.size[0]} | Height: {im.size[1]}"
-            f" | Size: {Utils.HumanSize(content_length)}"
-        )
-        fp.close()
+        with io.BytesIO(content) as fp, Image.open(fp) as im:
+            metadata = (
+                f"[IMAGE] {im.format} | Width: {im.size[0]} | Height: {im.size[1]}"
+                f" | Size: {Utils.HumanSize(content_length)}"
+            )
     else:
         Filetype = magic.from_buffer(bytes(content))
         metadata = f"[FILE] {Filetype} | Size: {Utils.HumanSize(content_length)}"

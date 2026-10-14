@@ -83,7 +83,7 @@ class AntiSpam:
 
     def OnPlay(self, clip: AudioClip) -> None:
         now = self.torchlight.loop.time()
-        self.last_clips[hash(clip)] = dict(
+        self.last_clips[clip.clip_id] = dict(
             {
                 "timestamp": now,
                 "duration": 0.0,
@@ -98,21 +98,21 @@ class AntiSpam:
                 has_dominant = True
                 break
 
-        self.last_clips[hash(clip)]["dominant"] = not has_dominant
+        self.last_clips[clip.clip_id]["dominant"] = not has_dominant
 
     def OnStop(self, clip: AudioClip) -> None:
-        if hash(clip) not in self.last_clips:
+        if clip.clip_id not in self.last_clips:
             return
 
-        self.last_clips[hash(clip)]["active"] = False
+        self.last_clips[clip.clip_id]["active"] = False
 
-        if self.last_clips[hash(clip)]["dominant"]:
+        if self.last_clips[clip.clip_id]["dominant"]:
             for _, last_clip in self.last_clips.items():
                 if last_clip["active"]:
                     last_clip["dominant"] = True
                     break
 
-        self.last_clips[hash(clip)]["dominant"] = False
+        self.last_clips[clip.clip_id]["dominant"] = False
 
         self._prune_last_clips()
 
@@ -124,7 +124,7 @@ class AntiSpam:
         new_position: int,
     ) -> None:
         delta = new_position - old_position
-        last_clip = self.last_clips.get(hash(clip))
+        last_clip = self.last_clips.get(clip.clip_id)
 
         if last_clip is None or not last_clip["dominant"]:
             return
