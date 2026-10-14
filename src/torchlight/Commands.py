@@ -27,6 +27,8 @@ from torchlight.PlayerManager import PlayerManager
 from torchlight.Torchlight import Torchlight
 from torchlight.TriggerManager import TriggerManager
 from torchlight.URLInfo import (
+    NonPublicURLError,
+    assert_public_url,
     get_audio_format,
     get_first_valid_entry,
     get_url_real_time,
@@ -868,6 +870,15 @@ class PlayMusic(BaseCommand):
             message[1] = message[1].replace("!last", self.torchlight.last_url)
 
         url = message[1]
+
+        # Only public http(s) URLs: FFmpegAudioPlayer treats scheme-less strings and
+        # existing paths as local files, and internal hosts must not be reachable.
+        try:
+            await assert_public_url(url)
+        except NonPublicURLError as exc:
+            self.logger.warning(f'Rejected !tplay URL "{url}" from "{player.name}": {exc}')
+            self.torchlight.SayPrivate(player, f"Cannot play this URL: {exc}")
+            return 1
 
         real_time = get_url_real_time(url=url)
         audio_clip = self.audio_manager.AudioClip(player, url)
