@@ -54,6 +54,8 @@ class Torchlight:
         return f"http://{flaresolverr_config['Host']}:{flaresolverr_config['Port']}/v1"
 
     def Reload(self) -> None:
+        # The single place config.json is re-read on !reload. A malformed file raises
+        # ConfigError to the caller here, before any OnReload callback swaps state.
         self.config.load()
         self.Callback("OnReload")
 

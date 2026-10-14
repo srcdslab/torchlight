@@ -219,7 +219,7 @@ class URLFilter(BaseCommand):
             if len(text) > 0:
                 return "!dec " + text
 
-        asyncio.ensure_future(self.URLInfo(url))
+        Utils.FireAndForget(self.URLInfo(url), self.logger)
         return -1
 
 
