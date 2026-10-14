@@ -7,7 +7,7 @@ import socket
 import struct
 import time
 import traceback
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
 from typing import Any
 from urllib.parse import urlparse
 
@@ -19,6 +19,24 @@ from torchlight.MyInstants import MYINSTANTS_URL
 from torchlight.Torchlight import Torchlight
 
 SAMPLEBYTES = 2
+
+logger = logging.getLogger("FFmpegAudioPlayer")
+
+# Strong references to the cleanup tasks Stop() schedules (session close, ffmpeg reaping,
+# socket close): the event loop only keeps weak references to tasks. Module-level rather
+# than per player so a cleanup still runs to completion after its player is gone; each task
+# removes itself once done, so the set drains back to empty.
+_cleanup_tasks: set[asyncio.Task] = set()
+
+
+def _on_cleanup_done(task: asyncio.Task) -> None:
+    _cleanup_tasks.discard(task)
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc is not None:
+        logger.warning("Cleanup task failed: %s", exc)
+
 
 # Extra request headers some hosts require, keyed by domain. Matched against the URI's
 # hostname (exact or subdomain), so a new host means adding an entry here rather than
@@ -73,13 +91,15 @@ class FFmpegAudioPlayer:
         self.ffmpeg_process: asyncio.subprocess.Process | None = None
         self.stream_task: asyncio.Task | None = None
         self.read_stream_task: asyncio.Task | None = None
+        self.updater_task: asyncio.Task | None = None
         self.session: aiohttp.ClientSession | None = None
 
         self.callbacks: list[tuple[str, Callable]] = []
 
     def __del__(self) -> None:
+        # Log only: Stop() from the garbage collector could run_until_complete() on a stopped
+        # loop or fire Stop callbacks during interpreter shutdown. Owners call Stop() explicitly.
         self.logger.debug("~FFmpegAudioPlayer()")
-        self.Stop()
 
     async def _write_to_ffmpeg(self, chunk: bytes) -> None:
         proc = self.ffmpeg_process
@@ -391,6 +411,12 @@ class FFmpegAudioPlayer:
             ffmpeg_command.extend(["-ss", pos_str])
             self.position = position
 
+            # SetDuration() gives the length of the whole media, but -ss skips the first
+            # `position` seconds of it. Without this, a clip started at an offset keeps
+            # "playing" silence for `position` extra seconds, charged to the player's quota.
+            if self.duration_set:
+                self.seconds = max(0.0, self.seconds - position)
+
         if duration is not None:
             ffmpeg_command.extend(["-t", str(duration)])
 
@@ -406,7 +432,9 @@ class FFmpegAudioPlayer:
         self.stream_task = asyncio.ensure_future(self._stream_url_to_ffmpeg(uri, ffmpeg_command, needs_cf_bypass))
         return True
 
-    async def _reap_process(self, proc: asyncio.subprocess.Process) -> None:
+    # Static so a pending reap task does not keep the player alive.
+    @staticmethod
+    async def _reap_process(proc: asyncio.subprocess.Process) -> None:
         try:
             proc.terminate()
         except ProcessLookupError:
@@ -421,35 +449,64 @@ class FFmpegAudioPlayer:
                 return
             await proc.wait()
 
+    @staticmethod
+    def _cancel_task(task: asyncio.Task | None) -> None:
+        if task is None or task.done():
+            return
+        try:
+            current = asyncio.current_task()
+        except RuntimeError:
+            current = None
+        # A task that calls Stop() on itself returns right after; cancelling it would only
+        # turn that normal return into a cancellation.
+        if task is not current:
+            task.cancel()
+
+    def _run_cleanup(self, coro: Coroutine[Any, Any, Any]) -> None:
+        loop = self.torchlight.loop
+        try:
+            running_loop: asyncio.AbstractEventLoop | None = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+
+        try:
+            if running_loop is loop:
+                task = loop.create_task(coro)
+                _cleanup_tasks.add(task)
+                task.add_done_callback(_on_cleanup_done)
+            elif loop.is_running():
+                # Called from another thread: schedule it from the loop thread instead.
+                loop.call_soon_threadsafe(self._run_cleanup, coro)
+            else:
+                loop.run_until_complete(coro)
+        except Exception as exc:
+            coro.close()
+            self.logger.warning("Cleanup failed: %s", exc)
+
     def Stop(self, force: bool = True) -> bool:
         if not self.playing:
             return False
 
         self.playing = False
 
-        if self.stream_task and not self.stream_task.done():
-            self.stream_task.cancel()
-            self.stream_task = None
+        self._cancel_task(self.stream_task)
+        self.stream_task = None
 
-        if self.read_stream_task and not self.read_stream_task.done():
-            self.read_stream_task.cancel()
-            self.read_stream_task = None
+        self._cancel_task(self.read_stream_task)
+        self.read_stream_task = None
+
+        self._cancel_task(self.updater_task)
+        self.updater_task = None
 
         if self.session and not self.session.closed:
-            asyncio.run_coroutine_threadsafe(self.session.close(), self.torchlight.loop)
+            self._run_cleanup(self.session.close())
             self.session = None
 
         proc = self.ffmpeg_process
         self.ffmpeg_process = None
 
         if proc:
-            try:
-                if self.torchlight.loop.is_running():
-                    asyncio.run_coroutine_threadsafe(self._reap_process(proc), self.torchlight.loop)
-                else:
-                    self.torchlight.loop.run_until_complete(self._reap_process(proc))
-            except Exception as exc:
-                self.logger.warning(exc)
+            self._run_cleanup(self._reap_process(proc))
 
         if self.writer:
             if force:
@@ -468,15 +525,8 @@ class FFmpegAudioPlayer:
                 self.writer = None
             else:
                 self.writer.close()
-                try:
-                    if self.torchlight.loop.is_running():
-                        asyncio.run_coroutine_threadsafe(self.writer.wait_closed(), self.torchlight.loop)
-                    else:
-                        self.torchlight.loop.run_until_complete(self.writer.wait_closed())
-                except Exception as exc:
-                    self.logger.warning(exc)
-                finally:
-                    self.writer = None
+                self._run_cleanup(self.writer.wait_closed())
+                self.writer = None
 
         self.logger.info("Stopped %s", self.uri)
         self.uri = ""
@@ -504,7 +554,7 @@ class FFmpegAudioPlayer:
         for callback in self.callbacks:
             if callback[0] == cbtype:
                 try:
-                    self.logger.debug(f"{callback[1]}({args}, {kwargs}")
+                    self.logger.debug("%s(%s, %s)", callback[1], args, kwargs)
                     callback[1](*args, **kwargs)
                 except Exception:
                     self.logger.error(traceback.format_exc())
@@ -543,9 +593,11 @@ class FFmpegAudioPlayer:
                 await asyncio.sleep(0.1)
 
         except Exception as exc:
+            # Nobody awaits this task: log here instead of re-raising into
+            # "Task exception was never retrieved".
+            self.logger.error("Playback updater failed for %s: %s", self.uri, exc, exc_info=True)
             self.Stop()
             self.torchlight.SayChat(f"Error: {str(exc)}")
-            raise exc
 
     async def _read_stream(self, stream: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         try:
@@ -572,10 +624,19 @@ class FFmpegAudioPlayer:
                     started = True
                     self.Callback("Play")
                     self.started_playing = time.time()
-                    asyncio.ensure_future(self._updater())
+                    self.updater_task = asyncio.ensure_future(self._updater())
 
             self.stopped_playing = time.time()
+
+            # ffmpeg closed its output without producing a single sample (bad URL, HTTP
+            # error, offset past the end): no updater was started, so nothing else would
+            # ever stop this player and it would stay "playing" forever.
+            if not started and self.playing:
+                self.logger.info("No audio produced for %s", self.uri)
+                self.Stop(False)
         except Exception as exc:
+            # Nobody awaits this task: log here instead of re-raising into
+            # "Task exception was never retrieved".
+            self.logger.error("Audio stream reader failed for %s: %s", self.uri, exc, exc_info=True)
             self.Stop()
             self.torchlight.SayChat(f"Error: {str(exc)}")
-            raise exc
