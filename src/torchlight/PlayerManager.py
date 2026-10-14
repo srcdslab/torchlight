@@ -25,7 +25,12 @@ class PlayerManager:
         self.audio_storage: dict[str, dict] = {}
 
         self.players: list[Player | None] = [None] * (Clients.MAXPLAYERS + 1)
-        self.player_count: int = 0
+
+    @property
+    def player_count(self) -> int:
+        # Derived from the occupied slots so it cannot drift on duplicate connects
+        # or disconnects of unknown user ids. Feeds the VoteDisable threshold.
+        return sum(1 for player in self.players if player is not None)
 
     def Setup(self) -> None:
         self.torchlight.game_events.HookEx("player_connect", self.Event_PlayerConnect)
@@ -45,7 +50,6 @@ class PlayerManager:
         address: str,
         bot: int,
     ) -> None:
-        self.player_count += 1
         index += 1
         self.logger.info(
             f"OnConnect(name={name}, index={index}, userid={userid}"
@@ -56,6 +60,7 @@ class PlayerManager:
 
         if player is not None:
             self.logger.error("!!! Player already exists, overwriting !!!")
+            self.ReleasePlayer(player, "overwritten")
 
         player = Player(index, userid, networkid, address, name)
 
@@ -111,8 +116,6 @@ class PlayerManager:
             player.OnInfo(name)
 
     def Event_PlayerDisconnect(self, userid: int, reason: str, name: str, networkid: str, bot: int) -> None:
-        self.player_count -= 1
-
         player = self.FindUserID(userid)
         if player is None:
             return
@@ -122,10 +125,15 @@ class PlayerManager:
             f", name={name}, networkid={networkid}, bot={bot})"
         )
 
+        self.ReleasePlayer(player, reason)
+        self.players[player.index] = None
+
+    def ReleasePlayer(self, player: Player, reason: str) -> None:
+        # Stop the player's clips first: AudioClip.OnStop adds the final seconds to
+        # player.storage["Audio"], which player.OnDisconnect() then replaces with {}.
+        self.audio_manager.OnDisconnect(player)
         self.audio_storage[player.unique_id] = player.storage
         player.OnDisconnect(reason)
-        self.audio_manager.OnDisconnect(player)
-        self.players[player.index] = None
 
     def Event_ServerSpawn(
         self,
@@ -142,14 +150,12 @@ class PlayerManager:
     ) -> None:
         self.logger.info(f"ServerSpawn(mapname={mapname})")
 
-        self.player_count = 0
         self.audio_storage = {}
         self.access_manager.Load()
 
         for i in range(1, Clients.MAXPLAYERS + 1):
             player = self.players[i]
             if player is not None:
-                self.player_count += 1
                 if self.audio_manager.anti_spam.config["StopOnMapChange"]:
                     self.audio_manager.OnDisconnect(player)
                 player.OnDisconnect("mapchange")
