@@ -141,24 +141,27 @@ class AudioManager:
         if not self.CheckLimits(player):
             return None
 
+        def register(clip: AudioClip) -> None:
+            # Only track the clip once AudioClip.Play() has started it: a clip whose caller
+            # bails out before Play() never gets a Stop callback, so registering it up front
+            # would leave it in audio_clips forever (#182).
+            self.audio_clips.append(clip)
+            clip.audio_player.AddCallback("Stop", lambda: self.audio_clips.remove(clip))
+
+            if clip.level < self.anti_spam.config["ImmunityLevel"]:
+                clip.audio_player.AddCallback("Play", lambda *args: self.anti_spam.OnPlay(clip, *args))
+                clip.audio_player.AddCallback("Stop", lambda *args: self.anti_spam.OnStop(clip, *args))
+                clip.audio_player.AddCallback(
+                    "Update",
+                    lambda *args: self.anti_spam.OnUpdate(self.audio_clips, clip, *args),
+                )
+
+            clip.audio_player.AddCallback("Play", lambda *args: self.advertiser.OnPlay(clip, *args))
+            clip.audio_player.AddCallback("Stop", lambda *args: self.advertiser.OnStop(clip, *args))
+            clip.audio_player.AddCallback("Update", lambda *args: self.advertiser.OnUpdate(clip, *args))
+
         audio_player: FFmpegAudioPlayer = self.audio_player_factory.NewPlayer(_type, self.torchlight)
-        clip = AudioClip(player, uri, audio_player, self.torchlight)
-        self.audio_clips.append(clip)
-        audio_player.AddCallback("Stop", lambda: self.audio_clips.remove(clip))
-
-        if player.admin.level < self.anti_spam.config["ImmunityLevel"]:
-            clip.audio_player.AddCallback("Play", lambda *args: self.anti_spam.OnPlay(clip, *args))
-            clip.audio_player.AddCallback("Stop", lambda *args: self.anti_spam.OnStop(clip, *args))
-            clip.audio_player.AddCallback(
-                "Update",
-                lambda *args: self.anti_spam.OnUpdate(self.audio_clips, clip, *args),
-            )
-
-        clip.audio_player.AddCallback("Play", lambda *args: self.advertiser.OnPlay(clip, *args))
-        clip.audio_player.AddCallback("Stop", lambda *args: self.advertiser.OnStop(clip, *args))
-        clip.audio_player.AddCallback("Update", lambda *args: self.advertiser.OnUpdate(clip, *args))
-
-        return clip
+        return AudioClip(player, uri, audio_player, self.torchlight, on_start=register)
 
     def OnDisconnect(self, player: Player) -> None:
         for audio_clip in self.audio_clips[:]:
