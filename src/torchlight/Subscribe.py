@@ -1,10 +1,10 @@
-import asyncio
 import logging
 import traceback
 from collections.abc import Callable
 from typing import Any
 
 from torchlight.AsyncClient import AsyncClient
+from torchlight.Utils import Utils
 
 
 class SubscribeBase:
@@ -25,7 +25,7 @@ class SubscribeBase:
             "events": list(self.callbacks.keys()),
         }
 
-        asyncio.ensure_future(self.async_client.Send(json_obj))
+        Utils.FireAndForget(self.async_client.Send(json_obj), self.logger)
 
     async def _Register(self, events: list[str]) -> list[bool]:
         json_obj = {
@@ -65,7 +65,7 @@ class SubscribeBase:
             res = res_raw
 
         ret_list: list[bool] = []
-        for i, ret in enumerate(res["events"]):
+        for i, ret in enumerate(res.get("events", [])):
             if ret >= 0:
                 ret_list.append(True)
                 if events[i] in self.callbacks:
@@ -76,13 +76,13 @@ class SubscribeBase:
         return ret_list
 
     def HookEx(self, event: str, callback: Callable) -> None:
-        asyncio.ensure_future(self.Hook(event, callback))
+        Utils.FireAndForget(self.Hook(event, callback), self.logger)
 
     def UnhookEx(self, event: str, callback: Callable) -> None:
-        asyncio.ensure_future(self.Unhook(event, callback))
+        Utils.FireAndForget(self.Unhook(event, callback), self.logger)
 
     def ReplayEx(self, events: list[str]) -> None:
-        asyncio.ensure_future(self.Replay(events))
+        Utils.FireAndForget(self.Replay(events), self.logger)
 
     async def Hook(self, event: str, callback: Callable) -> bool:
         if event not in self.callbacks:
@@ -102,12 +102,13 @@ class SubscribeBase:
 
         self.callbacks[event].discard(callback)
 
-        return (await self._Unregister([event]))[0]
+        ret = await self._Unregister([event])
+        # An empty list means SourceMod did not answer (link down or request timed out).
+        return bool(ret) and ret[0]
 
     async def Replay(self, events: list[str]) -> list[bool]:
-        for event in events[:]:
-            if event not in self.callbacks:
-                events.remove(event)
+        # Build a new list: the caller's list must not be mutated.
+        events = [event for event in events if event in self.callbacks]
 
         json_obj = {"method": "replay", "module": self.module, "events": events}
 
@@ -118,7 +119,7 @@ class SubscribeBase:
             res = res_raw
 
         ret_list: list[bool] = []
-        for _, ret in enumerate(res["events"]):
+        for ret in res.get("events", []):
             if ret >= 0:
                 ret_list.append(True)
             else:
