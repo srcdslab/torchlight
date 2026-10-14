@@ -1,16 +1,22 @@
+from __future__ import annotations
+
 import logging
 import sys
 import traceback
 from importlib import reload
 from re import Match
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from torchlight import Commands
 from torchlight.AccessManager import AccessManager
 from torchlight.AudioManager import AudioManager
-from torchlight.Commands import BaseCommand, Say, VoiceTrigger
 from torchlight.PlayerManager import Player, PlayerManager
 from torchlight.Torchlight import Torchlight
 from torchlight.TriggerManager import TriggerManager
+
+if TYPE_CHECKING:
+    # Typing only: binding the class at runtime would pin the pre-reload class objects.
+    from torchlight.Commands import BaseCommand
 
 
 class CommandHandler:
@@ -43,10 +49,13 @@ class CommandHandler:
             self.logger.info(sys._getframe().f_code.co_name + f" Unloaded {counter} commands!")
 
         counter = 0
+        # Resolve the classes through the module object at call time. Names imported
+        # with "from torchlight.Commands import ..." keep pointing at the classes that
+        # existed before reload(Commands), so !reload would re-instantiate old code.
         subklasses: list[type[Any]] = []
-        subklasses.extend(BaseCommand.__subclasses__())
-        subklasses.extend(VoiceTrigger.__subclasses__())
-        subklasses.extend(Say.__subclasses__())
+        subklasses.extend(Commands.BaseCommand.__subclasses__())
+        subklasses.extend(Commands.VoiceTrigger.__subclasses__())
+        subklasses.extend(Commands.Say.__subclasses__())
         for subklass in sorted(subklasses, key=lambda x: x.order, reverse=True):
             try:
                 command = subklass(
@@ -67,8 +76,6 @@ class CommandHandler:
         self.logger.info(sys._getframe().f_code.co_name + f" Loaded {counter} commands!")
 
     def Reload(self) -> None:
-        from . import Commands
-
         try:
             reload(Commands)
         except Exception:

@@ -1,6 +1,8 @@
+import itertools
 import logging
 import sys
 import time
+from collections.abc import Callable
 from typing import Any
 
 from torchlight.FFmpegAudioPlayer import FFmpegAudioPlayer
@@ -9,13 +11,20 @@ from torchlight.Torchlight import Torchlight
 
 
 class AudioClip:
+    # Unique, monotonically increasing clip ids. AntiSpam and Advertiser key their usage
+    # windows by it: unlike hash()/id(), an id is never handed to another clip once this
+    # one has been freed, so a finished clip's entry cannot be overwritten (#182).
+    _id_counter = itertools.count(1)
+
     def __init__(
         self,
         player: Player,
         uri: str,
         audio_player: FFmpegAudioPlayer,
         torchlight: Torchlight,
+        on_start: Callable[["AudioClip"], None] | None = None,
     ):
+        self.clip_id: int = next(AudioClip._id_counter)
         self.logger = logging.getLogger(self.__class__.__name__)
         self.torchlight: Torchlight = torchlight
         self.config = self.torchlight.config["AudioLimits"]
@@ -27,9 +36,12 @@ class AudioClip:
 
         self.level = self.player.admin.level
 
-        self.audio_player.AddCallback("Play", self.OnPlay)
-        self.audio_player.AddCallback("Stop", self.OnStop)
-        self.audio_player.AddCallback("Update", self.OnUpdate)
+        # Called once with this clip when Play() has started playback, so the owner can
+        # register it. Until then nothing references the clip but its creator: the player
+        # callbacks (which close over the clip) are only wired in Play() as well, so a clip
+        # that is never played is freed by refcounting instead of lingering (#182).
+        self.on_start = on_start
+        self.started = False
 
     def __del__(self) -> None:
         self.logger.debug("~AudioClip()")
@@ -47,9 +59,25 @@ class AudioClip:
         pitch: float | None = None,
         needs_cf_bypass: bool = False,
     ) -> bool:
-        return self.audio_player.PlayURI(
+        if not self.audio_player.PlayURI(
             self.uri, seconds, duration, *args, volume=volume, speed=speed, pitch=pitch, needs_cf_bypass=needs_cf_bypass
-        )
+        ):
+            return False
+
+        if not self.started:
+            # PlayURI() only schedules the stream task, so no Play/Stop/Update callback can
+            # fire before these are wired. Wiring them only once playback has started keeps
+            # an unplayed clip out of a clip -> player -> callback -> clip cycle.
+            self.started = True
+            self.audio_player.AddCallback("Play", self.OnPlay)
+            self.audio_player.AddCallback("Stop", self.OnStop)
+            self.audio_player.AddCallback("Update", self.OnUpdate)
+
+            on_start, self.on_start = self.on_start, None
+            if on_start is not None:
+                on_start(self)
+
+        return True
 
     def Stop(self) -> bool:
         return self.audio_player.Stop()
