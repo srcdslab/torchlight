@@ -119,7 +119,7 @@ class TorchlightHandler:
     def OnReload(self) -> None:
         # self.command_handler.needs_reload = True
         self.logger.info("Full configuration reload triggered")
-        self.config.load()
+        # config.json was already re-read by Torchlight.Reload() before this callback.
         self.access_manager.Load()
         self.trigger_manager.Load()
         self.sourcemod_config.Load()
@@ -130,6 +130,7 @@ class TorchlightHandler:
                     player.admin = admin_override
                     self.logger.info(f"Updated {player.name} with new admin level: {player.admin.level}")
         self.audio_manager.anti_spam.config = self.config["AntiSpam"]
+        self.audio_manager.advertiser.config = self.config["Advertiser"]
         self.command_handler.Reload()
         self.logger.info("Configuration reload completed")
 
