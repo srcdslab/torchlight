@@ -878,6 +878,22 @@ class PlayMusic(BaseCommand):
 
 
 class YouTubeSearch(BaseCommand):
+    @staticmethod
+    def _extract_youtube_audio(input_url: str, proxy: str, cookies: str) -> tuple[str, str, Any, Any]:
+        """Run the whole blocking yt-dlp chain; meant to be called through asyncio.to_thread.
+
+        Returns only (title, audio_url, duration, view_count) so the full info dict
+        (formats, thumbnails, entries...) is released as soon as this returns.
+        """
+        info = get_url_youtube_info(url=input_url, proxy=proxy, cookies=cookies)
+        if "title" not in info and "url" in info:
+            info = get_url_youtube_info(url=info["url"], proxy=proxy, cookies=cookies)
+        if info["extractor_key"] == "YoutubeSearch":
+            info = get_first_valid_entry(entries=info["entries"], proxy=proxy, cookies=cookies)
+
+        url = get_audio_format(info=info)
+        return info["title"], url, info.get("duration"), info.get("view_count")
+
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
@@ -907,8 +923,12 @@ class YouTubeSearch(BaseCommand):
                 self.logger.warning(f"Cookies file is empty: {cookies}, ignoring")
                 cookies = ""
 
+        # yt-dlp is synchronous and network-heavy (several seconds for a ytsearch3: query),
+        # so run it off the event loop to keep audio streaming and RCON/SourceMod traffic alive.
         try:
-            info = get_url_youtube_info(url=input_url, proxy=proxy, cookies=cookies)
+            title, url, raw_duration, raw_views = await asyncio.to_thread(
+                self._extract_youtube_audio, input_url, proxy, cookies
+            )
         except Exception as exc:
             self.logger.error(f"Failed to extract youtube info from: {input_url}")
             self.logger.error(exc)
@@ -918,13 +938,12 @@ class YouTubeSearch(BaseCommand):
             )
             return 1
 
-        if "title" not in info and "url" in info:
-            info = get_url_youtube_info(url=info["url"], proxy=proxy, cookies=cookies)
-        if info["extractor_key"] == "YoutubeSearch":
-            info = get_first_valid_entry(entries=info["entries"], proxy=proxy, cookies=cookies)
+        # duration / view_count can be None (live streams, some extractors)
+        known_duration = (
+            isinstance(raw_duration, int | float) and not isinstance(raw_duration, bool) and raw_duration > 0
+        )
+        known_views = isinstance(raw_views, int | float) and not isinstance(raw_views, bool)
 
-        title = info["title"]
-        url = get_audio_format(info=info)
         title_words = title.split()
         keywords_banned: list[str] = []
 
@@ -939,8 +958,8 @@ class YouTubeSearch(BaseCommand):
                     )
                     return 1
 
-        duration = str(datetime.timedelta(seconds=info["duration"]))
-        views = int(info["view_count"])
+        duration = str(datetime.timedelta(seconds=raw_duration)) if known_duration else "?"
+        views = int(raw_views) if known_views else "?"
         self.torchlight.SayChat(f"{{darkred}}[YouTube]{{default}} {title} | {duration} | {views}")
 
         audio_clip = self.audio_manager.AudioClip(player, url)
@@ -951,7 +970,8 @@ class YouTubeSearch(BaseCommand):
 
         # Set the duration of the audio clip because youtube already provides it in the metadata
         # Helps fixing youtube not sending buffer in time.
-        audio_clip.SetDuration(float(info["duration"]))
+        if known_duration:
+            audio_clip.SetDuration(float(raw_duration))
         return audio_clip.Play(real_time)
 
 
