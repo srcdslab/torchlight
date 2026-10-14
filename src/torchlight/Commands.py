@@ -1023,23 +1023,14 @@ class Say(BaseCommand):
         ]
 
     async def Say(self, player: Player, language: str, tld: str, message: str) -> int:
-        google_text_to_speech = gtts.gTTS(text=message, tld=tld, lang=language, lang_check=False)
-
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
-        google_text_to_speech.write_to_fp(temp_file)
-        temp_file.close()
-
-        audio_clip = self.audio_manager.AudioClip(player, Path(temp_file.name).absolute().as_uri())
-        if not audio_clip:
-            os.unlink(temp_file.name)
+        try:
+            temp_path = await _synthesize_gtts(message, language, tld)
+        except Exception as e:
+            self.logger.warning(f"gTTS synthesis failed: {e}")
+            self.torchlight.SayPrivate(player, f"TTS failed: {e}")
             return 1
 
-        if audio_clip.Play():
-            audio_clip.audio_player.AddCallback("Stop", lambda: os.unlink(temp_file.name))
-            return 0
-        else:
-            os.unlink(temp_file.name)
-            return 1
+        return 0 if _play_tts_file(self.audio_manager, player, temp_path) else 1
 
     def HandleSay(self, message: list[str], player: Player) -> tuple[str, str] | None:
         language: str = ""
@@ -1124,7 +1115,7 @@ class Say(BaseCommand):
 
         language, tld = res
 
-        asyncio.ensure_future(self.Say(player, language, tld, message[1]))
+        Utils.FireAndForget(self.Say(player, language, tld, message[1]), self.logger)
         self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return 0
 
@@ -1147,34 +1138,70 @@ class TranslateSay(Say):
             self.torchlight.SayPrivate(player, f"Translation failed: {e}")
             return 1
 
-        try:
-            tts = gtts.gTTS(text=translated_text, lang=language, tld=tld, lang_check=False)
-            temp_file = tempfile.NamedTemporaryFile(delete=False)
+        return await super().Say(player, language, tld, translated_text)
+
+
+# Shared temp-file handling for the TTS commands (Say, TranslateSay, DECTalk). A TTS
+# file is owned by the code that created it until _play_tts_file hands it over to the
+# playing clip's Stop callback, so every failure path must remove it.
+TTS_TEMP_PREFIX = "torchlight-tts-"
+
+
+def _remove_tts_file(path: str) -> None:
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        pass
+    except OSError as e:
+        logging.getLogger(__name__).warning(f"Unable to remove TTS file {path}: {e}")
+
+
+def _write_gtts_file(text: str, language: str, tld: str) -> str:
+    # Runs in a worker thread: gTTS does blocking HTTP requests.
+    tts = gtts.gTTS(text=text, tld=tld, lang=language, lang_check=False)
+    temp_file = tempfile.NamedTemporaryFile(prefix=TTS_TEMP_PREFIX, suffix=".mp3", delete=False)
+    try:
+        with temp_file:
             tts.write_to_fp(temp_file)
-            temp_file.close()
-        except Exception as e:
-            self.torchlight.SayPrivate(player, f"TTS failed: {e}")
-            return 1
+    except BaseException:
+        _remove_tts_file(temp_file.name)
+        raise
+    return temp_file.name
 
-        audio_clip = self.audio_manager.AudioClip(player, Path(temp_file.name).absolute().as_uri())
 
-        if not audio_clip:
-            os.unlink(temp_file.name)
-            return 1
+def _discard_tts_result(future: asyncio.Future[str]) -> None:
+    if not future.cancelled() and future.exception() is None:
+        _remove_tts_file(future.result())
 
-        if audio_clip.Play():
-            audio_clip.audio_player.AddCallback("Stop", lambda: os.unlink(temp_file.name))
-            return 0
 
-        os.unlink(temp_file.name)
-        return 1
+async def _synthesize_gtts(text: str, language: str, tld: str) -> str:
+    future = asyncio.ensure_future(asyncio.to_thread(_write_gtts_file, text, language, tld))
+    try:
+        return await asyncio.shield(future)
+    except asyncio.CancelledError:
+        # The worker thread cannot be interrupted: drop its file once it is done.
+        future.add_done_callback(_discard_tts_result)
+        raise
+
+
+def _play_tts_file(audio_manager: AudioManager, player: Player, path: str, *args: str) -> bool:
+    try:
+        audio_clip = audio_manager.AudioClip(player, Path(path).absolute().as_uri())
+        if audio_clip and audio_clip.Play(None, None, *args):
+            # Only the path is captured, so nothing large outlives the playback.
+            audio_clip.audio_player.AddCallback("Stop", lambda: _remove_tts_file(path))
+            return True
+    except BaseException:
+        _remove_tts_file(path)
+        raise
+
+    _remove_tts_file(path)
+    return False
 
 
 class DECTalk(BaseCommand):
     async def Say(self, player: Player, message: str) -> int:
         message = "[:phoneme on]" + message
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
-        temp_file.close()
 
         dectalk_path = os.path.abspath(self.torchlight.config.config.get("DECTalk", {}).get("Path", "dectalk"))
         dectalk_say_path = os.path.abspath(
@@ -1183,26 +1210,44 @@ class DECTalk(BaseCommand):
                 self.torchlight.config.config.get("DECTalk", {}).get("SayFilename", "say"),
             )
         )
-        subprocess = await asyncio.create_subprocess_exec(
-            dectalk_say_path,
-            "-fo",
-            temp_file.name,
-            cwd=dectalk_path,
-            stdin=asyncio.subprocess.PIPE,
-        )
-        await subprocess.communicate(message.encode("utf-8", errors="ignore"))
 
-        audio_clip = self.audio_manager.AudioClip(player, Path(temp_file.name).absolute().as_uri())
-        if not audio_clip:
-            os.unlink(temp_file.name)
+        temp_file = tempfile.NamedTemporaryFile(prefix=TTS_TEMP_PREFIX, suffix=".wav", delete=False)
+        temp_file.close()
+        try:
+            await self._synthesize(dectalk_say_path, dectalk_path, temp_file.name, message)
+        except asyncio.CancelledError:
+            _remove_tts_file(temp_file.name)
+            raise
+        except Exception as e:
+            _remove_tts_file(temp_file.name)
+            # The error can carry server paths (missing binary), so keep it out of chat.
+            self.logger.warning(f"DECTalk synthesis failed: {e}")
+            self.torchlight.SayPrivate(player, "TTS failed.")
             return 1
 
-        if audio_clip.Play(None, None, "-af", "volume=10dB"):
-            audio_clip.audio_player.AddCallback("Stop", lambda: os.unlink(temp_file.name))
-            return 0
+        return 0 if _play_tts_file(self.audio_manager, player, temp_file.name, "-af", "volume=10dB") else 1
 
-        os.unlink(temp_file.name)
-        return 1
+    async def _synthesize(self, say_path: str, cwd: str, output_path: str, message: str) -> None:
+        process = await asyncio.create_subprocess_exec(
+            say_path,
+            "-fo",
+            output_path,
+            cwd=cwd,
+            stdin=asyncio.subprocess.PIPE,
+        )
+        try:
+            await process.communicate(message.encode("utf-8", errors="ignore"))
+        finally:
+            # communicate() failed or was cancelled: do not leave the process behind.
+            if process.returncode is None:
+                try:
+                    process.kill()
+                except ProcessLookupError:
+                    pass
+                await process.wait()
+
+        if process.returncode != 0:
+            raise RuntimeError(f"say exited with code {process.returncode}")
 
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
@@ -1216,8 +1261,7 @@ class DECTalk(BaseCommand):
         if not message[1]:
             return 1
 
-        self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
-        asyncio.ensure_future(self.Say(player, message[1]))
+        Utils.FireAndForget(self.Say(player, message[1]), self.logger)
         self.torchlight.SetPlayerCooldown(player, self.torchlight.config["AntiSpam"]["ChatCooldown"])
         return 0
 
