@@ -5,6 +5,12 @@ from typing import Any
 
 import aiohttp
 
+# The event loop only keeps weak references to tasks, so a task nobody else
+# references can be garbage-collected mid-execution (e.g. while awaiting a
+# future that is itself only weakly reachable). FireAndForget parks each task
+# here until it finishes; the done callback removes it again.
+_background_tasks: set[asyncio.Task] = set()
+
 
 class Utils:
     @staticmethod
@@ -22,17 +28,21 @@ class Utils:
 
     @staticmethod
     def FireAndForget(coro: Coroutine[Any, Any, Any], logger: logging.Logger) -> asyncio.Task:
-        # Logs exceptions instead of letting asyncio silently discard them on an untracked task.
+        # Keeps a strong reference until the task finishes and logs exceptions
+        # instead of letting asyncio silently discard them.
         task = asyncio.ensure_future(coro)
+        _background_tasks.add(task)
 
-        def _log_exception(task: asyncio.Task) -> None:
+        def _on_done(task: asyncio.Task) -> None:
+            # Runs on success, exception and cancellation alike.
+            _background_tasks.discard(task)
             if task.cancelled():
                 return
             exc = task.exception()
             if exc is not None:
                 logger.error("Unhandled exception in fire-and-forget task", exc_info=exc)
 
-        task.add_done_callback(_log_exception)
+        task.add_done_callback(_on_done)
         return task
 
     @staticmethod

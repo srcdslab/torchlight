@@ -44,35 +44,60 @@ RUN --mount=type=secret,id=pipconf,dst="/root/.config/pip/pip.conf" \
     --mount=type=bind,source=requirements-dev.txt,target=requirements-dev.txt \
     pip wheel --no-deps --wheel-dir /app/wheels -r requirements.txt -r requirements-dev.txt
 
+# Third-party runtime assets are fetched and verified in a throwaway stage so the
+# runtime image does not need curl. To bump one, update its version ARG and set
+# the matching *_SHA256 to the `sha256sum` of the new download.
+FROM build as assets
+
+# GeoLite2 City DB, redistributed as an immutable npm package by
+# wp-statistics/GeoLite2-City (old versions stay downloadable, unlike rotating
+# GitHub release tags).
+ARG GEOLITE2_CITY_VERSION=1.0.107
+ARG GEOLITE2_CITY_SHA256=832eebcfc88a4fb151b348e70d27c4d8c3c5cc5fb593d2852ec9982949174a25
+ARG DECTALK_VERSION=2023-10-30
+ARG DECTALK_SHA256=185d94dbb5f51f6f866a4d4521b39eba486095753d21d398578cc573604e3b0c
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+WORKDIR /tmp/assets
+
+RUN curl -fsSL --retry 3 \
+        "https://registry.npmjs.org/geolite2-city/-/geolite2-city-${GEOLITE2_CITY_VERSION}.tgz" \
+        -o geolite2-city.tgz \
+    && echo "${GEOLITE2_CITY_SHA256}  geolite2-city.tgz" | sha256sum -c - \
+    && mkdir -p /out/GeoIP \
+    && tar -xzOf geolite2-city.tgz package/GeoLite2-City.mmdb.gz | gunzip > /out/GeoIP/GeoLite2-City.mmdb \
+    && rm -f geolite2-city.tgz
+
+RUN curl -fsSL --retry 3 \
+        "https://github.com/dectalk/dectalk/releases/download/${DECTALK_VERSION}/ubuntu-latest.tar.gz" \
+        -o dectalk.tar.gz \
+    && echo "${DECTALK_SHA256}  dectalk.tar.gz" | sha256sum -c - \
+    && mkdir -p dectalk /out/dectalk \
+    && tar -xzf dectalk.tar.gz -C dectalk --strip-components=1 --no-same-owner \
+    && mv dectalk/say /out/dectalk \
+    && mv dectalk/dic/* /out/dectalk \
+    && mv dectalk/lib /out/dectalk \
+    && rm -rf dectalk.tar.gz dectalk
+
 FROM python:3.12-slim-bookworm@sha256:782412e85d0f0984994c290652577d4018aff08145c85b262bb63dc0c7522254 as runtime
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-ENV DEBIAN_FRONTEND noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
 
 # hadolint ignore=DL3008
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update -yq \
     && apt-get install -yq --no-install-recommends \
-    curl \
+    ca-certificates \
     ffmpeg \
-    git \
-    libmagic-dev \
-    software-properties-common \
+    libmagic1 \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /var/log/* \
-    && update-ca-certificates
+    && rm -rf /var/lib/apt/lists/* /var/log/*
 
-RUN mkdir -p /usr/share/GeoIP/ \
-    && curl -L https://github.com/P3TERX/GeoLite.mmdb/releases/download/2026.03.25/GeoLite2-City.mmdb -o /usr/share/GeoIP/GeoLite2-City.mmdb
-
-RUN curl -L https://github.com/dectalk/dectalk/releases/download/2023-10-30/ubuntu-latest.tar.gz -o /tmp/dectalk.tar.gz \
-    && mkdir -p /tmp/dectalk /opt/dectalk \
-    && tar -xvf /tmp/dectalk.tar.gz -C /tmp/dectalk --strip-components=1 \
-    && mv /tmp/dectalk/say /opt/dectalk \
-    && mv /tmp/dectalk/dic/* /opt/dectalk \
-    && mv /tmp/dectalk/lib /opt/dectalk \
-    && rm -rf /tmp/dectalk.tar.gz /tmp/dectalk
+COPY --from=assets /out/GeoIP/ /usr/share/GeoIP/
+COPY --from=assets /out/dectalk/ /opt/dectalk/
 
 RUN groupadd -g 1000 rootless && \
     useradd --create-home -r -u 1000 -g rootless rootless

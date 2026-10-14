@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import sys
+import traceback
 
 from torchlight.AccessManager import AccessManager
 from torchlight.AsyncClient import AsyncClient
@@ -10,6 +12,7 @@ from torchlight.PlayerManager import PlayerManager
 from torchlight.Sourcemod import SourcemodConfig
 from torchlight.Torchlight import Torchlight
 from torchlight.TriggerManager import TriggerManager
+from torchlight.Utils import Utils
 
 
 class TorchlightHandler:
@@ -18,30 +21,53 @@ class TorchlightHandler:
         self.config = config
         self.loop: asyncio.AbstractEventLoop = loop if loop else asyncio.get_event_loop()
 
+        # Bumped on every (re)connect and on shutdown: a _Connect() that outlived its link
+        # sees a newer generation and bails out instead of initializing the next graph.
+        self.connection_generation = 0
+        self.connect_task: asyncio.Task | None = None
+        self.shutting_down = False
+
         self.Init()
 
-        asyncio.ensure_future(self._Connect(), loop=self.loop)
+        self._StartConnect()
 
-    async def _Connect(self) -> None:
+    def _StartConnect(self) -> None:
+        self.connection_generation += 1
+        self.connect_task = Utils.FireAndForget(self._Connect(self.connection_generation), self.logger)
+
+    def _CancelConnect(self) -> None:
+        if self.connect_task is not None and not self.connect_task.done():
+            self.connect_task.cancel()
+        self.connect_task = None
+
+    async def _Connect(self, generation: int) -> None:
+        # Bind this generation's objects: OnDisconnect() rebinds self.* to a new graph.
+        async_client = self.async_client
+        torchlight = self.torchlight
+
         # Connect to API
-        await self.async_client.Connect()
+        await async_client.Connect()
 
         # Pre Hook for late load
-        await self.torchlight.game_events._Register(["player_connect", "player_activate"])
-        await self.torchlight.forwards._Register(["OnClientPostAdminCheck", "OnMenuSelect"])
+        await torchlight.game_events._Register(["player_connect", "player_activate"])
+        await torchlight.forwards._Register(["OnClientPostAdminCheck", "OnMenuSelect"])
+
+        if generation != self.connection_generation:
+            # The link dropped while registering: OnDisconnect() already built a new graph
+            # and started its own _Connect(), which must be the only one to set it up.
+            self.logger.info(f"Connection #{generation} superseded during setup, aborting")
+            return
 
         self.InitModules()
 
         # Late load
-        await self.torchlight.game_events.Replay(["player_connect", "player_activate"])
-        await self.torchlight.forwards.Replay(["OnClientPostAdminCheck"])
+        await torchlight.game_events.Replay(["player_connect", "player_activate"])
+        if generation != self.connection_generation:
+            return
+        await torchlight.forwards.Replay(["OnClientPostAdminCheck"])
 
     def Init(self) -> None:
-        # Init() also runs on reconnect, so release the previous run's FlareSolverr session.
-        previous_torchlight = getattr(self, "torchlight", None)
-        if previous_torchlight is not None:
-            asyncio.ensure_future(previous_torchlight.flaresolverr.close())
-
+        # Init() also runs on reconnect; OnDisconnect() tears the previous graph down.
         self.access_manager = AccessManager(self.config.config_folder)
         self.access_manager.Load()
 
@@ -133,7 +159,7 @@ class TorchlightHandler:
         if player is None:
             return
 
-        asyncio.ensure_future(self.command_handler.HandleCommand(text, player))
+        Utils.FireAndForget(self.command_handler.HandleCommand(text, player), self.logger)
 
     def OnPublish(self, obj: dict[str, str]) -> None:
         self.torchlight.OnPublish(obj)
@@ -141,12 +167,62 @@ class TorchlightHandler:
     def OnDisconnect(self, exc: Exception | None) -> None:
         self.logger.info(f"OnDisconnect({exc})")
 
-        self.Init()
+        if self.shutting_down:
+            return
 
-        asyncio.ensure_future(self._Connect(), loop=self.loop)
+        # A _Connect() still running for the dead link must not touch the new graph.
+        self._CancelConnect()
+
+        previous_torchlight = self.torchlight
+        previous_audio_manager = self.audio_manager
+        previous_command_handler = self.command_handler
+        try:
+            self.Init()
+        finally:
+            # Nothing can reach the previous graph once Init() rebound self.*, so stop its
+            # clips and close its commands now rather than letting them run orphaned.
+            self._TeardownGraph(previous_torchlight, previous_audio_manager, previous_command_handler)
+
+        self._StartConnect()
+
+    def _TeardownGraph(
+        self,
+        torchlight: Torchlight,
+        audio_manager: AudioManager,
+        command_handler: CommandHandler,
+    ) -> asyncio.Task:
+        # Refuse new clips/commands on this graph: a command still awaiting (e.g. a !yt
+        # resolving its URL) would otherwise start a clip nothing can reach or stop.
+        torchlight.disabled = sys.maxsize
+
+        # Stop() kills the ffmpeg process, voice-server socket and HTTP stream; its Stop
+        # callback removes the clip from audio_clips and releases the clip's closures.
+        for audio_clip in audio_manager.audio_clips[:]:
+            try:
+                audio_clip.Stop()
+            except Exception:
+                self.logger.error(traceback.format_exc())
+        audio_manager.audio_clips.clear()
+
+        for command in command_handler.commands:
+            try:
+                command.close()
+            except Exception:
+                self.logger.error(traceback.format_exc())
+        command_handler.commands.clear()
+
+        return Utils.FireAndForget(torchlight.flaresolverr.close(), self.logger)
+
+    async def Shutdown(self) -> None:
+        if self.shutting_down:
+            return
+
+        self.logger.info("Shutting down")
+        self.shutting_down = True
+        self.connection_generation += 1
+        self._CancelConnect()
+
+        await self._TeardownGraph(self.torchlight, self.audio_manager, self.command_handler)
 
     def __del__(self) -> None:
-        torchlight = getattr(self, "torchlight", None)
-        if torchlight is not None:
-            asyncio.ensure_future(torchlight.flaresolverr.close())
         self.logger.debug("~TorchlightHandler()")
