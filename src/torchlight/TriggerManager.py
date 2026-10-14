@@ -27,8 +27,13 @@ class TriggerManager(ConfigFile):
             "Pitch": float(voice_server_params.get("Pitch", {}).get("Default", 1.0)),
         }
 
-        self.triggers_dict = self.load_json(ordered=True)
-        for line in self.triggers_dict:
+        sound_path_root = self.config.config.get("Sounds", {}).get("Path", "sounds")
+
+        # Build into locals and swap at the end: triggers removed from the file
+        # disappear on reload, and a failed load keeps the previous triggers intact.
+        triggers_dict = self.load_json(ordered=True)
+        voice_triggers: dict[str, dict[str, str | list[str] | dict[str, float]]] = {}
+        for line in triggers_dict:
             for trigger in line["names"]:
                 config_sounds = line["sound"]
                 parameters: dict[str, float] | None = None
@@ -42,7 +47,7 @@ class TriggerManager(ConfigFile):
                         else:
                             parameters[key] = float(parameters[key])
 
-                self.voice_triggers[trigger] = {
+                voice_triggers[trigger] = {
                     "sounds": config_sounds,
                     "parameters": parameters if parameters else default_parameters,
                 }
@@ -54,6 +59,10 @@ class TriggerManager(ConfigFile):
                     sounds.extend(config_sounds)
 
                 for sound in sounds:
-                    sound_path = os.path.abspath(os.path.join(self.sound_path, sound))
+                    sound_path = os.path.abspath(os.path.join(sound_path_root, sound))
                     if not os.path.exists(sound_path):
                         self.logger.warning(f"Sound path {sound_path} does not exist")
+
+        self.triggers_dict = triggers_dict
+        self.voice_triggers = voice_triggers
+        self.sound_path = sound_path_root
