@@ -26,7 +26,7 @@ class FlareSolverr:
             payload["proxy"] = {"url": proxy}
 
         session = self._get_session()
-        async with session.post(self.url, json=payload, timeout=65) as response:
+        async with session.post(self.url, json=payload, timeout=aiohttp.ClientTimeout(total=65)) as response:
             res_data = await response.json()
             if res_data.get("status") == "ok":
                 solution = res_data.get("solution", {})
