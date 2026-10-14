@@ -340,7 +340,7 @@ class FFmpegAudioPlayer:
 
                             break
 
-                    except (asyncio.TimeoutError, aiohttp.ClientError) as err:
+                    except (TimeoutError, aiohttp.ClientError) as err:
                         self.logger.warning(
                             "Stream network drop/timeout (%s). Retrying (%d/%d)...", err, attempt, max_network_retries
                         )
@@ -442,7 +442,7 @@ class FFmpegAudioPlayer:
 
         try:
             await asyncio.wait_for(proc.wait(), timeout=2.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             try:
                 proc.kill()
             except ProcessLookupError:

@@ -11,6 +11,8 @@ from torchlight.ClientProtocol import ClientProtocol
 
 class AsyncClient:
     VALID_CALLBACKS = ["OnPublish", "OnDisconnect"]
+    # Seconds to wait for SourceMod to answer one request before the link is considered broken.
+    SEND_TIMEOUT = 10.0
 
     def __init__(
         self,
@@ -26,7 +28,7 @@ class AsyncClient:
 
         self.protocol: ClientProtocol | None = None
         self.send_lock = asyncio.Lock()
-        self.recv_future: Future | None = None
+        self.recv_future: Future[Any] | None = None
         self.callbacks: list[tuple[str, Callable]] = []
 
     # @profile
@@ -67,15 +69,21 @@ class AsyncClient:
             self.logger.warning("OnReceive: Unable to decode data as json, skipping")
             return
 
-        if "method" in json_obj and json_obj["method"] == "publish":
+        if isinstance(json_obj, dict) and json_obj.get("method") == "publish":
             self.Callback("OnPublish", json_obj)
-        else:
-            if self.recv_future:
-                self.recv_future.set_result(json_obj)
+            return
+
+        future = self.recv_future
+        if future is None or future.done():
+            # No request is waiting (it timed out or was cancelled) or it was already answered.
+            self.logger.warning("OnReceive: Unexpected reply with no pending request, dropping it")
+            return
+
+        future.set_result(json_obj)
 
     def OnDisconnect(self, exc: Exception | None) -> None:
         self.protocol = None
-        if self.recv_future:
+        if self.recv_future and not self.recv_future.done():
             self.recv_future.cancel()
         self.Callback("OnDisconnect", exc)
 
@@ -89,14 +97,38 @@ class AsyncClient:
             if not self.protocol:
                 return None
 
-            future = self.recv_future = Future()
+            future: Future[Any] = self.loop.create_future()
+            self.recv_future = future
             self.protocol.Send(data)
 
             try:
-                await future
+                await asyncio.wait_for(future, timeout=self.SEND_TIMEOUT)
+            except TimeoutError:
+                self.logger.warning(
+                    f"Send: No reply to {self._Describe(json_obj)} within {self.SEND_TIMEOUT}s, "
+                    "dropping the SourceMod link"
+                )
+                self._DropConnection()
+                return None
             except asyncio.CancelledError:
                 return None
             finally:
                 self.recv_future = None
 
             return future.result()
+
+    def _DropConnection(self) -> None:
+        # Requests carry no id, so a late reply would be matched to the next request.
+        # Close the link instead: connection_lost -> OnDisconnect -> reconnect takes over.
+        protocol = self.protocol
+        self.protocol = None
+        if protocol:
+            protocol.Close()
+
+    @staticmethod
+    def _Describe(json_obj: Any) -> str:
+        if not isinstance(json_obj, dict):
+            return "request"
+        method = json_obj.get("method")
+        target = json_obj.get("function") or json_obj.get("module")
+        return f"{method}({target})" if target else str(method)
