@@ -62,39 +62,35 @@ class AudioManager:
         return params
 
     def CheckLimits(self, player: Player) -> bool:
-        level = player.admin.level
+        # Per-level limits live in the AudioLimits section (the same source as
+        # AudioClip and FormatAccess). Read them at call time so !reload applies.
+        # A level without an entry, or no AudioLimits section at all, means no limits.
+        limits = self.torchlight.config.config.get("AudioLimits", {}).get(str(player.admin.level))
+        if not limits:
+            return True
 
-        if str(level) in self.anti_spam.config:
-            if (
-                self.anti_spam.config[str(level)]["Uses"] >= 0
-                and player.storage["Audio"]["Uses"] >= self.anti_spam.config[str(level)]["Uses"]
-            ):
-                self.torchlight.SayPrivate(
-                    player,
-                    "You have used up all of your free uses! ({} uses)".format(
-                        self.anti_spam.config[str(level)]["Uses"]
-                    ),
-                )
-                return False
+        audio_storage = player.storage["Audio"]
 
-            if player.storage["Audio"]["TimeUsed"] >= self.anti_spam.config[str(level)]["TotalTime"]:
-                self.torchlight.SayPrivate(
-                    player,
-                    "You have used up all of your free time! ({} seconds)".format(
-                        self.anti_spam.config[str(level)]["TotalTime"]
-                    ),
-                )
-                return False
+        # Negative Uses / TotalTime mean unlimited, consistent with FormatAccess.
+        uses = limits.get("Uses", -1)
+        if uses >= 0 and audio_storage["Uses"] >= uses:
+            self.torchlight.SayPrivate(player, f"You have used up all of your free uses! ({uses} uses)")
+            return False
 
-            time_elapsed = self.torchlight.loop.time() - player.storage["Audio"]["LastUse"]
-            use_delay = player.storage["Audio"]["LastUseLength"] * self.anti_spam.config[str(level)]["DelayFactor"]
+        total_time = limits.get("TotalTime", -1)
+        if total_time >= 0 and audio_storage["TimeUsed"] >= total_time:
+            self.torchlight.SayPrivate(player, f"You have used up all of your free time! ({total_time} seconds)")
+            return False
 
-            if time_elapsed < use_delay:
-                self.torchlight.SayPrivate(
-                    player,
-                    f"You are currently on cooldown! ({round(use_delay - time_elapsed)} seconds left)",
-                )
-                return False
+        time_elapsed = self.torchlight.loop.time() - audio_storage["LastUse"]
+        use_delay = audio_storage["LastUseLength"] * limits.get("DelayFactor", 0)
+
+        if time_elapsed < use_delay:
+            self.torchlight.SayPrivate(
+                player,
+                f"You are currently on cooldown! ({round(use_delay - time_elapsed)} seconds left)",
+            )
+            return False
 
         return True
 
