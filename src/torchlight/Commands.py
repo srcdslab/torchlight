@@ -117,11 +117,6 @@ class BaseCommand:
         max_items: int,
         max_pages: int,
     ) -> tuple[dict[str, str], int, int]:
-        start = (page - 1) * max_items if page else 0
-        end = len(res)
-        if end > max_items:
-            end = start + max_items
-
         start = (page - 1) * max_items
         end = start + max_items
         command_items = dict(list(res.items())[start:end])
@@ -388,7 +383,10 @@ class UrbanDictionary(BaseCommand):
         if self.check_disabled(player):
             return -1
 
-        data = await Utils.FetchJson(f"https://api.urbandictionary.com/v0/define?term={message[1]}")
+        data = await Utils.FetchJson(
+            "https://api.urbandictionary.com/v0/define",
+            params={"term": message[1]},
+        )
         if not data:
             return 3
 
@@ -442,27 +440,35 @@ class OpenWeather(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
+        if not self.torchlight.config["OpenWeatherAPIKey"]:
+            self.torchlight.SayPrivate(
+                message="OpenWeather is not configured (API key missing)",
+                player=player,
+            )
+            return 1
+
         if self.check_chat_cooldown(player):
             return -1
 
         if self.check_disabled(player):
             return -1
 
+        params: dict[str, str] = {
+            "APPID": self.torchlight.config["OpenWeatherAPIKey"],
+            "units": "metric",
+        }
         if not message[1]:
             # Use GeoIP location
             if self.geo_ip is None:
                 self.torchlight.SayPrivate(player, "[OW] Location lookup is unavailable, please specify a city.")
                 return 1
             info = self.geo_ip.city(player.address.split(":")[0])
-            search = f"lat={info.location.latitude}&lon={info.location.longitude}"
+            params["lat"] = str(info.location.latitude)
+            params["lon"] = str(info.location.longitude)
         else:
-            search = f"q={message[1]}"
+            params["q"] = message[1]
 
-        data = await Utils.FetchJson(
-            "https://api.openweathermap.org/data/2.5/weather?APPID={}&units=metric&{}".format(
-                self.torchlight.config["OpenWeatherAPIKey"], search
-            )
-        )
+        data = await Utils.FetchJson("https://api.openweathermap.org/data/2.5/weather", params=params)
         if not data:
             return 3
 
@@ -826,9 +832,9 @@ class Search(BaseCommand):
         self.torchlight.SayPrivate(player, "{} results: {}".format(len(res), ", ".join(res.keys())))
 
         actual_count = len(res)
-        max = self.get_config().get("parameters", {}).get("max_results", 30)
+        max_results = max(1, self.get_config().get("parameters", {}).get("max_results", 30))
 
-        max_pages = (actual_count + max - 1) // max
+        max_pages = (actual_count + max_results - 1) // max_results
         if page > max_pages:
             page = max_pages
         if page < 1:
@@ -839,7 +845,7 @@ class Search(BaseCommand):
             search=voice_trigger,
             res=res,
             page=page,
-            max_items=max,
+            max_items=max_results,
             max_pages=max_pages,
         )
 
@@ -1330,15 +1336,6 @@ class Enable(BaseCommand):
 class Disable(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
         if not self.torchlight.disabled:
-            if self.torchlight.disabled > player.admin.level:
-                self.torchlight.SayPrivate(
-                    player,
-                    (
-                        "You don't have access to disable torchlight"
-                        ", since it was already disabled by a higher level user."
-                    ),
-                )
-                return 1
             self.torchlight.SayChat(
                 "Torchlight has been disabled for the duration of this map - Type !enable to enable it again."
             )
@@ -1529,7 +1526,8 @@ class MyInstantsSearch(BaseCommand):
 
         search_only: bool = False
         command_config = self.get_config()
-        if "search_cmd" in command_config["parameters"] and message[0] == command_config["parameters"]["search_cmd"]:
+        parameters = command_config.get("parameters", {})
+        if "search_cmd" in parameters and message[0] == parameters["search_cmd"]:
             search_only = True
 
         # we need to specify the actual page and result if there is any.
@@ -1551,8 +1549,8 @@ class MyInstantsSearch(BaseCommand):
 
         keywords_banned: list[str] = []
 
-        if search and "parameters" in command_config and "keywords_banned" in command_config["parameters"]:
-            keywords_banned = command_config["parameters"]["keywords_banned"]
+        if search and "keywords_banned" in parameters:
+            keywords_banned = parameters["keywords_banned"]
 
         normalized_search = search.lower() if search else ""
         for keyword_banned in keywords_banned:
@@ -1572,9 +1570,7 @@ class MyInstantsSearch(BaseCommand):
 
         player.myinstants_cooldown = current_time + cooldown
 
-        proxy = None
-        if self.torchlight.config["VoiceServer"]["Proxy"]:
-            proxy = self.torchlight.config["VoiceServer"]["Proxy"]
+        proxy = self.torchlight.config["VoiceServer"].get("Proxy") or None
 
         urls: dict[str, str] | str | None = None
 
@@ -1584,7 +1580,7 @@ class MyInstantsSearch(BaseCommand):
             if search:
                 self.torchlight.SayPrivate(player, f"{{darkred}}[MyInstants]{{default}} No sound found for {search}")
             else:
-                self.torchlight.SayPrivate(player, "{{darkred}}[MyInstants]{{default}} No sounds found")
+                self.torchlight.SayPrivate(player, "{darkred}[MyInstants]{default} No sounds found")
             return 1
 
         if isinstance(urls, str):
@@ -1607,12 +1603,10 @@ class MyInstantsSearch(BaseCommand):
                 return 0
 
             urls = {f"{play_cmd} {k}": v for k, v in urls.items()}
-            max = 10
-            if "parameters" in command_config and "max_results" in command_config["parameters"]:
-                max = command_config["parameters"]["max_results"]
+            max_results = max(1, parameters.get("max_results", 10))
 
             actual_count = len(urls)
-            max_pages = (actual_count + max - 1) // max
+            max_pages = (actual_count + max_results - 1) // max_results
             if page > max_pages:
                 page = max_pages
             if page < 1:
@@ -1623,7 +1617,7 @@ class MyInstantsSearch(BaseCommand):
                 search=search,
                 res=urls,
                 page=page,
-                max_items=max,
+                max_items=max_results,
                 max_pages=max_pages,
             )
 
@@ -1683,13 +1677,10 @@ class Help(BaseCommand):
         if message[1] and message[1].isdigit():
             page = int(message[1])
 
-        max = 5
-        command_config = self.get_config()
-        if "parameters" in command_config and "max_results" in command_config["parameters"]:
-            max = command_config["parameters"]["max_results"]
+        max_results = max(1, self.get_config().get("parameters", {}).get("max_results", 5))
 
         actual_count = len(res)
-        max_pages = (actual_count + max - 1) // max
+        max_pages = (actual_count + max_results - 1) // max_results
         if page > max_pages:
             page = max_pages
         if page < 1:
@@ -1700,7 +1691,7 @@ class Help(BaseCommand):
             search=None,
             res=res,
             page=page,
-            max_items=max,
+            max_items=max_results,
             max_pages=max_pages,
         )
 
