@@ -148,7 +148,7 @@ class TorchlightHandler:
         password: str,
     ) -> None:
         self.torchlight.disable_votes = set()
-        self.torchlight.disabled = 0
+        self.torchlight.disabled = None
 
     # @profile
     def Event_PlayerSay(self, userid: int, text: str) -> None:

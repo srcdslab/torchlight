@@ -101,7 +101,7 @@ class BaseCommand:
         level = player.admin.level
 
         disabled = self.torchlight.disabled
-        if disabled and (
+        if disabled is not None and (
             disabled > level or disabled == level and level < self.torchlight.config["AntiSpam"]["ImmunityLevel"]
         ):
             self.torchlight.SayPrivate(player, "Torchlight is currently disabled!")
@@ -604,7 +604,7 @@ class VoteDisable(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
-        if self.torchlight.disabled:
+        if self.torchlight.disabled is not None:
             self.torchlight.SayPrivate(
                 player,
                 "Torchlight is already disabled for the duration of this map.",
@@ -1315,7 +1315,7 @@ class Enable(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
         self.logger.debug(sys._getframe().f_code.co_name + " " + str(message))
 
-        if self.torchlight.disabled:
+        if self.torchlight.disabled is not None:
             if self.torchlight.disabled > player.admin.level:
                 self.torchlight.SayPrivate(
                     player,
@@ -1326,7 +1326,7 @@ class Enable(BaseCommand):
                 "Torchlight has been enabled for the duration of this map - Type !disable to disable it again."
             )
 
-            self.torchlight.disabled = False
+            self.torchlight.disabled = None
         else:
             self.torchlight.SayChat("Torchlight is already enabled.")
 
@@ -1335,7 +1335,7 @@ class Enable(BaseCommand):
 
 class Disable(BaseCommand):
     async def _func(self, message: list[str], player: Player) -> int:
-        if not self.torchlight.disabled:
+        if self.torchlight.disabled is None:
             self.torchlight.SayChat(
                 "Torchlight has been disabled for the duration of this map - Type !enable to enable it again."
             )
