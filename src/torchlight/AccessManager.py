@@ -1,5 +1,8 @@
 import copy
 import json
+import os
+import stat
+import tempfile
 from collections import OrderedDict
 
 from torchlight.Config import ConfigFile
@@ -54,8 +57,33 @@ class AccessManager(ConfigFile):
 
         self.access_dict["admins"] = sorted(self.access_dict["admins"], key=lambda x: x["level"], reverse=True)
 
-        with open(self.config_filepath, "w") as fp:
-            json.dump(self.access_dict, fp, indent="\t")
+        self._write_atomic()
+
+    def _write_atomic(self) -> None:
+        # Write to a temp file in the same directory, then swap it in, so a crash,
+        # kill or full disk mid-write never leaves a truncated admins.json behind.
+        fd, tmp_path = tempfile.mkstemp(
+            dir=os.path.dirname(self.config_filepath),
+            prefix=f".{self.config_filename}.",
+            suffix=".tmp",
+        )
+        try:
+            with os.fdopen(fd, "w") as fp:
+                json.dump(self.access_dict, fp, indent="\t")
+                fp.flush()
+                os.fsync(fp.fileno())
+            # mkstemp creates the file as 0600: keep the permissions of the file we replace.
+            try:
+                os.chmod(tmp_path, stat.S_IMODE(os.stat(self.config_filepath).st_mode))
+            except FileNotFoundError:
+                pass
+            os.replace(tmp_path, self.config_filepath)
+        except BaseException:
+            try:
+                os.unlink(tmp_path)
+            except FileNotFoundError:
+                pass
+            raise
 
     def get_admin(self, *, unique_id: str) -> SourcemodAdmin | None:
         admin_copy: SourcemodAdmin | None = None
@@ -70,6 +98,6 @@ class AccessManager(ConfigFile):
         if self.get_admin(unique_id=unique_id) is None:
             self.admins.append(admin_copy)
         else:
-            for index, admin in enumerate(self.admins):
-                if admin.unique_id == unique_id:
+            for index, existing_admin in enumerate(self.admins):
+                if existing_admin.unique_id == unique_id:
                     self.admins[index] = admin_copy
