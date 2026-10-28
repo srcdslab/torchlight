@@ -131,7 +131,7 @@ class AudioManager:
     ) -> AudioClip | None:
         level = player.admin.level
 
-        if self.torchlight.disabled and self.torchlight.disabled > level:
+        if self.torchlight.disabled is not None and self.torchlight.disabled > level:
             self.torchlight.SayPrivate(player, "Torchlight is currently disabled!")
             return None
 

@@ -41,7 +41,8 @@ class Torchlight:
         self.flaresolverr = FlareSolverr(self._flaresolverr_url())
 
         self.disable_votes: set = set()
-        self.disabled = 0
+        # Level that disabled Torchlight, or None while it is enabled (0 is a valid level)
+        self.disabled: int | None = None
 
         self.callbacks: list[tuple[str, Callable]] = []
 
